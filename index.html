@@ -67,7 +67,7 @@
 
 
     <!-- =========================
-         LIBRARY PAGE
+         LIBRARY
     ========================== -->
 
     <main
@@ -89,8 +89,6 @@
 
 
 
-        <!-- CURRENTLY READING -->
-
         <section
             class="section"
             id="readingSection"
@@ -101,7 +99,6 @@
                 <h2>
                     Đang đọc
                 </h2>
-
 
                 <button
                     class="text-button"
@@ -121,8 +118,6 @@
         </section>
 
 
-
-        <!-- ALL BOOKS -->
 
         <section class="section">
 
@@ -153,17 +148,14 @@
                     📚
                 </div>
 
-
                 <h3>
                     Thư viện của bạn
                 </h3>
-
 
                 <p>
                     Thêm EPUB, PDF hoặc TXT
                     để bắt đầu đọc.
                 </p>
-
 
                 <button
                     class="primary-button"
@@ -188,7 +180,7 @@
 
 
     <!-- =========================
-         BOOK DETAIL PAGE
+         BOOK DETAIL
     ========================== -->
 
     <main
@@ -216,6 +208,77 @@
 
 
     <!-- =========================
+         READER
+    ========================== -->
+
+    <main
+        class="reader-page"
+        id="readerPage"
+        hidden
+    >
+
+        <div class="reader-toolbar">
+
+            <button
+                class="back-button"
+                id="backFromReader"
+                type="button"
+            >
+                ← Thư viện
+            </button>
+
+
+            <div class="reader-title">
+
+                <strong id="readerTitle">
+                    Đang đọc
+                </strong>
+
+            </div>
+
+
+            <div class="reader-controls">
+
+                <button
+                    type="button"
+                    id="decreaseFont"
+                >
+                    A−
+                </button>
+
+
+                <button
+                    type="button"
+                    id="increaseFont"
+                >
+                    A+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <article
+            class="reader-content"
+            id="readerContent"
+        ></article>
+
+
+        <div class="reader-progress">
+
+            <div
+                class="reader-progress-bar"
+                id="readerProgressBar"
+            ></div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- =========================
          ADD BOOK MODAL
     ========================== -->
 
@@ -231,7 +294,6 @@
                 class="modal-close"
                 id="closeAddBook"
                 type="button"
-                aria-label="Đóng"
             >
                 ×
             </button>
@@ -310,10 +372,6 @@
     </div>
 
 
-
-    <!-- =========================
-         JAVASCRIPT
-    ========================== -->
 
     <script src="script.js"></script>
 
