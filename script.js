@@ -710,7 +710,7 @@ readerModePage?.addEventListener("click", () => setReaderMode("page"));
 readerPrev?.addEventListener("click", () => readerNavigate(-1));
 readerNext?.addEventListener("click", () => readerNavigate(1));
 
-function openReader(bookId) {
+async function openReader(bookId) {
     const book = books.find((item) => item.id === bookId);
     if (!book || !book.file) {
         alert("Truyện này chưa có file để đọc.");
