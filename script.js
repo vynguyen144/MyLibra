@@ -14,6 +14,10 @@ const bookGrid = $("bookGrid");
 const allBookGrid = $("allBookGrid");
 const emptyLibrary = $("emptyLibrary");
 const searchInput = document.querySelector(".search-box input");
+const librarySearch = $("librarySearch");
+const genreFilter = $("genreFilter");
+const tagFilter = $("tagFilter");
+const clearFilters = $("clearFilters");
 const themeButton = $("themeButton");
 const homeButton = $("homeButton");
 const settingsButton = $("settingsButton");
@@ -64,6 +68,7 @@ const saveEditBook = $("saveEditBook");
 const editTitle = $("editTitle");
 const editAuthor = $("editAuthor");
 const editGenre = $("editGenre");
+const editTags = $("editTags");
 const editDescription = $("editDescription");
 const editCover = $("editCover");
 
@@ -378,9 +383,86 @@ function createBookCard(book) {
     return card;
 }
 
+function normalizeSearchText(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function splitBookValues(value) {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    return String(value || "")
+        .split(/[,;|]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function getBookTags(book) {
+    return splitBookValues(book.tags);
+}
+
+function getBookGenres(book) {
+    return splitBookValues(book.genre);
+}
+
+function updateFilterOptions() {
+    if (!genreFilter || !tagFilter) return;
+
+    const selectedGenre = genreFilter.value;
+    const selectedTag = tagFilter.value;
+
+    const genres = [...new Set(books.flatMap(getBookGenres))]
+        .filter((value) => value && normalizeSearchText(value) !== normalizeSearchText("Chưa phân loại"))
+        .sort((a, b) => a.localeCompare(b, "vi"));
+
+    const tags = [...new Set(books.flatMap(getBookTags))]
+        .sort((a, b) => a.localeCompare(b, "vi"));
+
+    genreFilter.innerHTML = '<option value="">Tất cả thể loại</option>' +
+        genres.map((value) => '<option value="' + escapeHTML(value) + '">' + escapeHTML(value) + '</option>').join("");
+
+    tagFilter.innerHTML = '<option value="">Tất cả tag</option>' +
+        tags.map((value) => '<option value="' + escapeHTML(value) + '">' + escapeHTML(value) + '</option>').join("");
+
+    genreFilter.value = genres.includes(selectedGenre) ? selectedGenre : "";
+    tagFilter.value = tags.includes(selectedTag) ? selectedTag : "";
+}
+
+function getFilteredBooks() {
+    const keyword = normalizeSearchText(
+        (librarySearch?.value || searchInput?.value || "")
+    );
+    const selectedGenre = normalizeSearchText(genreFilter?.value || "");
+    const selectedTag = normalizeSearchText(tagFilter?.value || "");
+
+    return books.filter((book) => {
+        const searchable = [
+            book.title,
+            book.author,
+            book.genre,
+            book.tags,
+            book.description,
+            book.fileName
+        ].map(normalizeSearchText).join(" ");
+
+        const matchesKeyword = !keyword || searchable.includes(keyword);
+
+        const genres = getBookGenres(book).map(normalizeSearchText);
+        const tags = getBookTags(book).map(normalizeSearchText);
+
+        const matchesGenre = !selectedGenre || genres.includes(selectedGenre);
+        const matchesTag = !selectedTag || tags.includes(selectedTag);
+
+        return matchesKeyword && matchesGenre && matchesTag;
+    });
+}
+
 function renderBooks(bookList = books) {
     bookGrid.innerHTML = "";
     allBookGrid.innerHTML = "";
+
     const sorted = [...bookList].sort((a, b) => {
         const mode = localStorage.getItem("mylibra-sort") || "added";
         if (mode === "title") return String(a.title || "").localeCompare(String(b.title || ""), "vi");
@@ -388,19 +470,37 @@ function renderBooks(bookList = books) {
         return (b.addedAt || 0) - (a.addedAt || 0);
     });
 
+    const hasActiveFilter = Boolean(
+        (librarySearch?.value || searchInput?.value || "").trim() ||
+        genreFilter?.value ||
+        tagFilter?.value
+    );
+
     if (!bookList.length) {
         emptyLibrary.hidden = false;
+        emptyLibrary.innerHTML = hasActiveFilter
+            ? `<div class="empty-icon">🔎</div>
+               <h3>Không tìm thấy truyện</h3>
+               <p>Thử đổi từ khóa, thể loại hoặc tag.</p>
+               <button class="add-button" type="button" id="clearFiltersInline">Xóa bộ lọc</button>`
+            : `<div class="empty-icon">📚</div>
+               <h3>Thư viện của bạn</h3>
+               <p>Thêm EPUB, PDF hoặc TXT để bắt đầu đọc.</p>
+               <button class="primary-button" type="button" id="emptyAddBookButtonInline">+ Thêm truyện</button>`;
+
+        $("clearFiltersInline")?.addEventListener("click", clearAllFilters);
+        $("emptyAddBookButtonInline")?.addEventListener("click", openAddBookModal);
+
+        const section = $("readingSection");
+        if (section) section.hidden = true;
         return;
     }
 
     emptyLibrary.hidden = true;
 
-    if (localStorage.getItem("mylibra-show-reading") === "false") {
-        const section = $("readingSection");
-        if (section) section.hidden = true;
-    } else {
-        const section = $("readingSection");
-        if (section) section.hidden = false;
+    const section = $("readingSection");
+    if (section) {
+        section.hidden = localStorage.getItem("mylibra-show-reading") === "false";
     }
 
     sorted.forEach((book) => {
@@ -409,25 +509,31 @@ function renderBooks(bookList = books) {
     });
 }
 
-if (searchInput) {
-    searchInput.addEventListener("input", () => {
-        const keyword = searchInput.value.trim().toLowerCase();
-
-        if (!keyword) {
-            renderBooks();
-            return;
-        }
-
-        const results = books.filter((book) =>
-            [book.title, book.author, book.genre, book.description]
-                .join(" ")
-                .toLowerCase()
-                .includes(keyword)
-        );
-
-        renderBooks(results);
-    });
+function applyLibraryFilters() {
+    const keyword = (librarySearch?.value || "").trim();
+    if (searchInput && searchInput.value !== keyword) searchInput.value = keyword;
+    renderBooks(getFilteredBooks());
 }
+
+function clearAllFilters() {
+    if (librarySearch) librarySearch.value = "";
+    if (searchInput) searchInput.value = "";
+    if (genreFilter) genreFilter.value = "";
+    if (tagFilter) tagFilter.value = "";
+    updateFilterOptions();
+renderBooks(books);
+}
+
+function syncFilterFromTopSearch() {
+    if (librarySearch) librarySearch.value = searchInput?.value || "";
+    renderBooks(getFilteredBooks());
+}
+
+searchInput?.addEventListener("input", syncFilterFromTopSearch);
+librarySearch?.addEventListener("input", applyLibraryFilters);
+genreFilter?.addEventListener("change", applyLibraryFilters);
+tagFilter?.addEventListener("change", applyLibraryFilters);
+clearFilters?.addEventListener("click", clearAllFilters);
 
 function applyTheme(theme) {
     const normalized = ["light", "dark", "sepia"].includes(theme) ? theme : "light";
@@ -546,6 +652,7 @@ confirmAddBook?.addEventListener("click", async () => {
         title: removeExtension(file.name),
         author: "Chưa rõ tác giả",
         genre: "Chưa phân loại",
+        tags: [],
         description: "",
         progress: 0,
         icon: getBookIcon(type),
@@ -558,7 +665,8 @@ confirmAddBook?.addEventListener("click", async () => {
     try {
         await saveBookToDatabase(newBook);
         books.push(newBook);
-        renderBooks();
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
         closeModal(addBookModal);
         alert('Đã thêm "' + newBook.title + '" vào thư viện.');
     } catch (error) {
@@ -677,7 +785,8 @@ function openEditBook(bookId) {
     currentBookId = bookId;
     editTitle.value = book.title || "";
     editAuthor.value = book.author || "";
-    editGenre.value = book.genre || "";
+    editGenre.value = Array.isArray(book.genre) ? book.genre.join(", ") : (book.genre || "");
+    editTags.value = getBookTags(book).join(", ");
     editDescription.value = book.description || "";
     editCover.value = "";
 
@@ -706,6 +815,7 @@ saveEditBook?.addEventListener("click", async () => {
     book.title = title;
     book.author = editAuthor.value.trim() || "Chưa rõ tác giả";
     book.genre = editGenre.value.trim() || "Chưa phân loại";
+    book.tags = splitBookValues(editTags.value);
     book.description = editDescription.value.trim();
 
     if (editCover.files[0]) {
@@ -721,7 +831,8 @@ saveEditBook?.addEventListener("click", async () => {
     try {
         await saveBookToDatabase(book);
         closeModal(editBookModal);
-        renderBooks();
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
         openBook(book.id);
     } catch (error) {
         console.error(error);
@@ -787,8 +898,9 @@ saveUpdatedFile?.addEventListener("click", async () => {
     try {
         await saveBookToDatabase(book);
         closeModal(updateFileModal);
+        updateFilterOptions();
         openBook(book.id);
-        renderBooks();
+        renderBooks(getFilteredBooks());
         alert("Đã cập nhật file truyện. Thông tin và tiến độ vẫn được giữ lại.");
     } catch (error) {
         console.error(error);
