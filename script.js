@@ -180,7 +180,12 @@ function renderGoogleAccount(profile = getGoogleProfile()) {
             googleAccountIcon.textContent = initial;
         }
     }
-    if (googleAccountText) googleAccountText.textContent = "Đã đăng nhập";
+    if (googleAccountText) googleAccountText.textContent = profile.picture ? "" : "Đã đăng nhập";
+    if (googleLoginButton) {
+        googleLoginButton.classList.toggle("has-google-avatar", Boolean(profile.picture));
+        googleLoginButton.title = profile.name ? "Tài khoản Google: " + profile.name : "Tài khoản Google";
+        googleLoginButton.setAttribute("aria-label", profile.name ? "Tài khoản Google: " + profile.name : "Tài khoản Google");
+    }
     if (googleSettingsAvatar) {
         if (profile.picture) {
             googleSettingsAvatar.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
