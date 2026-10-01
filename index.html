@@ -325,6 +325,10 @@
             <button type="button" id="pdfPrev">←</button>
             <span id="pdfPageInfo">Trang 1 / 1</span>
             <button type="button" id="pdfNext">→</button>
+            <div class="reader-jump pdf-toc-jump" id="pdfTocJump" hidden>
+                <label for="pdfTocSelect">Mục lục</label>
+                <select id="pdfTocSelect" aria-label="Chọn chương PDF"></select>
+            </div>
             <div class="reader-jump pdf-page-jump" id="pdfPageJump">
                 <label for="pdfPageInput">Trang</label>
                 <input id="pdfPageInput" type="number" min="1" value="1" aria-label="Nhập số trang">
@@ -682,7 +686,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261001-4"></script>
+    <script src="script.js?v=20261001-5"></script>
 </body>
 
 </html>
