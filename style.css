@@ -5,19 +5,14 @@
 :root {
 
     --bg: #f8f7fc;
-
     --surface: #ffffff;
-
     --surface-soft: #f1eff8;
 
     --text: #272330;
-
     --text-soft: #777181;
 
     --primary: #8064c8;
-
     --primary-dark: #684db0;
-
     --primary-soft: #eee8fb;
 
     --border: #e5e1ed;
@@ -29,6 +24,11 @@
 
 * {
     box-sizing: border-box;
+}
+
+
+html {
+    scroll-behavior: smooth;
 }
 
 
@@ -48,18 +48,17 @@ body {
     color:
         var(--text);
 
-    transition:
-        background 0.2s ease,
-        color 0.2s ease;
-
 }
 
 
 button,
 input {
-
     font-family: inherit;
+}
 
+
+button {
+    cursor: pointer;
 }
 
 
@@ -174,8 +173,6 @@ input {
     background:
         transparent;
 
-    cursor: pointer;
-
     font-size:
         18px;
 
@@ -202,17 +199,14 @@ input {
             calc(100% - 48px)
         );
 
-    margin: 0 auto;
+    margin:
+        0 auto;
 
     padding:
         48px 0 80px;
 
 }
 
-
-/* =========================================
-   WELCOME
-========================================= */
 
 .welcome {
 
@@ -270,12 +264,7 @@ input {
 
 
 .section-header h2 {
-
     margin: 0;
-
-    font-size:
-        22px;
-
 }
 
 
@@ -288,8 +277,6 @@ input {
     color:
         var(--primary);
 
-    cursor: pointer;
-
     font-weight:
         600;
 
@@ -297,7 +284,7 @@ input {
 
 
 /* =========================================
-   BOOK GRID
+   BOOKS
 ========================================= */
 
 .book-grid {
@@ -331,8 +318,6 @@ input {
 
     border-radius:
         var(--radius);
-
-    cursor: pointer;
 
     transition:
         transform 0.18s ease,
@@ -386,11 +371,7 @@ input {
 
 
 .book-info {
-
     min-width: 0;
-
-    flex: 1;
-
 }
 
 
@@ -401,9 +382,6 @@ input {
 
     font-size:
         16px;
-
-    line-height:
-        1.4;
 
 }
 
@@ -487,9 +465,6 @@ input {
     padding:
         10px 16px;
 
-    cursor:
-        pointer;
-
     font-weight:
         600;
 
@@ -546,7 +521,7 @@ input {
 
 
 /* =========================================
-   EMPTY LIBRARY
+   EMPTY
 ========================================= */
 
 .empty-library {
@@ -618,10 +593,7 @@ input {
 ========================================= */
 
 .book-detail-page {
-
-    padding-top:
-        32px;
-
+    padding-top: 32px;
 }
 
 
@@ -644,9 +616,6 @@ input {
 
     color:
         var(--text);
-
-    cursor:
-        pointer;
 
 }
 
@@ -678,8 +647,7 @@ input {
 
 .book-detail-cover {
 
-    display:
-        flex;
+    display: flex;
 
     justify-content:
         center;
@@ -695,14 +663,11 @@ input {
     aspect-ratio:
         2 / 3;
 
-    display:
-        flex;
+    display: flex;
 
-    align-items:
-        center;
+    align-items: center;
 
-    justify-content:
-        center;
+    justify-content: center;
 
     border-radius:
         18px;
@@ -722,8 +687,7 @@ input {
 
 .book-detail-category {
 
-    display:
-        inline-block;
+    display: inline-block;
 
     margin:
         0 0 12px;
@@ -787,17 +751,224 @@ input {
     display:
         flex;
 
-    gap:
-        12px;
-
     flex-wrap:
         wrap;
+
+    gap:
+        12px;
 
 }
 
 
 /* =========================================
-   ADD BOOK MODAL
+   READER
+========================================= */
+
+.reader-page {
+
+    min-height:
+        calc(100vh - 72px);
+
+    background:
+        var(--bg);
+
+}
+
+
+.reader-toolbar {
+
+    position:
+        sticky;
+
+    top:
+        72px;
+
+    z-index:
+        50;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        20px;
+
+    padding:
+        12px 24px;
+
+    background:
+        var(--surface);
+
+    border-bottom:
+        1px solid var(--border);
+
+}
+
+
+.reader-toolbar .back-button {
+
+    margin:
+        0;
+
+}
+
+
+.reader-title {
+
+    flex: 1;
+
+    text-align:
+        center;
+
+    overflow:
+        hidden;
+
+    white-space:
+        nowrap;
+
+    text-overflow:
+        ellipsis;
+
+}
+
+
+.reader-controls {
+
+    display:
+        flex;
+
+    gap:
+        6px;
+
+}
+
+
+.reader-controls button {
+
+    min-width:
+        42px;
+
+    height:
+        36px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        8px;
+
+    background:
+        var(--surface-soft);
+
+    color:
+        var(--text);
+
+}
+
+
+.reader-controls button:hover {
+
+    border-color:
+        var(--primary);
+
+}
+
+
+/* =========================================
+   READER CONTENT
+========================================= */
+
+.reader-content {
+
+    width:
+        min(
+            760px,
+            calc(100% - 40px)
+        );
+
+    margin:
+        0 auto;
+
+    padding:
+        60px 0 120px;
+
+    font-size:
+        18px;
+
+    line-height:
+        1.9;
+
+    white-space:
+        pre-wrap;
+
+    overflow-wrap:
+        break-word;
+
+}
+
+
+.reader-content p {
+
+    margin:
+        0 0 1.5em;
+
+}
+
+
+/* =========================================
+   READER PROGRESS
+========================================= */
+
+.reader-progress {
+
+    position:
+        fixed;
+
+    bottom:
+        0;
+
+    left:
+        0;
+
+    width:
+        100%;
+
+    height:
+        4px;
+
+    z-index:
+        200;
+
+    background:
+        var(--surface-soft);
+
+}
+
+
+.reader-progress-bar {
+
+    width:
+        0%;
+
+    height:
+        100%;
+
+    background:
+        var(--primary);
+
+    transition:
+        width 0.1s linear;
+
+}
+
+
+/* =========================================
+   MODAL
 ========================================= */
 
 .modal-overlay {
@@ -855,25 +1026,15 @@ input {
     border-radius:
         20px;
 
-    box-shadow:
-        0 25px 70px
-        rgba(0, 0, 0, 0.2);
-
 }
 
 
 .modal h2 {
-
-    margin:
-        0 0 8px;
-
+    margin-top: 0;
 }
 
 
 .modal-description {
-
-    margin:
-        0 0 24px;
 
     color:
         var(--text-soft);
@@ -910,9 +1071,6 @@ input {
     color:
         var(--text-soft);
 
-    cursor:
-        pointer;
-
     font-size:
         24px;
 
@@ -926,10 +1084,6 @@ input {
 
 }
 
-
-/* =========================================
-   FILE DROP ZONE
-========================================= */
 
 .file-drop-zone {
 
@@ -960,15 +1114,8 @@ input {
     background:
         var(--surface-soft);
 
-    cursor:
-        pointer;
-
     text-align:
         center;
-
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
 
 }
 
@@ -977,9 +1124,6 @@ input {
 
     border-color:
         var(--primary);
-
-    background:
-        var(--primary-soft);
 
 }
 
@@ -1015,16 +1159,9 @@ input {
 
 
 .file-drop-zone input {
-
-    display:
-        none;
-
+    display: none;
 }
 
-
-/* =========================================
-   SELECTED FILE
-========================================= */
 
 .selected-file {
 
@@ -1043,18 +1180,11 @@ input {
     background:
         var(--surface-soft);
 
-    font-size:
-        14px;
-
     word-break:
         break-word;
 
 }
 
-
-/* =========================================
-   MODAL ACTIONS
-========================================= */
 
 .modal-actions {
 
@@ -1078,10 +1208,7 @@ input {
 ========================================= */
 
 [hidden] {
-
-    display:
-        none !important;
-
+    display: none !important;
 }
 
 
@@ -1158,14 +1285,6 @@ body.dark-mode .book-cover-large {
 
     }
 
-
-    .book-cover-large {
-
-        width:
-            200px;
-
-    }
-
 }
 
 
@@ -1211,6 +1330,28 @@ body.dark-mode .book-cover-large {
 
     }
 
+
+    .reader-toolbar {
+
+        top:
+            0;
+
+        padding:
+            10px 12px;
+
+    }
+
+
+    .reader-content {
+
+        width:
+            calc(100% - 32px);
+
+        padding-top:
+            40px;
+
+    }
+
 }
 
 
@@ -1234,10 +1375,7 @@ body.dark-mode .book-cover-large {
 
 
     .logo {
-
-        order:
-            1;
-
+        order: 1;
     }
 
 
@@ -1295,10 +1433,13 @@ body.dark-mode .book-cover-large {
     }
 
 
-    .modal {
+    .reader-content {
 
-        padding:
-            24px;
+        font-size:
+            17px;
+
+        line-height:
+            1.8;
 
     }
 
