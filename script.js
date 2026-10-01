@@ -15,6 +15,18 @@ const allBookGrid = $("allBookGrid");
 const emptyLibrary = $("emptyLibrary");
 const searchInput = document.querySelector(".search-box input");
 const themeButton = $("themeButton");
+const homeButton = $("homeButton");
+const settingsButton = $("settingsButton");
+const settingsModal = $("settingsModal");
+const closeSettings = $("closeSettings");
+const saveSettings = $("saveSettings");
+const resetSettings = $("resetSettings");
+const settingShowReading = $("settingShowReading");
+const settingSort = $("settingSort");
+const settingConfirmDelete = $("settingConfirmDelete");
+const settingReaderMode = $("settingReaderMode");
+const settingFontSize = $("settingFontSize");
+const settingLineHeight = $("settingLineHeight");
 
 const addBookButton = $("addBookButton");
 const emptyAddBookButton = $("emptyAddBookButton");
@@ -226,6 +238,12 @@ function createBookCard(book) {
 function renderBooks(bookList = books) {
     bookGrid.innerHTML = "";
     allBookGrid.innerHTML = "";
+    const sorted = [...bookList].sort((a, b) => {
+        const mode = localStorage.getItem("mylibra-sort") || "added";
+        if (mode === "title") return String(a.title || "").localeCompare(String(b.title || ""), "vi");
+        if (mode === "progress") return (b.progress || 0) - (a.progress || 0);
+        return (b.addedAt || 0) - (a.addedAt || 0);
+    });
 
     if (!bookList.length) {
         emptyLibrary.hidden = false;
@@ -234,7 +252,15 @@ function renderBooks(bookList = books) {
 
     emptyLibrary.hidden = true;
 
-    bookList.forEach((book) => {
+    if (localStorage.getItem("mylibra-show-reading") === "false") {
+        const section = $("readingSection");
+        if (section) section.hidden = true;
+    } else {
+        const section = $("readingSection");
+        if (section) section.hidden = false;
+    }
+
+    sorted.forEach((book) => {
         bookGrid.appendChild(createBookCard(book));
         allBookGrid.appendChild(createBookCard(book));
     });
@@ -261,15 +287,59 @@ if (searchInput) {
 }
 
 function applyTheme(theme) {
-    const dark = theme === "dark";
-    document.body.classList.toggle("dark-mode", dark);
-    localStorage.setItem("mylibra-theme", dark ? "dark" : "light");
-    themeButton.textContent = dark ? "☀️" : "🌙";
+    const normalized = ["light", "dark", "sepia"].includes(theme) ? theme : "light";
+    document.body.classList.toggle("dark-mode", normalized === "dark");
+    document.body.classList.toggle("sepia-mode", normalized === "sepia");
+    localStorage.setItem("mylibra-theme", normalized);
+    if (themeButton) themeButton.textContent = normalized === "dark" ? "☀️" : "🌙";
+    document.querySelectorAll(".theme-option").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === normalized));
 }
 
 themeButton?.addEventListener("click", () => {
-    applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
+    const current = localStorage.getItem("mylibra-theme") || "light";
+    applyTheme(current === "dark" ? "light" : "dark");
 });
+
+homeButton?.addEventListener("click", () => {
+    if (!readerPage.hidden) closeReaderAndReturn();
+    else showLibrary();
+});
+
+function loadSettingsUI() {
+    if (settingShowReading) settingShowReading.checked = localStorage.getItem("mylibra-show-reading") !== "false";
+    if (settingSort) settingSort.value = localStorage.getItem("mylibra-sort") || "added";
+    if (settingConfirmDelete) settingConfirmDelete.checked = localStorage.getItem("mylibra-confirm-delete") !== "false";
+    if (settingReaderMode) settingReaderMode.value = localStorage.getItem("mylibra-reader-mode") || "scroll";
+    if (settingFontSize) settingFontSize.value = String(Number(localStorage.getItem("mylibra-font-size")) || 18);
+    if (settingLineHeight) settingLineHeight.value = localStorage.getItem("mylibra-line-height") || "1.9";
+}
+
+function saveSettingsValues() {
+    localStorage.setItem("mylibra-show-reading", String(settingShowReading?.checked !== false));
+    localStorage.setItem("mylibra-sort", settingSort?.value || "added");
+    localStorage.setItem("mylibra-confirm-delete", String(settingConfirmDelete?.checked !== false));
+    localStorage.setItem("mylibra-reader-mode", settingReaderMode?.value || "scroll");
+    localStorage.setItem("mylibra-font-size", settingFontSize?.value || "18");
+    localStorage.setItem("mylibra-line-height", settingLineHeight?.value || "1.9");
+    readerMode = settingReaderMode?.value === "page" ? "page" : "scroll";
+    applyReaderFontSize();
+    applyReaderLineHeight();
+    renderBooks();
+}
+
+settingsButton?.addEventListener("click", () => { loadSettingsUI(); openModal(settingsModal); });
+closeSettings?.addEventListener("click", () => closeModal(settingsModal));
+saveSettings?.addEventListener("click", () => { saveSettingsValues(); closeModal(settingsModal); });
+resetSettings?.addEventListener("click", () => {
+    localStorage.removeItem("mylibra-show-reading"); localStorage.removeItem("mylibra-sort"); localStorage.removeItem("mylibra-confirm-delete"); localStorage.removeItem("mylibra-reader-mode"); localStorage.removeItem("mylibra-font-size"); localStorage.removeItem("mylibra-line-height");
+    loadSettingsUI(); applyTheme("light"); renderBooks();
+});
+document.querySelectorAll(".settings-tab").forEach((tab) => tab.addEventListener("click", () => {
+    document.querySelectorAll(".settings-tab").forEach((item) => item.classList.toggle("active", item === tab));
+    document.querySelectorAll(".settings-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.settingsPanel === tab.dataset.settingsTab));
+}));
+document.querySelectorAll(".theme-option").forEach((button) => button.addEventListener("click", () => applyTheme(button.dataset.themeChoice)));
+
 
 function openModal(modal) {
     if (modal) modal.hidden = false;
@@ -1336,6 +1406,10 @@ function loadFontSize() {
     readerContent.style.fontSize = size + "px";
 }
 
+function applyReaderLineHeight() {
+    readerContent.style.lineHeight = localStorage.getItem("mylibra-line-height") || "1.9";
+}
+
 decreaseFont?.addEventListener("click", () => {
     const current = Number(localStorage.getItem("mylibra-font-size")) || 18;
     const next = Math.max(12, current - 1);
@@ -1417,9 +1491,11 @@ window.addEventListener("scroll", () => {
 
 function initializeMyLibra() {
     const savedTheme = localStorage.getItem("mylibra-theme");
-    applyTheme(savedTheme === "dark" ? "dark" : "light");
+    applyTheme(savedTheme || "light");
+    loadSettingsUI();
 
     loadFontSize();
+    applyReaderLineHeight();
 
     loadBooksFromDatabase()
         .then((storedBooks) => {
