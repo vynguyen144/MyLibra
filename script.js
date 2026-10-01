@@ -80,6 +80,32 @@ const editGenre = $("editGenre");
 const editDescription = $("editDescription");
 const editCover = $("editCover");
 
+const pdfToolbar = $("pdfToolbar");
+const pdfPrev = $("pdfPrev");
+const pdfNext = $("pdfNext");
+const pdfPageInfo = $("pdfPageInfo");
+const pdfZoomOut = $("pdfZoomOut");
+const pdfZoomIn = $("pdfZoomIn");
+const pdfRotate = $("pdfRotate");
+const pdfDeletePage = $("pdfDeletePage");
+const pdfAddText = $("pdfAddText");
+const pdfHighlight = $("pdfHighlight");
+const pdfSave = $("pdfSave");
+
+const epubEditorModal = $("epubEditorModal");
+const closeEpubEditor = $("closeEpubEditor");
+const cancelEpubEditor = $("cancelEpubEditor");
+const saveEpubEditor = $("saveEpubEditor");
+const epubBookTitle = $("epubBookTitle");
+const epubBookAuthor = $("epubBookAuthor");
+const epubChapterList = $("epubChapterList");
+const epubChapterTitle = $("epubChapterTitle");
+const epubContentEditor = $("epubContentEditor");
+const epubAddChapter = $("epubAddChapter");
+const epubDeleteChapter = $("epubDeleteChapter");
+const epubMoveUp = $("epubMoveUp");
+const epubMoveDown = $("epubMoveDown");
+
 const updateFileModal = $("updateFileModal");
 const closeUpdateFile = $("closeUpdateFile");
 const cancelUpdateFile = $("cancelUpdateFile");
@@ -98,6 +124,7 @@ let currentPdfScale = 1.25;
 let currentPdfRotation = 0;
 let currentEpub = null;
 let epubKeyHandler = null;
+let epubEditorState = null;
 
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
@@ -409,6 +436,8 @@ function openBook(bookId) {
                     ✏️ Chỉnh sửa
                 </button>
 
+                ${book.fileType === "EPUB" ? '<button class="add-button" id="editEpubButton" type="button">📖 Sửa EPUB</button>' : ""}
+
                 <button class="add-button" id="updateBookButton" type="button">
                     🔄 Cập nhật file
                 </button>
@@ -431,6 +460,7 @@ function openBook(bookId) {
     });
 
     $("editBookButton")?.addEventListener("click", () => openEditBook(book.id));
+    $("editEpubButton")?.addEventListener("click", () => openEpubEditor(book.id));
     $("updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
 
     $("deleteBookButton")?.addEventListener("click", async () => {
@@ -624,12 +654,7 @@ async function openReader(bookId) {
     }
 
     if (book.fileType === "PDF") {
-        readerContent.innerHTML = `
-            <div style="text-align:center;padding:80px 20px">
-                <h2>PDF Reader</h2>
-                <p>Phần đọc PDF sẽ được tích hợp ở bước tiếp theo.</p>
-            </div>
-        `;
+        await openPdfReader(book);
         return;
     }
 
@@ -849,6 +874,7 @@ pdfSave?.addEventListener("click", saveEditedPdf);
 async function openTxtReader(book) {
     try {
         const text = await book.file.text();
+        if (pdfToolbar) pdfToolbar.hidden = true;
         readerContent.className = "reader-content";
         readerContent.innerHTML = "";
         readerContent.textContent = text;
@@ -872,6 +898,7 @@ async function openEpubReader(book) {
         return;
     }
 
+    if (pdfToolbar) pdfToolbar.hidden = true;
     readerContent.className = "";
     readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
 
@@ -939,6 +966,321 @@ async function openEpubReader(book) {
         alert("Không thể mở EPUB. File có thể bị lỗi hoặc không hợp lệ.");
     }
 }
+
+/* ========================================
+   EPUB EDITOR
+======================================== */
+
+function normalizeZipPath(path) {
+    const parts = [];
+    String(path || "").split("/").forEach((part) => {
+        if (!part || part === ".") return;
+        if (part === "..") parts.pop();
+        else parts.push(part);
+    });
+    return parts.join("/");
+}
+
+function zipPathFromHref(basePath, href) {
+    const cleanHref = String(href || "").split("#")[0].split("?")[0];
+    const decoded = decodeURIComponent(cleanHref);
+    const baseDir = basePath.includes("/") ? basePath.slice(0, basePath.lastIndexOf("/") + 1) : "";
+    return normalizeZipPath(baseDir + decoded);
+}
+
+function parseContainerPath(xmlText) {
+    const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+    return doc.querySelector("rootfile")?.getAttribute("full-path") || "";
+}
+
+function serializeXml(doc) {
+    return new XMLSerializer().serializeToString(doc);
+}
+
+function getEpubMetadataText(opfDoc, localName) {
+    const metadata = opfDoc.getElementsByTagName("metadata")[0];
+    if (!metadata) return "";
+    const node = Array.from(metadata.children).find((el) => el.localName === localName);
+    return node?.textContent?.trim() || "";
+}
+
+function getEpubTitleFromDoc(doc, fallback) {
+    const heading = doc.querySelector("h1,h2,h3");
+    if (heading?.textContent?.trim()) return heading.textContent.trim();
+    const title = doc.querySelector("title");
+    if (title?.textContent?.trim()) return title.textContent.trim();
+    return fallback;
+}
+
+function renderEpubChapterList() {
+    if (!epubChapterList || !epubEditorState) return;
+    epubChapterList.innerHTML = "";
+    epubEditorState.chapters.forEach((chapter, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "epub-chapter-item" + (index === epubEditorState.currentIndex ? " active" : "");
+        button.textContent = (index + 1) + ". " + chapter.title;
+        button.addEventListener("click", () => selectEpubChapter(index));
+        epubChapterList.appendChild(button);
+    });
+}
+
+function saveCurrentEpubChapterToState() {
+    if (!epubEditorState) return;
+    const chapter = epubEditorState.chapters[epubEditorState.currentIndex];
+    if (!chapter) return;
+    chapter.title = epubChapterTitle.value.trim() || ("Chương " + (epubEditorState.currentIndex + 1));
+    chapter.bodyHtml = epubContentEditor.innerHTML;
+}
+
+function selectEpubChapter(index) {
+    if (!epubEditorState) return;
+    saveCurrentEpubChapterToState();
+    const chapter = epubEditorState.chapters[index];
+    if (!chapter) return;
+    epubEditorState.currentIndex = index;
+    epubChapterTitle.value = chapter.title;
+    epubContentEditor.innerHTML = chapter.bodyHtml || "";
+    renderEpubChapterList();
+}
+
+function createNewEpubChapterDocument(title) {
+    const safeTitle = escapeHTML(title);
+    return '<?xml version="1.0" encoding="utf-8"?>' +
+        '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8"/><title>' +
+        safeTitle + '</title></head><body><h1>' + safeTitle +
+        '</h1><p>Nhập nội dung chương mới...</p></body></html>';
+}
+
+async function openEpubEditor(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book || book.fileType !== "EPUB" || !book.file) {
+        alert("Hãy chọn một file EPUB để chỉnh sửa.");
+        return;
+    }
+    if (typeof JSZip === "undefined") {
+        alert("Không tải được EPUB Editor. Hãy kiểm tra kết nối internet rồi tải lại trang.");
+        return;
+    }
+
+    try {
+        const zip = await JSZip.loadAsync(await book.file.arrayBuffer());
+        const containerFile = zip.file("META-INF/container.xml");
+        if (!containerFile) throw new Error("EPUB thiếu META-INF/container.xml.");
+
+        const opfPath = parseContainerPath(await containerFile.async("text"));
+        const opfFile = zip.file(opfPath);
+        if (!opfFile) throw new Error("Không tìm thấy file OPF.");
+
+        const opfDoc = new DOMParser().parseFromString(await opfFile.async("text"), "application/xml");
+        if (opfDoc.querySelector("parsererror")) throw new Error("OPF không hợp lệ.");
+
+        const manifest = {};
+        Array.from(opfDoc.getElementsByTagName("item")).forEach((item) => {
+            const id = item.getAttribute("id");
+            if (id) manifest[id] = item;
+        });
+
+        const spine = opfDoc.querySelector("spine");
+        if (!spine) throw new Error("EPUB thiếu spine.");
+
+        const chapters = [];
+        for (const itemref of Array.from(spine.children)) {
+            const idref = itemref.getAttribute("idref");
+            const item = manifest[idref];
+            if (!item) continue;
+            const mediaType = item.getAttribute("media-type") || "";
+            if (!/xhtml|html/i.test(mediaType)) continue;
+
+            const href = item.getAttribute("href") || "";
+            const zipPath = zipPathFromHref(opfPath, href);
+            const file = zip.file(zipPath);
+            if (!file) continue;
+
+            const doc = new DOMParser().parseFromString(await file.async("text"), "application/xhtml+xml");
+            const body = doc.querySelector("body");
+            if (!body) continue;
+
+            chapters.push({
+                id:idref, href, zipPath, item, itemref,
+                title:getEpubTitleFromDoc(doc, "Chương " + (chapters.length + 1)),
+                bodyHtml:body.innerHTML
+            });
+        }
+
+        if (!chapters.length) throw new Error("Không tìm thấy chương XHTML/HTML trong EPUB.");
+
+        epubEditorState = {bookId, zip, opfPath, opfDoc, spine, manifest, chapters, currentIndex:0};
+        epubBookTitle.value = getEpubMetadataText(opfDoc, "title") || book.title || "";
+        epubBookAuthor.value = getEpubMetadataText(opfDoc, "creator") || book.author || "";
+
+        openModal(epubEditorModal);
+        selectEpubChapter(0);
+    } catch (error) {
+        console.error(error);
+        epubEditorState = null;
+        alert("Không thể mở EPUB để chỉnh sửa. File có thể dùng cấu trúc EPUB đặc biệt hoặc bị lỗi.");
+    }
+}
+
+function updateEpubMetadata(opfDoc, localName, value) {
+    const metadata = opfDoc.getElementsByTagName("metadata")[0];
+    if (!metadata) return;
+    let target = Array.from(metadata.children).find((el) => el.localName === localName);
+    if (!target) {
+        target = opfDoc.createElementNS("http://purl.org/dc/elements/1.1/", "dc:" + localName);
+        metadata.appendChild(target);
+    }
+    target.textContent = value;
+}
+
+async function refreshEpubChapterDocument(chapter) {
+    const file = epubEditorState.zip.file(chapter.zipPath);
+    if (!file) return;
+    const doc = new DOMParser().parseFromString(await file.async("text"), "application/xhtml+xml");
+    const body = doc.querySelector("body");
+    if (!body) return;
+
+    body.innerHTML = chapter.bodyHtml || "";
+    const titleEl = doc.querySelector("title");
+    if (titleEl) titleEl.textContent = chapter.title;
+    const heading = body.querySelector("h1,h2");
+    if (heading) heading.textContent = chapter.title;
+
+    epubEditorState.zip.file(chapter.zipPath, serializeXml(doc), {binary:false});
+}
+
+async function addEpubChapter() {
+    if (!epubEditorState) return;
+    saveCurrentEpubChapterToState();
+
+    let counter = epubEditorState.chapters.length + 1;
+    let fileName = "chapter-" + counter + ".xhtml";
+    while (epubEditorState.zip.file(zipPathFromHref(epubEditorState.opfPath, fileName))) {
+        counter += 1;
+        fileName = "chapter-" + counter + ".xhtml";
+    }
+
+    const title = "Chương mới";
+    const zipPath = zipPathFromHref(epubEditorState.opfPath, fileName);
+    const id = "mylibra-chapter-" + Date.now();
+
+    epubEditorState.zip.file(zipPath, createNewEpubChapterDocument(title), {binary:false});
+
+    const item = epubEditorState.opfDoc.createElementNS("http://www.idpf.org/2007/opf", "item");
+    item.setAttribute("id", id);
+    item.setAttribute("href", fileName);
+    item.setAttribute("media-type", "application/xhtml+xml");
+
+    const itemref = epubEditorState.opfDoc.createElementNS("http://www.idpf.org/2007/opf", "itemref");
+    itemref.setAttribute("idref", id);
+
+    epubEditorState.opfDoc.querySelector("manifest").appendChild(item);
+    epubEditorState.spine.appendChild(itemref);
+    epubEditorState.manifest[id] = item;
+    epubEditorState.chapters.push({id,href:fileName,zipPath,item,itemref,title,bodyHtml:"<h1>Chương mới</h1><p>Nhập nội dung chương mới...</p>"});
+
+    selectEpubChapter(epubEditorState.chapters.length - 1);
+}
+
+function deleteEpubChapter() {
+    if (!epubEditorState) return;
+    if (epubEditorState.chapters.length <= 1) {
+        alert("EPUB phải còn ít nhất 1 chương.");
+        return;
+    }
+
+    const index = epubEditorState.currentIndex;
+    const chapter = epubEditorState.chapters[index];
+    if (!confirm('Xóa "' + chapter.title + '" khỏi EPUB?')) return;
+
+    epubEditorState.zip.remove(chapter.zipPath);
+    chapter.item.remove();
+    chapter.itemref.remove();
+    delete epubEditorState.manifest[chapter.id];
+    epubEditorState.chapters.splice(index, 1);
+    epubEditorState.currentIndex = Math.max(0, Math.min(index, epubEditorState.chapters.length - 1));
+
+    selectEpubChapter(epubEditorState.currentIndex);
+}
+
+function moveEpubChapter(direction) {
+    if (!epubEditorState) return;
+    saveCurrentEpubChapterToState();
+
+    const from = epubEditorState.currentIndex;
+    const to = from + direction;
+    if (to < 0 || to >= epubEditorState.chapters.length) return;
+
+    const a = epubEditorState.chapters[from];
+    const b = epubEditorState.chapters[to];
+
+    if (direction < 0) epubEditorState.spine.insertBefore(a.itemref, b.itemref);
+    else epubEditorState.spine.insertBefore(b.itemref, a.itemref);
+
+    [epubEditorState.chapters[from], epubEditorState.chapters[to]] =
+        [epubEditorState.chapters[to], epubEditorState.chapters[from]];
+
+    epubEditorState.currentIndex = to;
+    selectEpubChapter(to);
+}
+
+async function saveEpubEditorChanges() {
+    if (!epubEditorState) return;
+
+    try {
+        saveCurrentEpubChapterToState();
+        for (const chapter of epubEditorState.chapters) await refreshEpubChapterDocument(chapter);
+
+        const title = epubBookTitle.value.trim() || "MyLibra";
+        const author = epubBookAuthor.value.trim() || "Chưa rõ tác giả";
+        updateEpubMetadata(epubEditorState.opfDoc, "title", title);
+        updateEpubMetadata(epubEditorState.opfDoc, "creator", author);
+        epubEditorState.zip.file(epubEditorState.opfPath, serializeXml(epubEditorState.opfDoc), {binary:false});
+
+        const blob = await epubEditorState.zip.generateAsync({type:"blob",mimeType:"application/epub+zip",compression:"DEFLATE"});
+        const book = books.find((item) => item.id === epubEditorState.bookId);
+        if (!book) return;
+
+        const fileName = title + " - edited.epub";
+        book.file = new File([blob], fileName, {type:"application/epub+zip"});
+        book.fileName = fileName;
+        book.fileType = "EPUB";
+        book.title = title;
+        book.author = author;
+
+        await saveBookToDatabase(book);
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        closeModal(epubEditorModal);
+        epubEditorState = null;
+        renderBooks();
+        openBook(book.id);
+        alert("Đã lưu EPUB mới vào MyLibra và tải file xuống máy.");
+    } catch (error) {
+        console.error(error);
+        alert("Không thể xuất EPUB. Hãy thử lại với file EPUB khác.");
+    }
+}
+
+closeEpubEditor?.addEventListener("click", () => {epubEditorState=null;closeModal(epubEditorModal);});
+cancelEpubEditor?.addEventListener("click", () => {epubEditorState=null;closeModal(epubEditorModal);});
+epubEditorModal?.addEventListener("click", (event) => {
+    if (event.target === epubEditorModal) {epubEditorState=null;closeModal(epubEditorModal);}
+});
+epubAddChapter?.addEventListener("click", addEpubChapter);
+epubDeleteChapter?.addEventListener("click", deleteEpubChapter);
+epubMoveUp?.addEventListener("click", () => moveEpubChapter(-1));
+epubMoveDown?.addEventListener("click", () => moveEpubChapter(1));
+saveEpubEditor?.addEventListener("click", saveEpubEditorChanges);
 
 function applyReaderFontSize() {
     const size = Number(localStorage.getItem("mylibra-font-size")) || 18;
