@@ -47,6 +47,8 @@ const googleSettingsName = $("googleSettingsName");
 const googleSettingsEmail = $("googleSettingsEmail");
 const googleSigninArea = $("googleSigninArea");
 const googleLogoutButton = $("googleLogoutButton");
+const googleDriveButton = $("googleDriveButton");
+const googleDriveStatus = $("googleDriveStatus");
 const settingsModal = $("settingsModal");
 const closeSettings = $("closeSettings");
 const saveSettings = $("saveSettings");
@@ -144,6 +146,12 @@ const STORE_NAME = "books";
 // ========================================
 const GOOGLE_CLIENT_ID = "1038644762549-s4dt1lvr26bg9murlf6ne3k6oui7iedp.apps.googleusercontent.com";
 const GOOGLE_PROFILE_KEY = "mylibra-google-profile";
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE_FOLDER_KEY = "mylibra-drive-folder-id";
+const DRIVE_MANIFEST_KEY = "mylibra-drive-manifest-id";
+let googleDriveAccessToken = null;
+let googleDriveTokenClient = null;
+let googleDriveSyncTimer = null;
 
 function decodeGoogleJwt(token) {
     try {
@@ -262,12 +270,277 @@ function startGoogleSignIn() {
     window.google.accounts.id.prompt();
 }
 
+
+function setGoogleDriveStatus(message, connected = false) {
+    if (!googleDriveStatus) return;
+    googleDriveStatus.textContent = message;
+    googleDriveStatus.classList.toggle("drive-connected", connected);
+    if (googleDriveButton) googleDriveButton.textContent = connected ? "☁️ Đồng bộ Google Drive" : "☁️ Kết nối Google Drive";
+}
+
+async function driveRequest(url, options = {}) {
+    if (!googleDriveAccessToken) throw new Error("Chưa có quyền truy cập Google Drive.");
+    const response = await fetch(url, {
+        ...options,
+        headers: {...(options.headers || {}), Authorization: "Bearer " + googleDriveAccessToken}
+    });
+    if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error("Google Drive API " + response.status + ": " + (text || response.statusText));
+    }
+    const type = response.headers.get("content-type") || "";
+    return type.includes("application/json") ? response.json() : response;
+}
+
+async function ensureDriveFolder() {
+    const savedId = localStorage.getItem(DRIVE_FOLDER_KEY);
+    if (savedId) {
+        try {
+            await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(savedId) + "?fields=id,name,mimeType");
+            return savedId;
+        } catch (_) {
+            localStorage.removeItem(DRIVE_FOLDER_KEY);
+        }
+    }
+
+    const q = encodeURIComponent("name = 'MyLibra' and mimeType = 'application/vnd.google-apps.folder' and trashed = false");
+    const found = await driveRequest("https://www.googleapis.com/drive/v3/files?q=" + q + "&spaces=drive&fields=files(id,name,mimeType)&pageSize=10");
+    if (found.files?.length) {
+        localStorage.setItem(DRIVE_FOLDER_KEY, found.files[0].id);
+        return found.files[0].id;
+    }
+
+    const created = await driveRequest("https://www.googleapis.com/drive/v3/files?fields=id,name", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name:"MyLibra", mimeType:"application/vnd.google-apps.folder"})
+    });
+    localStorage.setItem(DRIVE_FOLDER_KEY, created.id);
+    return created.id;
+}
+
+function getBookCloudMetadata(book) {
+    return {
+        id: book.id,
+        title: book.title || "",
+        author: book.author || "",
+        genre: Array.isArray(book.genre) ? [...book.genre] : book.genre || [],
+        tags: Array.isArray(book.tags) ? [...book.tags] : book.tags || [],
+        description: book.description || "",
+        progress: Number(book.progress) || 0,
+        icon: book.icon || "📖",
+        fileName: book.fileName || "",
+        fileType: book.fileType || "",
+        coverDataUrl: book.coverDataUrl || "",
+        driveFileId: book.driveFileId || "",
+        updatedAt: book.updatedAt || Date.now()
+    };
+}
+
+async function uploadDriveFile(file, existingId = null) {
+    const folderId = await ensureDriveFolder();
+    const mimeType = file.type || "application/octet-stream";
+    const endpoint = existingId
+        ? "https://www.googleapis.com/upload/drive/v3/files/" + encodeURIComponent(existingId) + "?uploadType=resumable"
+        : "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
+    const metadata = {name:file.name || "MyLibra file", mimeType};
+    if (!existingId) metadata.parents = [folderId];
+
+    const init = await driveRequest(endpoint, {
+        method: existingId ? "PATCH" : "POST",
+        headers: {
+            "Content-Type":"application/json; charset=UTF-8",
+            "X-Upload-Content-Type":mimeType,
+            "X-Upload-Content-Length":String(file.size)
+        },
+        body:JSON.stringify(metadata)
+    });
+    const sessionUrl = init.headers.get("Location");
+    if (!sessionUrl) throw new Error("Google Drive không trả về URL tải lên.");
+
+    const uploadResponse = await fetch(sessionUrl, {
+        method:"PUT",
+        headers:{"Content-Length":String(file.size)},
+        body:file
+    });
+    if (!uploadResponse.ok) throw new Error("Tải file lên Google Drive thất bại: " + uploadResponse.status);
+    return uploadResponse.json();
+}
+
+async function uploadBookToDrive(book) {
+    if (!googleDriveAccessToken || !book?.file) return;
+    const result = await uploadDriveFile(book.file, book.driveFileId || null);
+    book.driveFileId = result.id;
+    book.updatedAt = Date.now();
+    await saveBookToDatabase(book);
+}
+
+async function downloadBookFromDrive(book) {
+    if (!googleDriveAccessToken || !book?.driveFileId) return null;
+    const response = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(book.driveFileId) + "?alt=media");
+    const blob = await response.blob();
+    const fileName = book.fileName || book.title || "MyLibra";
+    return new File([blob], fileName, {
+        type: blob.type || (book.fileType === "EPUB" ? "application/epub+zip" : book.fileType === "PDF" ? "application/pdf" : "text/plain")
+    });
+}
+
+async function deleteDriveFile(fileId) {
+    if (!googleDriveAccessToken || !fileId) return;
+    const response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId), {
+        method:"DELETE",
+        headers:{Authorization:"Bearer " + googleDriveAccessToken}
+    });
+    if (!response.ok && response.status !== 404) throw new Error("Không thể xóa file khỏi Google Drive.");
+}
+
+async function saveDriveManifest() {
+    if (!googleDriveAccessToken) return;
+    const folderId = await ensureDriveFolder();
+    const manifest = {version:1, updatedAt:Date.now(), books:books.map(getBookCloudMetadata)};
+    const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+    const existingId = localStorage.getItem(DRIVE_MANIFEST_KEY);
+    const metadata = {name:"mylibra-library.json", mimeType:"application/json"};
+    if (!existingId) metadata.parents = [folderId];
+
+    const url = existingId
+        ? "https://www.googleapis.com/upload/drive/v3/files/" + encodeURIComponent(existingId) + "?uploadType=multipart"
+        : "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+    const boundary = "mylibra_manifest_" + Date.now();
+    const body = new Blob([
+        "--" + boundary + "\r\n",
+        "Content-Type: application/json; charset=UTF-8\r\n\r\n",
+        JSON.stringify(metadata),
+        "\r\n--" + boundary + "\r\n",
+        "Content-Type: application/json\r\n\r\n",
+        blob,
+        "\r\n--" + boundary + "--"
+    ]);
+    const response = await fetch(url, {
+        method:existingId ? "PATCH" : "POST",
+        headers:{Authorization:"Bearer " + googleDriveAccessToken, "Content-Type":"multipart/related; boundary=" + boundary},
+        body
+    });
+    if (!response.ok) throw new Error("Không thể cập nhật thư viện MyLibra trên Google Drive.");
+    const result = await response.json();
+    if (result.id) localStorage.setItem(DRIVE_MANIFEST_KEY, result.id);
+}
+
+function scheduleDriveManifestSync() {
+    if (!googleDriveAccessToken) return;
+    clearTimeout(googleDriveSyncTimer);
+    googleDriveSyncTimer = setTimeout(() => saveDriveManifest().catch((error) => console.error("Drive manifest:", error)), 1200);
+}
+
+async function findDriveManifest(folderId) {
+    const q = encodeURIComponent("'" + folderId + "' in parents and name = 'mylibra-library.json' and trashed = false");
+    const result = await driveRequest("https://www.googleapis.com/drive/v3/files?q=" + q + "&spaces=drive&fields=files(id,name)&pageSize=10");
+    return result.files?.[0] || null;
+}
+
+async function syncFromGoogleDrive() {
+    if (!googleDriveAccessToken) return;
+    const folderId = await ensureDriveFolder();
+    let manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
+
+    try {
+        if (!manifestId) {
+            const found = await findDriveManifest(folderId);
+            if (found) {
+                manifestId = found.id;
+                localStorage.setItem(DRIVE_MANIFEST_KEY, manifestId);
+            }
+        }
+
+        if (!manifestId) {
+            setGoogleDriveStatus("Đã kết nối. Đang đưa thư viện hiện tại lên Drive…", true);
+            for (const book of books) if (book.file && !book.driveFileId) await uploadBookToDrive(book);
+            await saveDriveManifest();
+            setGoogleDriveStatus("Đã kết nối và đồng bộ Google Drive.", true);
+            return;
+        }
+
+        const response = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
+        const manifest = await response.json();
+        const remoteBooks = Array.isArray(manifest.books) ? manifest.books : [];
+
+        for (const remoteBook of remoteBooks) {
+            const local = books.find((item) => item.id === remoteBook.id);
+            if (local) {
+                const localFile = local.file;
+                Object.assign(local, remoteBook);
+                if (localFile) local.file = localFile;
+                await saveBookToDatabase(local);
+            } else {
+                const cloudBook = {...remoteBook, file:null};
+                books.push(cloudBook);
+                await saveBookToDatabase(cloudBook);
+            }
+        }
+
+        for (const book of books) if (book.file && !book.driveFileId) await uploadBookToDrive(book);
+
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
+        await saveDriveManifest();
+        setGoogleDriveStatus("Đã kết nối và đồng bộ Google Drive.", true);
+    } catch (error) {
+        console.error("Google Drive sync:", error);
+        setGoogleDriveStatus("Đã kết nối nhưng đồng bộ gặp lỗi. Hãy thử lại.", true);
+        throw error;
+    }
+}
+
+function connectGoogleDrive() {
+    if (!getGoogleProfile()) {
+        alert("Hãy đăng nhập Google trước rồi kết nối Google Drive.");
+        return;
+    }
+    if (!window.google?.accounts?.oauth2) {
+        alert("Google Identity Services chưa tải xong. Hãy tải lại trang.");
+        return;
+    }
+
+    if (!googleDriveTokenClient) {
+        googleDriveTokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id:GOOGLE_CLIENT_ID,
+            scope:GOOGLE_DRIVE_SCOPE,
+            callback:async (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error(tokenResponse);
+                    localStorage.removeItem("mylibra-drive-authorized");
+                    setGoogleDriveStatus("Không cấp được quyền Google Drive.");
+                    return;
+                }
+                googleDriveAccessToken = tokenResponse.access_token;
+                localStorage.setItem("mylibra-drive-authorized","true");
+                setGoogleDriveStatus("Đang kết nối Google Drive…");
+                try {
+                    await syncFromGoogleDrive();
+                } catch (error) {
+                    console.error(error);
+                    alert("Không thể kết nối Google Drive. Hãy kiểm tra quyền Drive rồi thử lại.");
+                }
+            }
+        });
+    }
+
+    googleDriveTokenClient.requestAccessToken({
+        prompt:localStorage.getItem("mylibra-drive-authorized") ? "" : "consent"
+    });
+}
+
+googleDriveButton?.addEventListener("click", connectGoogleDrive);
+
+
 function logoutGoogle() {
     const profile = getGoogleProfile();
     if (profile?.sub && window.google?.accounts?.id) {
         try { window.google.accounts.id.revoke(profile.email || "", () => {}); } catch (_) {}
     }
     localStorage.removeItem(GOOGLE_PROFILE_KEY);
+    googleDriveAccessToken = null;
+    setGoogleDriveStatus("Chưa kết nối Google Drive.");
     renderGoogleAccount(null);
     if (googleSigninArea) googleSigninArea.innerHTML = "";
 }
@@ -291,6 +564,7 @@ function openDatabase() {
 }
 
 async function saveBookToDatabase(book) {
+    if (book) book.updatedAt = Date.now();
     const db = await openDatabase();
 
     return new Promise((resolve, reject) => {
@@ -833,6 +1107,17 @@ confirmAddBook?.addEventListener("click", async () => {
     try {
         await saveBookToDatabase(newBook);
         books.push(newBook);
+        if (googleDriveAccessToken) {
+            try {
+                setGoogleDriveStatus("Đang tải truyện lên Google Drive…", true);
+                await uploadBookToDrive(newBook);
+                await saveDriveManifest();
+                setGoogleDriveStatus("Đã thêm truyện và đồng bộ Google Drive.", true);
+            } catch (driveError) {
+                console.error("Drive upload:", driveError);
+                alert("Truyện đã lưu trên thiết bị nhưng chưa tải được lên Google Drive. Bấm “Đồng bộ Google Drive” để thử lại.");
+            }
+        }
         updateFilterOptions();
         renderBooks(getFilteredBooks());
         closeModal(addBookModal);
@@ -938,6 +1223,10 @@ function openBook(bookId) {
 
         try {
             await deleteBookFromDatabase(book.id);
+            if (googleDriveAccessToken && book.driveFileId) {
+                await deleteDriveFile(book.driveFileId);
+                await saveDriveManifest();
+            }
             books = books.filter((item) => item.id !== book.id);
             localStorage.removeItem("mylibra-position-" + book.id);
             localStorage.removeItem("mylibra-epub-cfi-" + book.id);
@@ -1010,6 +1299,7 @@ saveEditBook?.addEventListener("click", async () => {
 
     try {
         await saveBookToDatabase(book);
+        if (googleDriveAccessToken) scheduleDriveManifestSync();
         closeModal(editBookModal);
         updateFilterOptions();
         renderBooks(getFilteredBooks());
@@ -1077,6 +1367,10 @@ saveUpdatedFile?.addEventListener("click", async () => {
 
     try {
         await saveBookToDatabase(book);
+        if (googleDriveAccessToken) {
+            await uploadBookToDrive(book);
+            await saveDriveManifest();
+        }
         closeModal(updateFileModal);
         updateFilterOptions();
         openBook(book.id);
@@ -1129,7 +1423,7 @@ function handleEpubRelocated(location) {
     if (location?.start?.cfi) localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
     if (location?.start?.percentage !== undefined) {
         book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
-        saveBookToDatabase(book).catch(console.error);
+        saveBookToDatabase(book).then(() => scheduleDriveManifestSync()).catch(console.error);
         renderBooks();
     }
 }
@@ -1150,6 +1444,19 @@ async function openReader(bookId) {
     if (!book || !book.file) {
         alert("Truyện này chưa có file để đọc.");
         return;
+    }
+
+    if (!book.file && googleDriveAccessToken && book.driveFileId) {
+        try {
+            setGoogleDriveStatus("Đang tải file truyện từ Google Drive…", true);
+            book.file = await downloadBookFromDrive(book);
+            await saveBookToDatabase(book);
+            setGoogleDriveStatus("Đã tải file truyện từ Google Drive.", true);
+        } catch (error) {
+            console.error("Drive download:", error);
+            alert("Không thể tải file truyện từ Google Drive. Hãy kết nối lại Drive rồi thử lại.");
+            return;
+        }
     }
 
     currentBookId = bookId;
@@ -1282,6 +1589,7 @@ async function renderPdfPage(pageNumber) {
     if (book) {
         book.progress = progress;
         await saveBookToDatabase(book);
+        scheduleDriveManifestSync();
         renderBooks();
     }
 
@@ -1935,6 +2243,8 @@ function switchSettingsTab(tabName) {
 
 function initializeGoogleAuth() {
     renderGoogleAccount();
+    if (googleDriveAccessToken) setGoogleDriveStatus("Đã kết nối Google Drive.", true);
+    else if (getGoogleProfile()) setGoogleDriveStatus("Đã đăng nhập Google. Hãy kết nối Google Drive để đồng bộ.", false);
 
     googleLoginButton?.addEventListener("click", () => {
         if (getGoogleProfile()) {
