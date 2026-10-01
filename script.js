@@ -392,42 +392,30 @@ async function requestGoogleDriveAccess(prompt = "") {
     }
 
     return new Promise((resolve, reject) => {
-        if (!googleDriveTokenClient) {
-            googleDriveTokenClient = window.google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: GOOGLE_DRIVE_SCOPE,
-                callback: (tokenResponse) => {
-                    if (tokenResponse.error || !tokenResponse.access_token) {
-                        reject(new Error(tokenResponse.error || "Không cấp được quyền Google Drive."));
-                        return;
-                    }
-                    googleDriveAccessToken = tokenResponse.access_token;
-                    localStorage.setItem("mylibra-drive-authorized", "true");
-                    resolve(googleDriveAccessToken);
-                }
-            });
-        } else {
-            const originalCallback = googleDriveTokenClient.callback;
-            googleDriveTokenClient.callback = (tokenResponse) => {
-                googleDriveTokenClient.callback = originalCallback;
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_DRIVE_SCOPE,
+            callback: (tokenResponse) => {
                 if (tokenResponse.error || !tokenResponse.access_token) {
                     reject(new Error(tokenResponse.error || "Không cấp được quyền Google Drive."));
                     return;
                 }
                 googleDriveAccessToken = tokenResponse.access_token;
+                googleDriveTokenClient = tokenClient;
                 localStorage.setItem("mylibra-drive-authorized", "true");
                 resolve(googleDriveAccessToken);
-            };
-        }
+            }
+        });
+
+        googleDriveTokenClient = tokenClient;
 
         try {
-            googleDriveTokenClient.requestAccessToken({prompt});
+            tokenClient.requestAccessToken({prompt});
         } catch (error) {
             reject(error);
         }
     });
 }
-
 async function deleteDriveFile(fileId) {
     if (!fileId) return;
 
