@@ -96,6 +96,8 @@ const pdfToolbar = $("pdfToolbar");
 const pdfPrev = $("pdfPrev");
 const pdfNext = $("pdfNext");
 const pdfPageInfo = $("pdfPageInfo");
+const pdfTocJump = $("pdfTocJump");
+const pdfTocSelect = $("pdfTocSelect");
 const pdfPageInput = $("pdfPageInput");
 const pdfGoPage = $("pdfGoPage");
 const pdfZoomOut = $("pdfZoomOut");
@@ -136,6 +138,7 @@ let currentPdfBookId = null;
 let currentPdfPage = 1;
 let currentPdfScale = 1.25;
 let currentPdfRotation = 0;
+let pdfOutlineItems = [];
 let currentEpub = null;
 let epubKeyHandler = null;
 let epubChapterOptions = [];
@@ -1591,6 +1594,8 @@ async function openPdfReader(book) {
             pdfPageInput.max = String(currentPdf.numPages);
             pdfPageInput.value = String(currentPdfPage);
         }
+        if (pdfTocJump) pdfTocJump.hidden = true;
+        await buildPdfOutline();
 
         readerContent.className = "reader-content pdf-reader-content";
         readerContent.innerHTML =
@@ -1621,6 +1626,88 @@ async function openPdfReader(book) {
         `;
     }
 }
+async function buildPdfOutline() {
+    pdfOutlineItems = [];
+    if (!currentPdf || !pdfTocSelect) return;
+
+    try {
+        const outline = await currentPdf.getOutline();
+        if (!Array.isArray(outline) || !outline.length) {
+            if (pdfTocJump) pdfTocJump.hidden = true;
+            return;
+        }
+
+        async function flatten(items, depth = 0) {
+            for (const item of items || []) {
+                if (!item) continue;
+
+                let pageNumber = null;
+                try {
+                    if (item.dest) {
+                        const dest = typeof item.dest === "string"
+                            ? await currentPdf.getDestination(item.dest)
+                            : item.dest;
+
+                        if (dest && dest[0]) {
+                            const pageIndex = await currentPdf.getPageIndex(dest[0]);
+                            pageNumber = pageIndex + 1;
+                        }
+                    }
+                } catch (error) {
+                    console.warn("Không xác định được trang bookmark PDF:", error);
+                }
+
+                if (pageNumber) {
+                    pdfOutlineItems.push({
+                        title: String(item.title || "Không có tên"),
+                        page: pageNumber,
+                        depth
+                    });
+                }
+
+                if (item.items?.length) {
+                    await flatten(item.items, depth + 1);
+                }
+            }
+        }
+
+        await flatten(outline);
+
+        pdfTocSelect.innerHTML = "";
+        pdfOutlineItems.forEach((item, index) => {
+            const option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = " ".repeat(item.depth * 3) + item.title + "  —  trang " + item.page;
+            pdfTocSelect.appendChild(option);
+        });
+
+        pdfTocJump.hidden = pdfOutlineItems.length === 0;
+    } catch (error) {
+        console.warn("Không đọc được PDF outline:", error);
+        if (pdfTocJump) pdfTocJump.hidden = true;
+    }
+}
+
+async function jumpToPdfOutline(index) {
+    const item = pdfOutlineItems[Number(index)];
+    if (!item || !currentPdf) return;
+    currentPdfPage = item.page;
+    if (pdfPageInput) pdfPageInput.value = String(currentPdfPage);
+    await renderPdfPage(currentPdfPage);
+}
+
+function updatePdfOutlineSelection(pageNumber) {
+    if (!pdfTocSelect || !pdfOutlineItems.length) return;
+
+    let selected = -1;
+    for (let i = 0; i < pdfOutlineItems.length; i++) {
+        if (pdfOutlineItems[i].page <= pageNumber) selected = i;
+        else break;
+    }
+
+    if (selected >= 0) pdfTocSelect.value = String(selected);
+}
+
 async function renderPdfPage(pageNumber) {
     if (!currentPdf) return;
 
@@ -1644,6 +1731,7 @@ async function renderPdfPage(pageNumber) {
     pdfPageInfo.textContent =
         "Trang " + pageNumber + " / " + currentPdf.numPages;
     if (pdfPageInput) pdfPageInput.value = String(pageNumber);
+    updatePdfOutlineSelection(pageNumber);
 
     const progress = Math.round((pageNumber / currentPdf.numPages) * 100);
     readerProgressBar.style.width = progress + "%";
@@ -1796,6 +1884,7 @@ async function saveEditedPdf() {
 pdfPrev?.addEventListener("click", () => changePdfPage(-1));
 pdfNext?.addEventListener("click", () => changePdfPage(1));
 pdfGoPage?.addEventListener("click", goToPdfPageFromInput);
+pdfTocSelect?.addEventListener("change", () => jumpToPdfOutline(pdfTocSelect.value));
 pdfPageInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") goToPdfPageFromInput();
 });
@@ -2328,6 +2417,9 @@ function closeReaderAndReturn() {
     if (readerEpubJump) readerEpubJump.hidden = true;
     if (readerChapterSelect) readerChapterSelect.innerHTML = "";
     currentPdf = null;
+    pdfOutlineItems = [];
+    if (pdfTocJump) pdfTocJump.hidden = true;
+    if (pdfTocSelect) pdfTocSelect.innerHTML = "";
     currentPdfBytes = null;
     currentPdfBookId = null;
 
