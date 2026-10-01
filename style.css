@@ -1653,3 +1653,25 @@ body.dark-mode .book-actions .danger-button {
 /* Keep reader navigation above embedded EPUB/PDF content. */
 .reader-toolbar { z-index: 150; }
 .reader-toolbar .back-button { position: relative; z-index: 151; pointer-events: auto; }
+
+
+/* Reader mode controls */
+.reader-controls button.active {
+    background: var(--primary, #7c5cff);
+    color: #fff;
+    border-color: transparent;
+}
+.reader-page-mode .reader-content {
+    overflow: hidden;
+}
+.reader-page-mode .epub-reader {
+    overflow: hidden;
+}
+@media (max-width: 700px) {
+    .reader-controls {
+        gap: 4px;
+    }
+    .reader-controls button {
+        padding: 7px 9px;
+    }
+}
