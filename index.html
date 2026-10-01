@@ -49,9 +49,7 @@
 
     <header class="topbar">
 
-        <div class="logo">
-            📚 MyLibra
-        </div>
+        <button class="logo logo-home" id="homeButton" type="button" title="Về trang chủ">📚 MyLibra</button>
 
 
         <div class="search-box">
@@ -78,7 +76,9 @@
 
             <button
                 type="button"
-                aria-label="Cài đặt"
+                id="settingsButton"
+                aria-label="Cài đặt MyLibra"
+                title="Cài đặt MyLibra"
             >
                 ⚙️
             </button>
@@ -535,6 +535,52 @@
             <div class="modal-actions">
                 <button class="add-button" id="cancelEpubEditor" type="button">Hủy</button>
                 <button class="primary-button" id="saveEpubEditor" type="button">💾 Lưu & xuất EPUB</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- =========================
+         SETTINGS
+    ========================== -->
+    <div class="modal-overlay" id="settingsModal" hidden>
+        <div class="modal settings-modal">
+            <button class="modal-close" id="closeSettings" type="button">×</button>
+            <h2>⚙️ Cài đặt MyLibra</h2>
+            <p class="modal-description">Tùy chỉnh thư viện, cách đọc và giao diện. Thiết lập được lưu trên thiết bị này.</p>
+
+            <div class="settings-tabs" role="tablist">
+                <button class="settings-tab active" data-settings-tab="library" type="button">📚 Thư viện</button>
+                <button class="settings-tab" data-settings-tab="reader" type="button">📖 Chế độ đọc</button>
+                <button class="settings-tab" data-settings-tab="theme" type="button">🎨 Theme</button>
+            </div>
+
+            <section class="settings-panel active" data-settings-panel="library">
+                <h3>Cài đặt thư viện</h3>
+                <label class="settings-row"><span><strong>Hiển thị mục “Đang đọc”</strong><small>Ẩn mục này nếu bạn muốn thư viện gọn hơn.</small></span><input type="checkbox" id="settingShowReading" checked></label>
+                <label class="settings-row"><span><strong>Sắp xếp truyện</strong><small>Chọn thứ tự hiển thị trong thư viện.</small></span><select id="settingSort"><option value="added">Mới thêm trước</option><option value="title">Tên A → Z</option><option value="progress">Tiến độ đọc</option></select></label>
+                <label class="settings-row"><span><strong>Xác nhận trước khi xóa</strong><small>Hỏi lại trước khi xóa truyện khỏi thư viện.</small></span><input type="checkbox" id="settingConfirmDelete" checked></label>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="reader">
+                <h3>Cài đặt chế độ đọc</h3>
+                <label class="settings-row"><span><strong>Kiểu đọc EPUB</strong><small>Cuộn dọc hoặc chuyển từng trang.</small></span><select id="settingReaderMode"><option value="scroll">📜 Cuộn dọc</option><option value="page">📖 Chuyển trang</option></select></label>
+                <label class="settings-row"><span><strong>Cỡ chữ mặc định</strong><small>Áp dụng cho nội dung văn bản.</small></span><select id="settingFontSize"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="22">22 px</option><option value="24">24 px</option></select></label>
+                <label class="settings-row"><span><strong>Khoảng dòng</strong><small>Điều chỉnh độ thoáng khi đọc.</small></span><select id="settingLineHeight"><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="1.9">1.9</option><option value="2.1">2.1</option></select></label>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="theme">
+                <h3>Theme giao diện</h3>
+                <div class="theme-options">
+                    <button class="theme-option" data-theme-choice="light" type="button">☀️<strong>Sáng</strong><small>Giao diện sáng</small></button>
+                    <button class="theme-option" data-theme-choice="dark" type="button">🌙<strong>Tối</strong><small>Dịu mắt ban đêm</small></button>
+                    <button class="theme-option" data-theme-choice="sepia" type="button">📜<strong>Sepia</strong><small>Tông giấy ấm</small></button>
+                </div>
+            </section>
+
+            <div class="modal-actions settings-actions">
+                <button class="add-button" id="resetSettings" type="button">Khôi phục mặc định</button>
+                <button class="primary-button" id="saveSettings" type="button">💾 Lưu cài đặt</button>
             </div>
         </div>
     </div>
