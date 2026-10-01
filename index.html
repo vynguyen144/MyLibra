@@ -123,13 +123,19 @@
         </section>
 
         <section class="library-filters" aria-label="Tìm kiếm và lọc thư viện">
-            <select id="genreFilter" aria-label="Lọc theo thể loại">
-                <option value="">Tất cả thể loại</option>
-            </select>
+            <div class="chip-picker filter-picker" id="genreFilterPicker">
+                <button class="chip-picker-trigger" id="genreFilterTrigger" type="button">
+                    <span>🏷️ Thể loại</span><span class="chip-picker-arrow">⌄</span>
+                </button>
+                <div class="chip-picker-menu" id="genreFilterMenu" hidden></div>
+            </div>
 
-            <select id="tagFilter" aria-label="Lọc theo tag">
-                <option value="">Tất cả tag</option>
-            </select>
+            <div class="chip-picker filter-picker" id="tagFilterPicker">
+                <button class="chip-picker-trigger" id="tagFilterTrigger" type="button">
+                    <span># Tag</span><span class="chip-picker-arrow">⌄</span>
+                </button>
+                <div class="chip-picker-menu" id="tagFilterMenu" hidden></div>
+            </div>
 
             <button class="add-button" id="clearFilters" type="button">✕ Xóa lọc</button>
         </section>
@@ -408,6 +414,30 @@
                 hidden
             ></div>
 
+            <div class="book-form add-book-meta">
+                <label>
+                    Thể loại
+                    <div class="chip-picker" id="addGenrePicker">
+                        <button class="chip-picker-trigger" id="addGenreTrigger" type="button">
+                            <span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span>
+                        </button>
+                        <div class="chip-list" id="addGenreChips"></div>
+                        <div class="chip-picker-menu" id="addGenreMenu" hidden></div>
+                    </div>
+                </label>
+
+                <label>
+                    Tag
+                    <div class="chip-picker" id="addTagPicker">
+                        <button class="chip-picker-trigger" id="addTagTrigger" type="button">
+                            <span>Chọn tag</span><span class="chip-picker-arrow">⌄</span>
+                        </button>
+                        <div class="chip-list" id="addTagChips"></div>
+                        <div class="chip-picker-menu" id="addTagMenu" hidden></div>
+                    </div>
+                </label>
+            </div>
+
 
             <div class="modal-actions">
 
@@ -468,13 +498,24 @@
 
                 <label>
                     Thể loại
-                    <input type="text" id="editGenre" placeholder="Fantasy, Action...">
+                    <div class="chip-picker" id="editGenrePicker">
+                        <button class="chip-picker-trigger" id="editGenreTrigger" type="button">
+                            <span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span>
+                        </button>
+                        <div class="chip-list" id="editGenreChips"></div>
+                        <div class="chip-picker-menu" id="editGenreMenu" hidden></div>
+                    </div>
                 </label>
 
                 <label>
                     Tag
-                    <input type="text" id="editTags" placeholder="magic, academy, reincarnation...">
-                    <small class="form-help">Nhập nhiều tag, cách nhau bằng dấu phẩy.</small>
+                    <div class="chip-picker" id="editTagPicker">
+                        <button class="chip-picker-trigger" id="editTagTrigger" type="button">
+                            <span>Chọn tag</span><span class="chip-picker-arrow">⌄</span>
+                        </button>
+                        <div class="chip-list" id="editTagChips"></div>
+                        <div class="chip-picker-menu" id="editTagMenu" hidden></div>
+                    </div>
                 </label>
 
                 <label>
