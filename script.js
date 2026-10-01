@@ -482,7 +482,18 @@ function renderSelectedChips(container, values, type) {
             if (container === addTagChips) addTags = addTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
             if (container === editGenreChips) editGenres = editGenres.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
             if (container === editTagChips) editTags = editTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
-            if (container === addGenreChips) renderSelectedChips(addGenreChips, addGenres, "genre");
+            if (container === addGenreChips) setupChipPicker(genreFilterTrigger, genreFilterMenu, allGenres, () => selectedFilterGenres, (value) => {
+    selectedFilterGenres = toggleValue(selectedFilterGenres, value);
+    updateFilterOptions();
+    renderBooks(getFilteredBooks());
+}, "genre");
+setupChipPicker(tagFilterTrigger, tagFilterMenu, allTags, () => selectedFilterTags, (value) => {
+    selectedFilterTags = toggleValue(selectedFilterTags, value);
+    updateFilterOptions();
+    renderBooks(getFilteredBooks());
+}, "tag");
+
+renderSelectedChips(addGenreChips, addGenres, "genre");
             if (container === addTagChips) renderSelectedChips(addTagChips, addTags, "tag");
             if (container === editGenreChips) renderSelectedChips(editGenreChips, editGenres, "genre");
             if (container === editTagChips) renderSelectedChips(editTagChips, editTags, "tag");
