@@ -1500,13 +1500,18 @@ readerNext?.addEventListener("click", () => readerNavigate(1));
 
 async function openReader(bookId) {
     const book = books.find((item) => item.id === bookId);
-    if (!book || !book.file) {
-        alert("Truyện này chưa có file để đọc.");
+    if (!book) {
+        alert("Không tìm thấy truyện.");
         return;
     }
 
-    if (!book.file && googleDriveAccessToken && book.driveFileId) {
+    // Sách đồng bộ từ Google Drive có thể chưa có file cục bộ sau khi
+    // mở MyLibra trên một thiết bị mới. Tải file trước rồi mới kiểm tra.
+    if (!book.file && book.driveFileId) {
         try {
+            if (!googleDriveAccessToken) {
+                await requestGoogleDriveAccess("");
+            }
             setGoogleDriveStatus("Đang tải file truyện từ Google Drive…", true);
             book.file = await downloadBookFromDrive(book);
             await saveBookToDatabase(book);
@@ -1516,6 +1521,11 @@ async function openReader(bookId) {
             alert("Không thể tải file truyện từ Google Drive. Hãy kết nối lại Drive rồi thử lại.");
             return;
         }
+    }
+
+    if (!book.file) {
+        alert("Truyện này chưa có file để đọc.");
+        return;
     }
 
     currentBookId = bookId;
