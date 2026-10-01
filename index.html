@@ -52,6 +52,7 @@
                 🌙
             </button>
 
+
             <button
                 type="button"
                 aria-label="Cài đặt"
@@ -88,7 +89,12 @@
 
 
 
-        <section class="section">
+        <!-- CURRENTLY READING -->
+
+        <section
+            class="section"
+            id="readingSection"
+        >
 
             <div class="section-header">
 
@@ -116,6 +122,8 @@
 
 
 
+        <!-- ALL BOOKS -->
+
         <section class="section">
 
             <div class="section-header">
@@ -128,6 +136,7 @@
                 <button
                     class="add-button"
                     type="button"
+                    id="addBookButton"
                 >
                     + Thêm truyện
                 </button>
@@ -135,7 +144,10 @@
             </div>
 
 
-            <div class="empty-library">
+            <div
+                class="empty-library"
+                id="emptyLibrary"
+            >
 
                 <div class="empty-icon">
                     📚
@@ -148,7 +160,7 @@
 
 
                 <p>
-                    Thêm EPUB, PDF, DOCX hoặc TXT
+                    Thêm EPUB, PDF hoặc TXT
                     để bắt đầu đọc.
                 </p>
 
@@ -156,11 +168,18 @@
                 <button
                     class="primary-button"
                     type="button"
+                    id="emptyAddBookButton"
                 >
                     + Thêm truyện
                 </button>
 
             </div>
+
+
+            <div
+                class="book-grid"
+                id="allBookGrid"
+            ></div>
 
         </section>
 
@@ -190,13 +209,105 @@
         <section
             class="book-detail"
             id="bookDetail"
-        >
-
-            <!-- JavaScript sẽ tạo nội dung -->
-
-        </section>
+        ></section>
 
     </main>
+
+
+
+    <!-- =========================
+         ADD BOOK MODAL
+    ========================== -->
+
+    <div
+        class="modal-overlay"
+        id="addBookModal"
+        hidden
+    >
+
+        <div class="modal">
+
+            <button
+                class="modal-close"
+                id="closeAddBook"
+                type="button"
+                aria-label="Đóng"
+            >
+                ×
+            </button>
+
+
+            <h2>
+                Thêm truyện
+            </h2>
+
+
+            <p class="modal-description">
+                Chọn file truyện từ thiết bị của bạn.
+            </p>
+
+
+            <label
+                class="file-drop-zone"
+                for="bookFile"
+            >
+
+                <div class="file-drop-icon">
+                    📚
+                </div>
+
+
+                <strong>
+                    Chọn file truyện
+                </strong>
+
+
+                <span>
+                    EPUB, PDF hoặc TXT
+                </span>
+
+
+                <input
+                    type="file"
+                    id="bookFile"
+                    accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain"
+                >
+
+            </label>
+
+
+            <div
+                class="selected-file"
+                id="selectedFile"
+                hidden
+            ></div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    class="add-button"
+                    id="cancelAddBook"
+                    type="button"
+                >
+                    Hủy
+                </button>
+
+
+                <button
+                    class="primary-button"
+                    id="confirmAddBook"
+                    type="button"
+                    disabled
+                >
+                    Thêm vào thư viện
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
 
 
 
