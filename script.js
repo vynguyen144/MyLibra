@@ -121,7 +121,7 @@ const STORE_NAME = "books";
 // ========================================
 // GOOGLE ACCOUNT - BƯỚC 1
 // ========================================
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "1038644762549-s4dt1lvr26bg9murlf6ne3k6oui7iedp.apps.googleusercontent.com";
 const GOOGLE_PROFILE_KEY = "mylibra-google-profile";
 
 function decodeGoogleJwt(token) {
