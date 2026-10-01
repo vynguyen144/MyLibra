@@ -13,13 +13,31 @@
 
     <link
         rel="stylesheet"
-        href="style.css"
+        href="style.css?v=20261001-2"
     >
 
     <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
+<script>
+        // Tự động phát hiện phiên bản mới của MyLibra và tải lại trang.
+        (async () => {
+            try {
+                const versionUrl = "version.json?t=" + Date.now();
+                const response = await fetch(versionUrl, { cache: "no-store" });
+                if (!response.ok) return;
+                const data = await response.json();
+                const current = localStorage.getItem("mylibra-app-version");
+                if (current && current !== data.version) {
+                    localStorage.setItem("mylibra-app-version", data.version);
+                    location.reload();
+                } else if (!current) {
+                    localStorage.setItem("mylibra-app-version", data.version);
+                }
+            } catch (_) {}
+        })();
+    </script>
 </head>
 
 
