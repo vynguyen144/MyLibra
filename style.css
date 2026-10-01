@@ -1648,3 +1648,8 @@ body.dark-mode .book-actions .danger-button {
 
 .pdf-error-box{max-width:680px;margin:80px auto;padding:36px;text-align:center;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text)}
 .pdf-error-box h2{margin:12px 0 8px}.pdf-error-box p{color:var(--text-soft)}.pdf-error-box small{display:block;margin-top:14px;color:var(--text-soft);overflow-wrap:anywhere}
+
+
+/* Keep reader navigation above embedded EPUB/PDF content. */
+.reader-toolbar { z-index: 150; }
+.reader-toolbar .back-button { position: relative; z-index: 151; pointer-events: auto; }
