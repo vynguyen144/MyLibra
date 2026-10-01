@@ -17,6 +17,14 @@ const searchInput = document.querySelector(".search-box input");
 const themeButton = $("themeButton");
 const homeButton = $("homeButton");
 const settingsButton = $("settingsButton");
+const googleLoginButton = $("googleLoginButton");
+const googleAccountIcon = $("googleAccountIcon");
+const googleAccountText = $("googleAccountText");
+const googleSettingsAvatar = $("googleSettingsAvatar");
+const googleSettingsName = $("googleSettingsName");
+const googleSettingsEmail = $("googleSettingsEmail");
+const googleSigninArea = $("googleSigninArea");
+const googleLogoutButton = $("googleLogoutButton");
 const settingsModal = $("settingsModal");
 const closeSettings = $("closeSettings");
 const saveSettings = $("saveSettings");
@@ -109,6 +117,136 @@ let readerMode = localStorage.getItem("mylibra-reader-mode") || "scroll";
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
 const STORE_NAME = "books";
+
+// ========================================
+// GOOGLE ACCOUNT - BƯỚC 1
+// ========================================
+const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+const GOOGLE_PROFILE_KEY = "mylibra-google-profile";
+
+function decodeGoogleJwt(token) {
+    try {
+        const payload = token.split(".")[1];
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const json = decodeURIComponent(
+            atob(normalized)
+                .split("")
+                .map((char) => "%" + ("00" + char.charCodeAt(0).toString(16)).slice(-2))
+                .join("")
+        );
+        return JSON.parse(json);
+    } catch (error) {
+        console.error("Không đọc được Google ID token:", error);
+        return null;
+    }
+}
+
+function saveGoogleProfile(profile) {
+    if (!profile) return;
+    const safeProfile = {
+        sub: profile.sub || "",
+        name: profile.name || "Tài khoản Google",
+        email: profile.email || "",
+        picture: profile.picture || ""
+    };
+    localStorage.setItem(GOOGLE_PROFILE_KEY, JSON.stringify(safeProfile));
+    renderGoogleAccount(safeProfile);
+}
+
+function getGoogleProfile() {
+    try {
+        return JSON.parse(localStorage.getItem(GOOGLE_PROFILE_KEY) || "null");
+    } catch (_) {
+        return null;
+    }
+}
+
+function renderGoogleAccount(profile = getGoogleProfile()) {
+    if (!profile) {
+        if (googleAccountIcon) googleAccountIcon.textContent = "G";
+        if (googleAccountText) googleAccountText.textContent = "Đăng nhập";
+        if (googleSettingsAvatar) googleSettingsAvatar.textContent = "G";
+        if (googleSettingsName) googleSettingsName.textContent = "Chưa đăng nhập";
+        if (googleSettingsEmail) googleSettingsEmail.textContent = "Đăng nhập Google để chuẩn bị đồng bộ thư viện.";
+        if (googleLogoutButton) googleLogoutButton.hidden = true;
+        return;
+    }
+
+    const initial = (profile.name || profile.email || "G").trim().charAt(0).toUpperCase();
+    if (googleAccountIcon) {
+        if (profile.picture) {
+            googleAccountIcon.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
+        } else {
+            googleAccountIcon.textContent = initial;
+        }
+    }
+    if (googleAccountText) googleAccountText.textContent = "Đã đăng nhập";
+    if (googleSettingsAvatar) {
+        if (profile.picture) {
+            googleSettingsAvatar.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
+        } else {
+            googleSettingsAvatar.textContent = initial;
+        }
+    }
+    if (googleSettingsName) googleSettingsName.textContent = profile.name || "Tài khoản Google";
+    if (googleSettingsEmail) googleSettingsEmail.textContent = profile.email || "";
+    if (googleLogoutButton) googleLogoutButton.hidden = false;
+}
+
+function handleGoogleCredentialResponse(response) {
+    const profile = decodeGoogleJwt(response.credential);
+    if (!profile) {
+        alert("Không thể đọc thông tin tài khoản Google.");
+        return;
+    }
+    saveGoogleProfile(profile);
+    closeModal(settingsModal);
+    alert("Đăng nhập Google thành công! Bước tiếp theo sẽ kết nối Google Drive.");
+}
+
+function startGoogleSignIn() {
+    if (GOOGLE_CLIENT_ID.startsWith("YOUR_")) {
+        alert("MyLibra chưa được cấu hình Google Client ID. Hãy tạo OAuth Client ID cho MyLibra trước; mình sẽ hướng dẫn bạn bước này.");
+        return;
+    }
+
+    if (!window.google?.accounts?.id) {
+        alert("Google Sign-In chưa tải xong. Hãy thử tải lại trang.");
+        return;
+    }
+
+    window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredentialResponse,
+        auto_select: false
+    });
+
+    if (googleSigninArea) {
+        googleSigninArea.innerHTML = "";
+        window.google.accounts.id.renderButton(googleSigninArea, {
+            type: "standard",
+            theme: document.body.classList.contains("dark-mode") ? "filled_black" : "outline",
+            size: "large",
+            text: "signin_with",
+            shape: "rectangular",
+            logo_alignment: "left"
+        });
+    }
+
+    window.google.accounts.id.prompt();
+}
+
+function logoutGoogle() {
+    const profile = getGoogleProfile();
+    if (profile?.sub && window.google?.accounts?.id) {
+        try { window.google.accounts.id.revoke(profile.email || "", () => {}); } catch (_) {}
+    }
+    localStorage.removeItem(GOOGLE_PROFILE_KEY);
+    renderGoogleAccount(null);
+    if (googleSigninArea) googleSigninArea.innerHTML = "";
+}
+
+
 
 function openDatabase() {
     return new Promise((resolve, reject) => {
@@ -1488,6 +1626,31 @@ window.addEventListener("scroll", () => {
         updateReaderProgress();
     }
 });
+
+function switchSettingsTab(tabName) {
+    document.querySelectorAll(".settings-tab").forEach((button) => {
+        button.classList.toggle("active", button.dataset.settingsTab === tabName);
+    });
+    document.querySelectorAll(".settings-panel").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.settingsPanel === tabName);
+    });
+}
+
+function initializeGoogleAuth() {
+    renderGoogleAccount();
+
+    googleLoginButton?.addEventListener("click", () => {
+        if (getGoogleProfile()) {
+            settingsModal.hidden = false;
+            switchSettingsTab("account");
+        }
+        startGoogleSignIn();
+    });
+
+    googleLogoutButton?.addEventListener("click", logoutGoogle);
+}
+
+initializeGoogleAuth();
 
 function initializeMyLibra() {
     const savedTheme = localStorage.getItem("mylibra-theme");
