@@ -15,9 +15,27 @@ const allBookGrid = $("allBookGrid");
 const emptyLibrary = $("emptyLibrary");
 const searchInput = document.querySelector(".search-box input");
 const librarySearch = $("librarySearch");
-const genreFilter = $("genreFilter");
-const tagFilter = $("tagFilter");
+const genreFilterPicker = $("genreFilterPicker");
+const genreFilterTrigger = $("genreFilterTrigger");
+const genreFilterMenu = $("genreFilterMenu");
+const tagFilterPicker = $("tagFilterPicker");
+const tagFilterTrigger = $("tagFilterTrigger");
+const tagFilterMenu = $("tagFilterMenu");
 const clearFilters = $("clearFilters");
+
+const addGenreTrigger = $("addGenreTrigger");
+const addGenreMenu = $("addGenreMenu");
+const addGenreChips = $("addGenreChips");
+const addTagTrigger = $("addTagTrigger");
+const addTagMenu = $("addTagMenu");
+const addTagChips = $("addTagChips");
+
+const editGenreTrigger = $("editGenreTrigger");
+const editGenreMenu = $("editGenreMenu");
+const editGenreChips = $("editGenreChips");
+const editTagTrigger = $("editTagTrigger");
+const editTagMenu = $("editTagMenu");
+const editTagChips = $("editTagChips");
 const themeButton = $("themeButton");
 const homeButton = $("homeButton");
 const settingsButton = $("settingsButton");
@@ -67,8 +85,6 @@ const cancelEditBook = $("cancelEditBook");
 const saveEditBook = $("saveEditBook");
 const editTitle = $("editTitle");
 const editAuthor = $("editAuthor");
-const editGenre = $("editGenre");
-const editTags = $("editTags");
 const editDescription = $("editDescription");
 const editCover = $("editCover");
 
@@ -373,6 +389,10 @@ function createBookCard(book) {
         <div class="book-info">
             <h3>${escapeHTML(book.title)}</h3>
             <p>${escapeHTML(book.author || "Không rõ tác giả")}</p>
+            <div class="book-card-chips">
+                ${getBookGenres(book).slice(0, 2).map((value) => chipHTML(value, false, "genre")).join("")}
+                ${getBookTags(book).slice(0, 2).map((value) => chipHTML(value, false, "tag")).join("")}
+            </div>
             <div class="progress">
                 <div class="progress-bar" style="width:${book.progress || 0}%"></div>
             </div>
@@ -383,20 +403,31 @@ function createBookCard(book) {
     return card;
 }
 
+const GENRE_OPTIONS = [
+    "Fantasy", "Action", "Adventure", "Romance", "Drama", "Comedy",
+    "Mystery", "Horror", "Psychological", "Sci-Fi", "Historical",
+    "School Life", "Slice of Life", "Isekai", "Reincarnation",
+    "Cultivation", "Xianxia", "Wuxia", "Manhwa", "Manga", "Light Novel"
+];
+
+let selectedFilterGenres = [];
+let selectedFilterTags = [];
+let addGenres = [];
+let addTags = [];
+let editGenres = [];
+let editTags = [];
+
 function normalizeSearchText(value) {
     return String(value || "")
         .normalize("NFD")
-        .replace(/[\\u0300-\\u036f]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
 }
 
 function splitBookValues(value) {
     if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
-    return String(value || "")
-        .split(/[,;|]/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+    return String(value || "").split(/[,;|]/).map((item) => item.trim()).filter(Boolean);
 }
 
 function getBookTags(book) {
@@ -404,57 +435,160 @@ function getBookTags(book) {
 }
 
 function getBookGenres(book) {
-    return splitBookValues(book.genre);
+    return splitBookValues(book.genre).filter((value) =>
+        normalizeSearchText(value) !== normalizeSearchText("Chưa phân loại")
+    );
+}
+
+function uniqueValues(values) {
+    const seen = new Map();
+    values.flatMap(splitBookValues).forEach((value) => {
+        const key = normalizeSearchText(value);
+        if (key && !seen.has(key)) seen.set(key, value);
+    });
+    return [...seen.values()];
+}
+
+function allGenres() {
+    return uniqueValues([...GENRE_OPTIONS, ...books.flatMap(getBookGenres)])
+        .sort((a, b) => a.localeCompare(b, "vi"));
+}
+
+function allTags() {
+    return uniqueValues(books.flatMap(getBookTags))
+        .sort((a, b) => a.localeCompare(b, "vi"));
+}
+
+function chipHTML(value, removable = false, type = "") {
+    return '<span class="book-chip ' + (type ? "chip-" + type : "") + '">' +
+        '<span>' + escapeHTML(value) + '</span>' +
+        (removable
+            ? '<button type="button" class="chip-remove" data-chip-value="' + escapeHTML(value) + '" aria-label="Xóa">×</button>'
+            : "") +
+        '</span>';
+}
+
+function renderSelectedChips(container, values, type) {
+    if (!container) return;
+    container.innerHTML = values.length
+        ? values.map((value) => chipHTML(value, true, type)).join("")
+        : '<span class="chip-placeholder">Chưa chọn</span>';
+
+    container.querySelectorAll(".chip-remove").forEach((button) => {
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const value = button.dataset.chipValue;
+            if (container === addGenreChips) addGenres = addGenres.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
+            if (container === addTagChips) addTags = addTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
+            if (container === editGenreChips) editGenres = editGenres.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
+            if (container === editTagChips) editTags = editTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
+            if (container === addGenreChips) renderSelectedChips(addGenreChips, addGenres, "genre");
+            if (container === addTagChips) renderSelectedChips(addTagChips, addTags, "tag");
+            if (container === editGenreChips) renderSelectedChips(editGenreChips, editGenres, "genre");
+            if (container === editTagChips) renderSelectedChips(editTagChips, editTags, "tag");
+        });
+    });
+}
+
+function closeAllChipMenus(except = null) {
+    document.querySelectorAll(".chip-picker-menu").forEach((menu) => {
+        if (menu !== except) menu.hidden = true;
+    });
+}
+
+function createPickerMenu(menu, values, selectedValues, onToggle, type) {
+    if (!menu) return;
+
+    const selectedKeys = selectedValues.map(normalizeSearchText);
+    menu.innerHTML = values.map((value) => {
+        const checked = selectedKeys.includes(normalizeSearchText(value));
+        return '<button type="button" class="chip-menu-option ' + (checked ? "selected" : "") +
+            '" data-value="' + escapeHTML(value) + '">' +
+            '<span class="chip-menu-check">' + (checked ? "✓" : "") + '</span>' +
+            '<span>' + escapeHTML(value) + '</span></button>';
+    }).join("");
+
+    menu.insertAdjacentHTML("beforeend",
+        '<button type="button" class="chip-menu-create">＋ Tạo ' +
+        (type === "genre" ? "thể loại" : "tag") + ' mới</button>'
+    );
+
+    menu.querySelectorAll(".chip-menu-option").forEach((button) => {
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            onToggle(button.dataset.value);
+            createPickerMenu(menu, type === "genre" ? allGenres() : allTags(), selectedValues, onToggle, type);
+        });
+    });
+
+    menu.querySelector(".chip-menu-create")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const value = prompt(type === "genre" ? "Nhập tên thể loại mới:" : "Nhập tag mới:");
+        if (!value?.trim()) return;
+        onToggle(value.trim());
+        createPickerMenu(menu, type === "genre" ? allGenres() : allTags(), selectedValues, onToggle, type);
+    });
+}
+
+function setupChipPicker(trigger, menu, getValues, getSelected, onToggle, type) {
+    if (!trigger || !menu) return;
+    trigger.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const willOpen = menu.hidden;
+        closeAllChipMenus(menu);
+        menu.hidden = !willOpen;
+        if (willOpen) createPickerMenu(menu, getValues(), getSelected(), onToggle, type);
+    });
+}
+
+document.addEventListener("click", () => closeAllChipMenus());
+
+function toggleValue(list, value) {
+    const key = normalizeSearchText(value);
+    return list.some((item) => normalizeSearchText(item) === key)
+        ? list.filter((item) => normalizeSearchText(item) !== key)
+        : [...list, value];
+}
+
+function updateFilterTrigger() {
+    if (genreFilterTrigger) {
+        genreFilterTrigger.innerHTML = selectedFilterGenres.length
+            ? '<span class="trigger-chip-row">' + selectedFilterGenres.map((value) => chipHTML(value, false, "genre")).join("") + '</span><span class="chip-picker-arrow">⌄</span>'
+            : '<span>🏷️ Thể loại</span><span class="chip-picker-arrow">⌄</span>';
+    }
+    if (tagFilterTrigger) {
+        tagFilterTrigger.innerHTML = selectedFilterTags.length
+            ? '<span class="trigger-chip-row">' + selectedFilterTags.map((value) => chipHTML(value, false, "tag")).join("") + '</span><span class="chip-picker-arrow">⌄</span>'
+            : '<span># Tag</span><span class="chip-picker-arrow">⌄</span>';
+    }
 }
 
 function updateFilterOptions() {
-    if (!genreFilter || !tagFilter) return;
-
-    const selectedGenre = genreFilter.value;
-    const selectedTag = tagFilter.value;
-
-    const genres = [...new Set(books.flatMap(getBookGenres))]
-        .filter((value) => value && normalizeSearchText(value) !== normalizeSearchText("Chưa phân loại"))
-        .sort((a, b) => a.localeCompare(b, "vi"));
-
-    const tags = [...new Set(books.flatMap(getBookTags))]
-        .sort((a, b) => a.localeCompare(b, "vi"));
-
-    genreFilter.innerHTML = '<option value="">Tất cả thể loại</option>' +
-        genres.map((value) => '<option value="' + escapeHTML(value) + '">' + escapeHTML(value) + '</option>').join("");
-
-    tagFilter.innerHTML = '<option value="">Tất cả tag</option>' +
-        tags.map((value) => '<option value="' + escapeHTML(value) + '">' + escapeHTML(value) + '</option>').join("");
-
-    genreFilter.value = genres.includes(selectedGenre) ? selectedGenre : "";
-    tagFilter.value = tags.includes(selectedTag) ? selectedTag : "";
+    createPickerMenu(genreFilterMenu, allGenres(), selectedFilterGenres, (value) => {
+        selectedFilterGenres = toggleValue(selectedFilterGenres, value);
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
+    }, "genre");
+    createPickerMenu(tagFilterMenu, allTags(), selectedFilterTags, (value) => {
+        selectedFilterTags = toggleValue(selectedFilterTags, value);
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
+    }, "tag");
+    updateFilterTrigger();
 }
 
 function getFilteredBooks() {
-    const keyword = normalizeSearchText(
-        (librarySearch?.value || searchInput?.value || "")
-    );
-    const selectedGenre = normalizeSearchText(genreFilter?.value || "");
-    const selectedTag = normalizeSearchText(tagFilter?.value || "");
-
+    const keyword = normalizeSearchText(searchInput?.value || "");
     return books.filter((book) => {
-        const searchable = [
-            book.title,
-            book.author,
-            book.genre,
-            book.tags,
-            book.description,
-            book.fileName
-        ].map(normalizeSearchText).join(" ");
-
-        const matchesKeyword = !keyword || searchable.includes(keyword);
-
+        const searchable = [book.title, book.author, book.genre, book.tags, book.description, book.fileName]
+            .map(normalizeSearchText).join(" ");
         const genres = getBookGenres(book).map(normalizeSearchText);
         const tags = getBookTags(book).map(normalizeSearchText);
-
-        const matchesGenre = !selectedGenre || genres.includes(selectedGenre);
-        const matchesTag = !selectedTag || tags.includes(selectedTag);
-
+        const matchesKeyword = !keyword || searchable.includes(keyword);
+        const matchesGenre = !selectedFilterGenres.length ||
+            selectedFilterGenres.some((selected) => genres.includes(normalizeSearchText(selected)));
+        const matchesTag = !selectedFilterTags.length ||
+            selectedFilterTags.some((selected) => tags.includes(normalizeSearchText(selected)));
         return matchesKeyword && matchesGenre && matchesTag;
     });
 }
@@ -462,7 +596,6 @@ function getFilteredBooks() {
 function renderBooks(bookList = books) {
     bookGrid.innerHTML = "";
     allBookGrid.innerHTML = "";
-
     const sorted = [...bookList].sort((a, b) => {
         const mode = localStorage.getItem("mylibra-sort") || "added";
         if (mode === "title") return String(a.title || "").localeCompare(String(b.title || ""), "vi");
@@ -470,39 +603,22 @@ function renderBooks(bookList = books) {
         return (b.addedAt || 0) - (a.addedAt || 0);
     });
 
-    const hasActiveFilter = Boolean(
-        (librarySearch?.value || searchInput?.value || "").trim() ||
-        genreFilter?.value ||
-        tagFilter?.value
-    );
-
+    const hasActiveFilter = Boolean(searchInput?.value.trim() || selectedFilterGenres.length || selectedFilterTags.length);
     if (!bookList.length) {
         emptyLibrary.hidden = false;
         emptyLibrary.innerHTML = hasActiveFilter
-            ? `<div class="empty-icon">🔎</div>
-               <h3>Không tìm thấy truyện</h3>
-               <p>Thử đổi từ khóa, thể loại hoặc tag.</p>
-               <button class="add-button" type="button" id="clearFiltersInline">Xóa bộ lọc</button>`
-            : `<div class="empty-icon">📚</div>
-               <h3>Thư viện của bạn</h3>
-               <p>Thêm EPUB, PDF hoặc TXT để bắt đầu đọc.</p>
-               <button class="primary-button" type="button" id="emptyAddBookButtonInline">+ Thêm truyện</button>`;
-
+            ? '<div class="empty-icon">🔎</div><h3>Không tìm thấy truyện</h3><p>Thử đổi từ khóa, thể loại hoặc tag.</p><button class="add-button" type="button" id="clearFiltersInline">Xóa bộ lọc</button>'
+            : '<div class="empty-icon">📚</div><h3>Thư viện của bạn</h3><p>Thêm EPUB, PDF hoặc TXT để bắt đầu đọc.</p><button class="primary-button" type="button" id="emptyAddBookButtonInline">+ Thêm truyện</button>';
         $("clearFiltersInline")?.addEventListener("click", clearAllFilters);
         $("emptyAddBookButtonInline")?.addEventListener("click", openAddBookModal);
-
         const section = $("readingSection");
         if (section) section.hidden = true;
         return;
     }
 
     emptyLibrary.hidden = true;
-
     const section = $("readingSection");
-    if (section) {
-        section.hidden = localStorage.getItem("mylibra-show-reading") === "false";
-    }
-
+    if (section) section.hidden = localStorage.getItem("mylibra-show-reading") === "false";
     sorted.forEach((book) => {
         bookGrid.appendChild(createBookCard(book));
         allBookGrid.appendChild(createBookCard(book));
@@ -510,29 +626,18 @@ function renderBooks(bookList = books) {
 }
 
 function applyLibraryFilters() {
-    const keyword = (librarySearch?.value || "").trim();
-    if (searchInput && searchInput.value !== keyword) searchInput.value = keyword;
     renderBooks(getFilteredBooks());
 }
 
 function clearAllFilters() {
-    if (librarySearch) librarySearch.value = "";
     if (searchInput) searchInput.value = "";
-    if (genreFilter) genreFilter.value = "";
-    if (tagFilter) tagFilter.value = "";
+    selectedFilterGenres = [];
+    selectedFilterTags = [];
     updateFilterOptions();
-renderBooks(books);
+    renderBooks(books);
 }
 
-function syncFilterFromTopSearch() {
-    if (librarySearch) librarySearch.value = searchInput?.value || "";
-    renderBooks(getFilteredBooks());
-}
-
-searchInput?.addEventListener("input", syncFilterFromTopSearch);
-librarySearch?.addEventListener("input", applyLibraryFilters);
-genreFilter?.addEventListener("change", applyLibraryFilters);
-tagFilter?.addEventListener("change", applyLibraryFilters);
+searchInput?.addEventListener("input", applyLibraryFilters);
 clearFilters?.addEventListener("click", clearAllFilters);
 
 function applyTheme(theme) {
@@ -641,6 +746,58 @@ bookFileInput?.addEventListener("change", () => {
     confirmAddBook.disabled = false;
 });
 
+function refreshAddPickerMenus() {
+    createPickerMenu(addGenreMenu, allGenres(), addGenres, (value) => {
+        addGenres = toggleValue(addGenres, value);
+        renderSelectedChips(addGenreChips, addGenres, "genre");
+        refreshAddPickerMenus();
+    }, "genre");
+    createPickerMenu(addTagMenu, allTags(), addTags, (value) => {
+        addTags = toggleValue(addTags, value);
+        renderSelectedChips(addTagChips, addTags, "tag");
+        refreshAddPickerMenus();
+    }, "tag");
+}
+
+function refreshEditPickerMenus() {
+    createPickerMenu(editGenreMenu, allGenres(), editGenres, (value) => {
+        editGenres = toggleValue(editGenres, value);
+        renderSelectedChips(editGenreChips, editGenres, "genre");
+        refreshEditPickerMenus();
+    }, "genre");
+    createPickerMenu(editTagMenu, allTags(), editTags, (value) => {
+        editTags = toggleValue(editTags, value);
+        renderSelectedChips(editTagChips, editTags, "tag");
+        refreshEditPickerMenus();
+    }, "tag");
+}
+
+setupChipPicker(addGenreTrigger, addGenreMenu, allGenres, () => addGenres, (value) => {
+    addGenres = toggleValue(addGenres, value);
+    renderSelectedChips(addGenreChips, addGenres, "genre");
+    refreshAddPickerMenus();
+}, "genre");
+setupChipPicker(addTagTrigger, addTagMenu, allTags, () => addTags, (value) => {
+    addTags = toggleValue(addTags, value);
+    renderSelectedChips(addTagChips, addTags, "tag");
+    refreshAddPickerMenus();
+}, "tag");
+setupChipPicker(editGenreTrigger, editGenreMenu, allGenres, () => editGenres, (value) => {
+    editGenres = toggleValue(editGenres, value);
+    renderSelectedChips(editGenreChips, editGenres, "genre");
+    refreshEditPickerMenus();
+}, "genre");
+setupChipPicker(editTagTrigger, editTagMenu, allTags, () => editTags, (value) => {
+    editTags = toggleValue(editTags, value);
+    renderSelectedChips(editTagChips, editTags, "tag");
+    refreshEditPickerMenus();
+}, "tag");
+
+renderSelectedChips(addGenreChips, addGenres, "genre");
+renderSelectedChips(addTagChips, addTags, "tag");
+renderSelectedChips(editGenreChips, editGenres, "genre");
+renderSelectedChips(editTagChips, editTags, "tag");
+
 confirmAddBook?.addEventListener("click", async () => {
     const file = bookFileInput.files[0];
     if (!file) return;
@@ -651,8 +808,8 @@ confirmAddBook?.addEventListener("click", async () => {
         id: "book-" + Date.now(),
         title: removeExtension(file.name),
         author: "Chưa rõ tác giả",
-        genre: "Chưa phân loại",
-        tags: [],
+        genre: addGenres.length ? [...addGenres] : ["Chưa phân loại"],
+        tags: [...addTags],
         description: "",
         progress: 0,
         icon: getBookIcon(type),
@@ -668,6 +825,11 @@ confirmAddBook?.addEventListener("click", async () => {
         updateFilterOptions();
         renderBooks(getFilteredBooks());
         closeModal(addBookModal);
+        addGenres = [];
+        addTags = [];
+        renderSelectedChips(addGenreChips, addGenres, "genre");
+        renderSelectedChips(addTagChips, addTags, "tag");
+        refreshAddPickerMenus();
         alert('Đã thêm "' + newBook.title + '" vào thư viện.');
     } catch (error) {
         console.error(error);
@@ -694,7 +856,11 @@ function openBook(bookId) {
         </div>
 
         <div class="book-detail-info">
-            <span class="book-detail-category">${escapeHTML(book.genre || "Chưa phân loại")}</span>
+            <div class="book-detail-chips">
+                ${getBookGenres(book).map((value) => chipHTML(value, false, "genre")).join("")}
+                ${getBookTags(book).map((value) => chipHTML(value, false, "tag")).join("")}
+                ${!getBookGenres(book).length && !getBookTags(book).length ? '<span class="chip-placeholder">Chưa có thể loại / tag</span>' : ""}
+            </div>
 
             <h1>${escapeHTML(book.title)}</h1>
 
@@ -785,8 +951,11 @@ function openEditBook(bookId) {
     currentBookId = bookId;
     editTitle.value = book.title || "";
     editAuthor.value = book.author || "";
-    editGenre.value = Array.isArray(book.genre) ? book.genre.join(", ") : (book.genre || "");
-    editTags.value = getBookTags(book).join(", ");
+    editGenres = getBookGenres(book);
+    editTags = getBookTags(book);
+    renderSelectedChips(editGenreChips, editGenres, "genre");
+    renderSelectedChips(editTagChips, editTags, "tag");
+    refreshEditPickerMenus();
     editDescription.value = book.description || "";
     editCover.value = "";
 
@@ -814,8 +983,8 @@ saveEditBook?.addEventListener("click", async () => {
 
     book.title = title;
     book.author = editAuthor.value.trim() || "Chưa rõ tác giả";
-    book.genre = editGenre.value.trim() || "Chưa phân loại";
-    book.tags = splitBookValues(editTags.value);
+    book.genre = editGenres.length ? [...editGenres] : ["Chưa phân loại"];
+    book.tags = [...editTags];
     book.description = editDescription.value.trim();
 
     if (editCover.files[0]) {
