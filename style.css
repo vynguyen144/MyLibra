@@ -845,8 +845,111 @@ button {
     display:
         flex;
 
+    align-items:
+        center;
+
+    flex-wrap:
+        wrap;
+
     gap:
         6px;
+
+}
+
+.reader-jump {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    white-space:
+        nowrap;
+
+}
+
+.reader-jump label {
+
+    font-size:
+        12px;
+
+    color:
+        var(--text-soft);
+
+}
+
+.reader-jump select,
+.reader-jump input {
+
+    height:
+        36px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        8px;
+
+    background:
+        var(--surface-soft);
+
+    color:
+        var(--text);
+
+    padding:
+        0 8px;
+
+}
+
+.reader-jump select {
+
+    max-width:
+        210px;
+
+}
+
+.pdf-page-jump input {
+
+    width:
+        64px;
+
+    text-align:
+        center;
+
+}
+
+.reader-jump button {
+
+    min-width:
+        42px;
+
+    height:
+        36px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        8px;
+
+    background:
+        var(--surface-soft);
+
+    color:
+        var(--text);
+
+}
+
+.reader-jump button:hover,
+.reader-jump select:hover,
+.reader-jump input:hover {
+
+    border-color:
+        var(--primary);
 
 }
 
