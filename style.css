@@ -1556,3 +1556,66 @@ body.dark-mode .book-actions .danger-button {
         border-right: none;
     }
 }
+
+/* =========================================
+   PDF READER / EDITOR
+========================================= */
+.pdf-toolbar {
+    position: sticky;
+    top: 72px;
+    z-index: 45;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+.pdf-toolbar button {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 11px;
+    background: var(--surface-soft);
+    color: var(--text);
+    font-weight: 600;
+}
+.pdf-toolbar button:hover {
+    border-color: var(--primary);
+}
+#pdfSave {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+.pdf-reader-content {
+    padding: 28px 16px 90px;
+    overflow: auto;
+}
+.pdf-canvas-wrap {
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 18px;
+    background: #d9d6df;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+}
+#pdfCanvas {
+    display: block;
+    background: white;
+    max-width: 100%;
+    height: auto;
+}
+@media (max-width: 700px) {
+    .pdf-toolbar {
+        top: 56px;
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    .pdf-toolbar button {
+        white-space: nowrap;
+    }
+}
