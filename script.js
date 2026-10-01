@@ -1786,7 +1786,6 @@ function initializeMyLibra() {
             });
 
             updateFilterOptions();
-            updateFilterOptions();
             renderBooks();
             showLibrary();
         })
