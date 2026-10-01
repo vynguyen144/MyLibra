@@ -667,34 +667,68 @@ async function openPdfReader(book) {
         return;
     }
 
-    currentPdfBookId = book.id;
-    currentPdfPage = Number(localStorage.getItem("mylibra-pdf-page-" + book.id)) || 1;
-    currentPdfScale = Number(localStorage.getItem("mylibra-pdf-scale-" + book.id)) || 1.25;
-    currentPdfRotation = 0;
-
-    const bytes = await book.file.arrayBuffer();
-    currentPdfBytes = bytes;
-
     try {
+        if (!book.file || typeof book.file.arrayBuffer !== "function") {
+            throw new Error("File PDF trong bộ nhớ không hợp lệ.");
+        }
+
+        currentPdfBookId = book.id;
+        currentPdfPage = Number(localStorage.getItem("mylibra-pdf-page-" + book.id)) || 1;
+        currentPdfScale = Number(localStorage.getItem("mylibra-pdf-scale-" + book.id)) || 1.25;
+        currentPdfRotation = 0;
+
+        const bytes = await book.file.arrayBuffer();
+        if (!bytes || bytes.byteLength < 5) {
+            throw new Error("File PDF rỗng.");
+        }
+
+        currentPdfBytes = bytes;
+
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-        currentPdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+        // Dùng Uint8Array mới để PDF.js không bị ảnh hưởng bởi buffer gốc của File/Blob.
+        const data = new Uint8Array(bytes);
+        currentPdf = await pdfjsLib.getDocument({
+            data,
+            verbosity: 0
+        }).promise;
 
-        pdfToolbar.hidden = false;
+        if (!currentPdf.numPages) {
+            throw new Error("PDF không có trang.");
+        }
+
+        if (pdfToolbar) pdfToolbar.hidden = false;
+
         readerContent.className = "reader-content pdf-reader-content";
-        readerContent.innerHTML = '<div class="pdf-canvas-wrap"><canvas id="pdfCanvas"></canvas></div>';
+        readerContent.innerHTML =
+            '<div class="pdf-canvas-wrap"><canvas id="pdfCanvas"></canvas></div>';
 
-        currentPdfPage = Math.max(1, Math.min(currentPdfPage, currentPdf.numPages));
+        currentPdfPage = Math.max(
+            1,
+            Math.min(currentPdfPage, currentPdf.numPages)
+        );
+
         await renderPdfPage(currentPdfPage);
     } catch (error) {
-        console.error(error);
-        pdfToolbar.hidden = true;
-        readerContent.innerHTML = "";
-        alert("Không thể mở PDF. File có thể bị lỗi hoặc không hợp lệ.");
+        console.error("MyLibra PDF error:", error);
+
+        currentPdf = null;
+        currentPdfBytes = null;
+
+        if (pdfToolbar) pdfToolbar.hidden = true;
+
+        readerContent.className = "reader-content";
+        readerContent.innerHTML = `
+            <div class="pdf-error-box">
+                <div style="font-size:42px">📕</div>
+                <h2>Không thể hiển thị PDF</h2>
+                <p>PDF Reader gặp lỗi khi đọc file này.</p>
+                <small>${escapeHTML(error?.message || "Lỗi không xác định")}</small>
+            </div>
+        `;
     }
 }
-
 async function renderPdfPage(pageNumber) {
     if (!currentPdf) return;
 
