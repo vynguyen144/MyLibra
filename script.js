@@ -1,6 +1,6 @@
 /* =========================================
    MYLIBRA
-   STEP 9 - ADD BOOK
+   STEP 10 - READER
 ========================================= */
 
 
@@ -12,88 +12,41 @@ let books = [
 
     {
         id: 1,
-
-        title:
-            "Cô Gái Đến Từ Thế Giới Khác",
-
-        author:
-            "Chưa cập nhật",
-
-        genre:
-            "Fantasy",
-
+        title: "Cô Gái Đến Từ Thế Giới Khác",
+        author: "Chưa cập nhật",
+        genre: "Fantasy",
         description:
             "Một câu chuyện giả tưởng về một cô gái bước vào một thế giới hoàn toàn xa lạ.",
-
-        progress:
-            67,
-
-        icon:
-            "📖",
-
-        fileName:
-            null,
-
-        fileType:
-            null
+        progress: 67,
+        icon: "📖",
+        fileName: null,
+        fileType: null
     },
-
 
     {
         id: 2,
-
-        title:
-            "Truyện thứ hai",
-
-        author:
-            "Chưa cập nhật",
-
-        genre:
-            "Romance",
-
+        title: "Truyện thứ hai",
+        author: "Chưa cập nhật",
+        genre: "Romance",
         description:
             "Mô tả truyện sẽ được cập nhật sau.",
-
-        progress:
-            32,
-
-        icon:
-            "📕",
-
-        fileName:
-            null,
-
-        fileType:
-            null
+        progress: 32,
+        icon: "📕",
+        fileName: null,
+        fileType: null
     },
-
 
     {
         id: 3,
-
-        title:
-            "Truyện thứ ba",
-
-        author:
-            "Chưa cập nhật",
-
-        genre:
-            "Adventure",
-
+        title: "Truyện thứ ba",
+        author: "Chưa cập nhật",
+        genre: "Adventure",
         description:
             "Mô tả truyện sẽ được cập nhật sau.",
-
-        progress:
-            15,
-
-        icon:
-            "📘",
-
-        fileName:
-            null,
-
-        fileType:
-            null
+        progress: 15,
+        icon: "📘",
+        fileName: null,
+        fileType: null
     }
 
 ];
@@ -105,107 +58,79 @@ let books = [
 ========================================= */
 
 const bookGrid =
-    document.querySelector(
-        "#bookGrid"
-    );
-
+    document.querySelector("#bookGrid");
 
 const allBookGrid =
-    document.querySelector(
-        "#allBookGrid"
-    );
-
-
-const emptyLibrary =
-    document.querySelector(
-        "#emptyLibrary"
-    );
-
+    document.querySelector("#allBookGrid");
 
 const libraryPage =
-    document.querySelector(
-        "#libraryPage"
-    );
-
+    document.querySelector("#libraryPage");
 
 const bookDetailPage =
-    document.querySelector(
-        "#bookDetailPage"
-    );
-
+    document.querySelector("#bookDetailPage");
 
 const bookDetail =
-    document.querySelector(
-        "#bookDetail"
-    );
+    document.querySelector("#bookDetail");
 
+const readerPage =
+    document.querySelector("#readerPage");
+
+const readerTitle =
+    document.querySelector("#readerTitle");
+
+const readerContent =
+    document.querySelector("#readerContent");
+
+const readerProgressBar =
+    document.querySelector("#readerProgressBar");
 
 const backToLibrary =
-    document.querySelector(
-        "#backToLibrary"
-    );
+    document.querySelector("#backToLibrary");
 
+const backFromReader =
+    document.querySelector("#backFromReader");
 
 const themeButton =
-    document.querySelector(
-        "#themeButton"
-    );
-
+    document.querySelector("#themeButton");
 
 const searchInput =
-    document.querySelector(
-        ".search-box input"
-    );
+    document.querySelector(".search-box input");
 
 
 /* ADD BOOK */
 
 const addBookButton =
-    document.querySelector(
-        "#addBookButton"
-    );
-
+    document.querySelector("#addBookButton");
 
 const emptyAddBookButton =
-    document.querySelector(
-        "#emptyAddBookButton"
-    );
-
+    document.querySelector("#emptyAddBookButton");
 
 const addBookModal =
-    document.querySelector(
-        "#addBookModal"
-    );
-
+    document.querySelector("#addBookModal");
 
 const closeAddBook =
-    document.querySelector(
-        "#closeAddBook"
-    );
-
+    document.querySelector("#closeAddBook");
 
 const cancelAddBook =
-    document.querySelector(
-        "#cancelAddBook"
-    );
-
+    document.querySelector("#cancelAddBook");
 
 const bookFile =
-    document.querySelector(
-        "#bookFile"
-    );
-
+    document.querySelector("#bookFile");
 
 const selectedFile =
-    document.querySelector(
-        "#selectedFile"
-    );
-
+    document.querySelector("#selectedFile");
 
 const confirmAddBook =
-    document.querySelector(
-        "#confirmAddBook"
-    );
+    document.querySelector("#confirmAddBook");
+
+
+/* FONT */
+
+const decreaseFont =
+    document.querySelector("#decreaseFont");
+
+const increaseFont =
+    document.querySelector("#increaseFont");
 
 
 
@@ -216,16 +141,29 @@ const confirmAddBook =
 const DB_NAME =
     "MyLibraDB";
 
-
 const DB_VERSION =
     1;
-
 
 const STORE_NAME =
     "books";
 
-
 let db = null;
+
+
+
+/* =========================================
+   READER STATE
+========================================= */
+
+let currentReaderBook =
+    null;
+
+let readerFontSize =
+    Number(
+        localStorage.getItem(
+            "mylibra-font-size"
+        )
+    ) || 18;
 
 
 
@@ -253,16 +191,14 @@ function openDatabase() {
 
 
                     if (
-                        !database.objectStoreNames.contains(
-                            STORE_NAME
-                        )
+                        !database.objectStoreNames
+                            .contains(STORE_NAME)
                     ) {
 
                         database.createObjectStore(
                             STORE_NAME,
                             {
-                                keyPath:
-                                    "id"
+                                keyPath: "id"
                             }
                         );
 
@@ -277,9 +213,7 @@ function openDatabase() {
                     db =
                         event.target.result;
 
-                    resolve(
-                        db
-                    );
+                    resolve(db);
 
                 };
 
@@ -301,12 +235,10 @@ function openDatabase() {
 
 
 /* =========================================
-   SAVE FILE TO INDEXEDDB
+   SAVE BOOK
 ========================================= */
 
-function saveFileToDatabase(
-    book
-) {
+function saveBookToDatabase(book) {
 
     return new Promise(
         (resolve, reject) => {
@@ -318,23 +250,13 @@ function saveFileToDatabase(
                 );
 
 
-            const store =
-                transaction.objectStore(
-                    STORE_NAME
-                );
-
-
-            store.put(
-                book
-            );
+            transaction
+                .objectStore(STORE_NAME)
+                .put(book);
 
 
             transaction.oncomplete =
-                () => {
-
-                    resolve();
-
-                };
+                resolve;
 
 
             transaction.onerror =
@@ -354,7 +276,7 @@ function saveFileToDatabase(
 
 
 /* =========================================
-   LOAD FILES FROM INDEXEDDB
+   LOAD BOOKS
 ========================================= */
 
 function loadBooksFromDatabase() {
@@ -362,21 +284,16 @@ function loadBooksFromDatabase() {
     return new Promise(
         (resolve, reject) => {
 
-            const transaction =
-                db.transaction(
-                    STORE_NAME,
-                    "readonly"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    STORE_NAME
-                );
-
-
             const request =
-                store.getAll();
+                db
+                    .transaction(
+                        STORE_NAME,
+                        "readonly"
+                    )
+                    .objectStore(
+                        STORE_NAME
+                    )
+                    .getAll();
 
 
             request.onsuccess =
@@ -406,65 +323,10 @@ function loadBooksFromDatabase() {
 
 
 /* =========================================
-   DELETE BOOK
+   FILE TYPE
 ========================================= */
 
-function deleteBookFromDatabase(
-    bookId
-) {
-
-    return new Promise(
-        (resolve, reject) => {
-
-            const transaction =
-                db.transaction(
-                    STORE_NAME,
-                    "readwrite"
-                );
-
-
-            const store =
-                transaction.objectStore(
-                    STORE_NAME
-                );
-
-
-            store.delete(
-                bookId
-            );
-
-
-            transaction.oncomplete =
-                () => {
-
-                    resolve();
-
-                };
-
-
-            transaction.onerror =
-                () => {
-
-                    reject(
-                        transaction.error
-                    );
-
-                };
-
-        }
-    );
-
-}
-
-
-
-/* =========================================
-   GET FILE TYPE
-========================================= */
-
-function getFileType(
-    fileName
-) {
+function getFileType(fileName) {
 
     const extension =
         fileName
@@ -473,31 +335,16 @@ function getFileType(
             .toLowerCase();
 
 
-    if (
-        extension === "epub"
-    ) {
-
+    if (extension === "epub")
         return "EPUB";
 
-    }
 
-
-    if (
-        extension === "pdf"
-    ) {
-
+    if (extension === "pdf")
         return "PDF";
 
-    }
 
-
-    if (
-        extension === "txt"
-    ) {
-
+    if (extension === "txt")
         return "TXT";
-
-    }
 
 
     return null;
@@ -506,42 +353,115 @@ function getFileType(
 
 
 
-/* =========================================
-   GET ICON
-========================================= */
+function getBookIcon(fileType) {
 
-function getBookIcon(
-    fileType
-) {
-
-    if (
-        fileType === "EPUB"
-    ) {
-
+    if (fileType === "EPUB")
         return "📖";
 
-    }
 
-
-    if (
-        fileType === "PDF"
-    ) {
-
+    if (fileType === "PDF")
         return "📕";
 
-    }
 
-
-    if (
-        fileType === "TXT"
-    ) {
-
+    if (fileType === "TXT")
         return "📄";
-
-    }
 
 
     return "📚";
+
+}
+
+
+
+function removeExtension(fileName) {
+
+    return fileName.replace(
+        /\.[^/.]+$/,
+        ""
+    );
+
+}
+
+
+
+/* =========================================
+   ESCAPE HTML
+========================================= */
+
+function escapeHTML(text) {
+
+    const div =
+        document.createElement("div");
+
+
+    div.textContent =
+        text || "";
+
+
+    return div.innerHTML;
+
+}
+
+
+
+/* =========================================
+   CREATE BOOK CARD
+========================================= */
+
+function createBookCard(book) {
+
+    const card =
+        document.createElement("article");
+
+
+    card.className =
+        "book-card";
+
+
+    card.innerHTML = `
+
+        <div class="book-cover">
+            ${book.icon}
+        </div>
+
+        <div class="book-info">
+
+            <h3>
+                ${escapeHTML(book.title)}
+            </h3>
+
+            <p>
+                ${escapeHTML(book.genre)}
+            </p>
+
+            <div class="progress">
+
+                <div
+                    class="progress-bar"
+                    style="
+                        width:
+                        ${book.progress}%;
+                    "
+                ></div>
+
+            </div>
+
+            <span>
+                ${book.progress}% đã đọc
+            </span>
+
+        </div>
+
+    `;
+
+
+    card.addEventListener(
+        "click",
+        () => openBook(book.id)
+    );
+
+
+    return card;
 
 }
 
@@ -551,18 +471,13 @@ function getBookIcon(
    RENDER BOOKS
 ========================================= */
 
-function renderBooks(
-    bookList
-) {
+function renderBooks(bookList) {
 
     bookGrid.innerHTML = "";
-
     allBookGrid.innerHTML = "";
 
 
-    if (
-        bookList.length === 0
-    ) {
+    if (bookList.length === 0) {
 
         bookGrid.innerHTML = `
 
@@ -586,7 +501,6 @@ function renderBooks(
         `;
 
         return;
-
     }
 
 
@@ -594,9 +508,7 @@ function renderBooks(
         book => {
 
             const card =
-                createBookCard(
-                    book
-                );
+                createBookCard(book);
 
 
             bookGrid.appendChild(
@@ -616,117 +528,10 @@ function renderBooks(
 
 
 /* =========================================
-   CREATE BOOK CARD
+   OPEN BOOK DETAIL
 ========================================= */
 
-function createBookCard(
-    book
-) {
-
-    const card =
-        document.createElement(
-            "article"
-        );
-
-
-    card.className =
-        "book-card";
-
-
-    card.innerHTML = `
-
-        <div class="book-cover">
-            ${book.icon}
-        </div>
-
-
-        <div class="book-info">
-
-            <h3>
-                ${escapeHTML(
-                    book.title
-                )}
-            </h3>
-
-
-            <p>
-                ${escapeHTML(
-                    book.genre
-                )}
-            </p>
-
-
-            <div class="progress">
-
-                <div
-                    class="progress-bar"
-                    style="
-                        width:
-                        ${book.progress}%;
-                    "
-                ></div>
-
-            </div>
-
-
-            <span>
-                ${book.progress}% đã đọc
-            </span>
-
-        </div>
-
-    `;
-
-
-    card.addEventListener(
-        "click",
-        () => {
-
-            openBook(
-                book.id
-            );
-
-        }
-    );
-
-
-    return card;
-
-}
-
-
-
-/* =========================================
-   ESCAPE HTML
-========================================= */
-
-function escapeHTML(
-    text
-) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        text || "";
-
-
-    return div.innerHTML;
-
-}
-
-
-
-/* =========================================
-   OPEN BOOK
-========================================= */
-
-function openBook(
-    bookId
-) {
+function openBook(bookId) {
 
     const book =
         books.find(
@@ -735,9 +540,8 @@ function openBook(
         );
 
 
-    if (!book) {
+    if (!book)
         return;
-    }
 
 
     bookDetail.innerHTML = `
@@ -754,25 +558,16 @@ function openBook(
         <div class="book-detail-info">
 
             <p class="book-detail-category">
-                ${escapeHTML(
-                    book.genre
-                )}
+                ${escapeHTML(book.genre)}
             </p>
-
 
             <h1>
-                ${escapeHTML(
-                    book.title
-                )}
+                ${escapeHTML(book.title)}
             </h1>
 
-
             <p class="book-author">
-                ${escapeHTML(
-                    book.author
-                )}
+                ${escapeHTML(book.author)}
             </p>
-
 
             <div class="book-detail-progress">
 
@@ -788,20 +583,15 @@ function openBook(
 
                 </div>
 
-
                 <span>
                     ${book.progress}% đã đọc
                 </span>
 
             </div>
 
-
             <p class="book-description">
-                ${escapeHTML(
-                    book.description
-                )}
+                ${escapeHTML(book.description)}
             </p>
-
 
             ${
                 book.fileName
@@ -815,7 +605,6 @@ function openBook(
                     : ""
             }
 
-
             <div class="book-actions">
 
                 <button
@@ -824,7 +613,6 @@ function openBook(
                 >
                     📖 Tiếp tục đọc
                 </button>
-
 
                 <button
                     class="add-button"
@@ -843,37 +631,26 @@ function openBook(
     libraryPage.hidden =
         true;
 
+    readerPage.hidden =
+        true;
 
     bookDetailPage.hidden =
         false;
 
 
-    window.scrollTo(
-        0,
-        0
-    );
+    window.scrollTo(0, 0);
 
 
     document
-        .querySelector(
-            "#continueReading"
-        )
+        .querySelector("#continueReading")
         .addEventListener(
             "click",
-            () => {
-
-                alert(
-                    "Reader sẽ được xây dựng ở bước tiếp theo."
-                );
-
-            }
+            () => openReader(book.id)
         );
 
 
     document
-        .querySelector(
-            "#editBook"
-        )
+        .querySelector("#editBook")
         .addEventListener(
             "click",
             () => {
@@ -886,6 +663,269 @@ function openBook(
         );
 
 }
+
+
+
+/* =========================================
+   OPEN READER
+========================================= */
+
+async function openReader(bookId) {
+
+    const book =
+        books.find(
+            item =>
+                item.id === bookId
+        );
+
+
+    if (!book)
+        return;
+
+
+    currentReaderBook =
+        book;
+
+
+    if (!book.file) {
+
+        alert(
+            "Truyện mẫu chưa có file để đọc. Hãy thêm một file TXT để thử Reader."
+        );
+
+        return;
+
+    }
+
+
+    if (book.fileType !== "TXT") {
+
+        alert(
+            `${book.fileType} Reader sẽ được tích hợp ở bước tiếp theo.`
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const text =
+            await book.file.text();
+
+
+        readerTitle.textContent =
+            book.title;
+
+
+        readerContent.textContent =
+            text;
+
+
+        readerContent.style.fontSize =
+            `${readerFontSize}px`;
+
+
+        readerPage.hidden =
+            false;
+
+
+        libraryPage.hidden =
+            true;
+
+
+        bookDetailPage.hidden =
+            true;
+
+
+        window.scrollTo(0, 0);
+
+
+        /*
+            Khôi phục vị trí đọc
+        */
+
+        const savedPosition =
+            Number(
+                localStorage.getItem(
+                    `mylibra-position-${book.id}`
+                )
+            );
+
+
+        if (
+            Number.isFinite(
+                savedPosition
+            )
+            &&
+            savedPosition > 0
+        ) {
+
+            requestAnimationFrame(
+                () => {
+
+                    window.scrollTo(
+                        0,
+                        savedPosition
+                    );
+
+                }
+            );
+
+        }
+
+
+        updateReaderProgress();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        alert(
+            "Không thể mở file TXT."
+        );
+
+    }
+
+}
+
+
+
+/* =========================================
+   SAVE READING POSITION
+========================================= */
+
+let savePositionTimer =
+    null;
+
+
+window.addEventListener(
+    "scroll",
+    () => {
+
+        if (
+            readerPage.hidden ||
+            !currentReaderBook
+        ) {
+
+            return;
+
+        }
+
+
+        updateReaderProgress();
+
+
+        clearTimeout(
+            savePositionTimer
+        );
+
+
+        savePositionTimer =
+            setTimeout(
+                () => {
+
+                    localStorage.setItem(
+                        `mylibra-position-${currentReaderBook.id}`,
+                        window.scrollY
+                    );
+
+                },
+                150
+            );
+
+    }
+);
+
+
+
+/* =========================================
+   READER PROGRESS
+========================================= */
+
+function updateReaderProgress() {
+
+    if (
+        readerPage.hidden
+    ) {
+
+        return;
+
+    }
+
+
+    const documentHeight =
+        document.documentElement
+            .scrollHeight
+        -
+        window.innerHeight;
+
+
+    if (
+        documentHeight <= 0
+    ) {
+
+        readerProgressBar.style.width =
+            "0%";
+
+        return;
+
+    }
+
+
+    const percentage =
+        (
+            window.scrollY /
+            documentHeight
+        ) * 100;
+
+
+    readerProgressBar.style.width =
+        `${Math.min(
+            100,
+            Math.max(
+                0,
+                percentage
+            )
+        )}%`;
+
+}
+
+
+
+/* =========================================
+   BACK FROM READER
+========================================= */
+
+backFromReader.addEventListener(
+    "click",
+    () => {
+
+        readerPage.hidden =
+            true;
+
+
+        libraryPage.hidden =
+            false;
+
+
+        currentReaderBook =
+            null;
+
+
+        window.scrollTo(
+            0,
+            0
+        );
+
+    }
+);
 
 
 
@@ -916,7 +956,60 @@ backToLibrary.addEventListener(
 
 
 /* =========================================
-   OPEN ADD BOOK MODAL
+   FONT SIZE
+========================================= */
+
+function setReaderFontSize(size) {
+
+    readerFontSize =
+        Math.min(
+            32,
+            Math.max(
+                12,
+                size
+            )
+        );
+
+
+    readerContent.style.fontSize =
+        `${readerFontSize}px`;
+
+
+    localStorage.setItem(
+        "mylibra-font-size",
+        readerFontSize
+    );
+
+}
+
+
+decreaseFont.addEventListener(
+    "click",
+    () => {
+
+        setReaderFontSize(
+            readerFontSize - 1
+        );
+
+    }
+);
+
+
+increaseFont.addEventListener(
+    "click",
+    () => {
+
+        setReaderFontSize(
+            readerFontSize + 1
+        );
+
+    }
+);
+
+
+
+/* =========================================
+   ADD BOOK MODAL
 ========================================= */
 
 function openAddBookModal() {
@@ -933,20 +1026,11 @@ function openAddBookModal() {
         true;
 
 
-    selectedFile.textContent =
-        "";
-
-
     confirmAddBook.disabled =
         true;
 
 }
 
-
-
-/* =========================================
-   CLOSE ADD BOOK MODAL
-========================================= */
 
 function closeAddBookModal() {
 
@@ -955,11 +1039,6 @@ function closeAddBookModal() {
 
 }
 
-
-
-/* =========================================
-   BUTTONS
-========================================= */
 
 addBookButton.addEventListener(
     "click",
@@ -1000,10 +1079,10 @@ bookFile.addEventListener(
 
         if (!file) {
 
-            selectedFile.hidden =
+            confirmAddBook.disabled =
                 true;
 
-            confirmAddBook.disabled =
+            selectedFile.hidden =
                 true;
 
             return;
@@ -1012,9 +1091,7 @@ bookFile.addEventListener(
 
 
         const fileType =
-            getFileType(
-                file.name
-            );
+            getFileType(file.name);
 
 
         if (!fileType) {
@@ -1064,20 +1141,16 @@ confirmAddBook.addEventListener(
             bookFile.files[0];
 
 
-        if (!file) {
+        if (!file)
             return;
-        }
 
 
         const fileType =
-            getFileType(
-                file.name
-            );
+            getFileType(file.name);
 
 
-        if (!fileType) {
+        if (!fileType)
             return;
-        }
 
 
         confirmAddBook.disabled =
@@ -1113,9 +1186,7 @@ confirmAddBook.addEventListener(
                     0,
 
                 icon:
-                    getBookIcon(
-                        fileType
-                    ),
+                    getBookIcon(fileType),
 
                 fileName:
                     file.name,
@@ -1129,7 +1200,7 @@ confirmAddBook.addEventListener(
             };
 
 
-            await saveFileToDatabase(
+            await saveBookToDatabase(
                 newBook
             );
 
@@ -1155,9 +1226,7 @@ confirmAddBook.addEventListener(
 
         catch (error) {
 
-            console.error(
-                error
-            );
+            console.error(error);
 
 
             alert(
@@ -1176,23 +1245,6 @@ confirmAddBook.addEventListener(
 
     }
 );
-
-
-
-/* =========================================
-   REMOVE FILE EXTENSION
-========================================= */
-
-function removeExtension(
-    fileName
-) {
-
-    return fileName.replace(
-        /\.[^/.]+$/,
-        ""
-    );
-
-}
 
 
 
@@ -1218,25 +1270,19 @@ searchInput.addEventListener(
 
                         book.title
                             .toLowerCase()
-                            .includes(
-                                keyword
-                            )
+                            .includes(keyword)
 
                         ||
 
                         book.genre
                             .toLowerCase()
-                            .includes(
-                                keyword
-                            )
+                            .includes(keyword)
 
                         ||
 
                         book.author
                             .toLowerCase()
-                            .includes(
-                                keyword
-                            )
+                            .includes(keyword)
 
                         ||
 
@@ -1244,9 +1290,7 @@ searchInput.addEventListener(
                             book.fileName &&
                             book.fileName
                                 .toLowerCase()
-                                .includes(
-                                    keyword
-                                )
+                                .includes(keyword)
                         )
 
                     );
@@ -1268,19 +1312,13 @@ searchInput.addEventListener(
    THEME
 ========================================= */
 
-function setTheme(
-    theme
-) {
+function setTheme(theme) {
 
-    if (
-        theme === "dark"
-    ) {
+    if (theme === "dark") {
 
         document.body
             .classList
-            .add(
-                "dark-mode"
-            );
+            .add("dark-mode");
 
 
         themeButton.textContent =
@@ -1292,9 +1330,7 @@ function setTheme(
 
         document.body
             .classList
-            .remove(
-                "dark-mode"
-            );
+            .remove("dark-mode");
 
 
         themeButton.textContent =
@@ -1324,11 +1360,6 @@ setTheme(
 );
 
 
-
-/* =========================================
-   THEME BUTTON
-========================================= */
-
 themeButton.addEventListener(
     "click",
     () => {
@@ -1336,9 +1367,7 @@ themeButton.addEventListener(
         const isDark =
             document.body
                 .classList
-                .contains(
-                    "dark-mode"
-                );
+                .contains("dark-mode");
 
 
         setTheme(
@@ -1353,7 +1382,7 @@ themeButton.addEventListener(
 
 
 /* =========================================
-   LOAD DATABASE
+   INITIALIZE
 ========================================= */
 
 async function initializeMyLibra() {
@@ -1367,16 +1396,11 @@ async function initializeMyLibra() {
             await loadBooksFromDatabase();
 
 
-        /*
-            File đã lưu trước đó
-            sẽ được thêm vào danh sách.
-        */
-
         storedBooks.forEach(
             storedBook => {
 
-                const alreadyExists =
-                    books.some(
+                const existingIndex =
+                    books.findIndex(
                         book =>
                             book.id ===
                             storedBook.id
@@ -1384,12 +1408,23 @@ async function initializeMyLibra() {
 
 
                 if (
-                    !alreadyExists
+                    existingIndex === -1
                 ) {
 
                     books.push(
                         storedBook
                     );
+
+                }
+
+                else if (
+                    storedBook.file
+                ) {
+
+                    books[
+                        existingIndex
+                    ] =
+                        storedBook;
 
                 }
 
@@ -1406,7 +1441,6 @@ async function initializeMyLibra() {
     catch (error) {
 
         console.error(
-            "IndexedDB error:",
             error
         );
 
@@ -1419,9 +1453,5 @@ async function initializeMyLibra() {
 
 }
 
-
-/* =========================================
-   START
-========================================= */
 
 initializeMyLibra();
