@@ -161,8 +161,6 @@ button {
 
 .top-actions button {
 
-    width: 40px;
-
     height: 40px;
 
     border: none;
@@ -178,6 +176,11 @@ button {
 
 }
 
+.top-actions #themeButton,
+.top-actions #settingsButton {
+    width: 40px;
+    flex: 0 0 40px;
+}
 
 .top-actions button:hover {
 
@@ -1808,7 +1811,10 @@ body.sepia-mode .book-cover-large {
 .google-login-button {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
+    width: auto !important;
+    min-width: 116px;
     min-height: 38px;
     padding: 6px 11px;
     border: 1px solid var(--border);
