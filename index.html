@@ -122,6 +122,28 @@
 
         </section>
 
+        <section class="library-filters" aria-label="Tìm kiếm và lọc thư viện">
+            <div class="filter-search">
+                <span>🔎</span>
+                <input
+                    type="text"
+                    id="librarySearch"
+                    placeholder="Tìm theo tên, tác giả, thể loại, tag..."
+                    aria-label="Tìm kiếm trong thư viện"
+                >
+            </div>
+
+            <select id="genreFilter" aria-label="Lọc theo thể loại">
+                <option value="">Tất cả thể loại</option>
+            </select>
+
+            <select id="tagFilter" aria-label="Lọc theo tag">
+                <option value="">Tất cả tag</option>
+            </select>
+
+            <button class="add-button" id="clearFilters" type="button">✕ Xóa lọc</button>
+        </section>
+
 
 
         <section
@@ -457,6 +479,12 @@
                 <label>
                     Thể loại
                     <input type="text" id="editGenre" placeholder="Fantasy, Action...">
+                </label>
+
+                <label>
+                    Tag
+                    <input type="text" id="editTags" placeholder="magic, academy, reincarnation...">
+                    <small class="form-help">Nhập nhiều tag, cách nhau bằng dấu phẩy.</small>
                 </label>
 
                 <label>
