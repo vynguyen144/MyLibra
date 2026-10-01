@@ -2,44 +2,7 @@
 // MyLibra - Library / Book Management / Reader
 // ========================================
 
-let books = [
-    {
-        id: "demo-1",
-        title: "The Beginning After the End",
-        author: "TurtleMe",
-        genre: "Fantasy",
-        description: "Một câu chuyện fantasy về cuộc đời mới của một vị vua sau khi tái sinh.",
-        progress: 35,
-        icon: "📖",
-        fileName: "",
-        fileType: "",
-        file: null
-    },
-    {
-        id: "demo-2",
-        title: "Omniscient Reader",
-        author: "Sing Shong",
-        genre: "Action",
-        description: "Một độc giả duy nhất biết trước toàn bộ diễn biến của thế giới.",
-        progress: 62,
-        icon: "👁️",
-        fileName: "",
-        fileType: "",
-        file: null
-    },
-    {
-        id: "demo-3",
-        title: "Solo Leveling",
-        author: "Chu-Gong",
-        genre: "Action",
-        description: "Một thợ săn yếu nhất thế giới bắt đầu hành trình trở thành người mạnh nhất.",
-        progress: 18,
-        icon: "⚔️",
-        fileName: "",
-        fileType: "",
-        file: null
-    }
-];
+let books = [];
 
 const $ = (id) => document.getElementById(id);
 
@@ -1345,7 +1308,7 @@ increaseFont?.addEventListener("click", () => {
     applyReaderFontSize();
 });
 
-backFromReader?.addEventListener("click", () => {
+function closeReaderAndReturn() {
     if (epubKeyHandler) {
         document.removeEventListener("keyup", epubKeyHandler);
         epubKeyHandler = null;
@@ -1357,11 +1320,26 @@ backFromReader?.addEventListener("click", () => {
     }
 
     currentEpub = null;
+    currentPdf = null;
+    currentPdfBytes = null;
+    currentPdfBookId = null;
+
+    if (pdfToolbar) pdfToolbar.hidden = true;
+
     readerContent.innerHTML = "";
     readerContent.className = "reader-content";
-    showLibrary();
-    renderBooks();
-});
+
+    // Quay đúng về trang chi tiết của truyện đang đọc.
+    const bookId = currentBookId;
+    if (bookId && books.some((book) => book.id === bookId)) {
+        openBook(bookId);
+    } else {
+        showLibrary();
+        renderBooks();
+    }
+}
+
+backFromReader?.addEventListener("click", closeReaderAndReturn);
 
 function updateReaderProgress() {
     if (readerPage.hidden || !currentBookId) return;
