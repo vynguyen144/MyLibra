@@ -80,6 +80,8 @@ const readerModeScroll = $("readerModeScroll");
 const readerModePage = $("readerModePage");
 const readerPrev = $("readerPrev");
 const readerNext = $("readerNext");
+const readerEpubJump = $("readerEpubJump");
+const readerChapterSelect = $("readerChapterSelect");
 
 const editBookModal = $("editBookModal");
 const closeEditBook = $("closeEditBook");
@@ -94,6 +96,8 @@ const pdfToolbar = $("pdfToolbar");
 const pdfPrev = $("pdfPrev");
 const pdfNext = $("pdfNext");
 const pdfPageInfo = $("pdfPageInfo");
+const pdfPageInput = $("pdfPageInput");
+const pdfGoPage = $("pdfGoPage");
 const pdfZoomOut = $("pdfZoomOut");
 const pdfZoomIn = $("pdfZoomIn");
 const pdfRotate = $("pdfRotate");
@@ -134,6 +138,7 @@ let currentPdfScale = 1.25;
 let currentPdfRotation = 0;
 let currentEpub = null;
 let epubKeyHandler = null;
+let epubChapterOptions = [];
 let epubEditorState = null;
 let readerMode = localStorage.getItem("mylibra-reader-mode") || "scroll";
 
@@ -1468,6 +1473,7 @@ function handleEpubRelocated(location) {
     const book = books.find((item) => item.id === currentBookId);
     if (!book) return;
     if (location?.start?.cfi) localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
+    if (location?.start?.href) updateEpubChapterSelect(location.start.href);
     if (location?.start?.percentage !== undefined) {
         book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
         saveBookToDatabase(book).then(() => scheduleDriveManifestSync()).catch(console.error);
@@ -1483,6 +1489,9 @@ function readerNavigate(direction) {
 
 readerModeScroll?.addEventListener("click", () => setReaderMode("scroll"));
 readerModePage?.addEventListener("click", () => setReaderMode("page"));
+readerChapterSelect?.addEventListener("change", () => {
+    jumpToEpubChapter(Number(readerChapterSelect.value));
+});
 readerPrev?.addEventListener("click", () => readerNavigate(-1));
 readerNext?.addEventListener("click", () => readerNavigate(1));
 
@@ -1577,6 +1586,11 @@ async function openPdfReader(book) {
         }
 
         if (pdfToolbar) pdfToolbar.hidden = false;
+        if (readerEpubJump) readerEpubJump.hidden = true;
+        if (pdfPageInput) {
+            pdfPageInput.max = String(currentPdf.numPages);
+            pdfPageInput.value = String(currentPdfPage);
+        }
 
         readerContent.className = "reader-content pdf-reader-content";
         readerContent.innerHTML =
@@ -1629,6 +1643,7 @@ async function renderPdfPage(pageNumber) {
 
     pdfPageInfo.textContent =
         "Trang " + pageNumber + " / " + currentPdf.numPages;
+    if (pdfPageInput) pdfPageInput.value = String(pageNumber);
 
     const progress = Math.round((pageNumber / currentPdf.numPages) * 100);
     readerProgressBar.style.width = progress + "%";
@@ -1649,6 +1664,18 @@ async function changePdfPage(delta) {
     const next = currentPdfPage + delta;
     if (next < 1 || next > currentPdf.numPages) return;
     currentPdfPage = next;
+    await renderPdfPage(currentPdfPage);
+}
+
+async function goToPdfPageFromInput() {
+    if (!currentPdf || !pdfPageInput) return;
+    const page = Number.parseInt(pdfPageInput.value, 10);
+    if (!Number.isFinite(page)) {
+        pdfPageInput.value = String(currentPdfPage);
+        return;
+    }
+    currentPdfPage = Math.max(1, Math.min(page, currentPdf.numPages));
+    pdfPageInput.value = String(currentPdfPage);
     await renderPdfPage(currentPdfPage);
 }
 
@@ -1768,6 +1795,10 @@ async function saveEditedPdf() {
 
 pdfPrev?.addEventListener("click", () => changePdfPage(-1));
 pdfNext?.addEventListener("click", () => changePdfPage(1));
+pdfGoPage?.addEventListener("click", goToPdfPageFromInput);
+pdfPageInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") goToPdfPageFromInput();
+});
 pdfZoomOut?.addEventListener("click", async () => {
     currentPdfScale = Math.max(0.6, currentPdfScale - 0.15);
     await renderPdfPage(currentPdfPage);
@@ -1805,6 +1836,67 @@ async function openTxtReader(book) {
     }
 }
 
+function flattenEpubToc(items, result = []) {
+    (items || []).forEach((item) => {
+        if (!item) return;
+        const href = item.href || item.url || "";
+        const label = String(item.label || item.title || "").trim();
+        if (href) result.push({ href, label: label || ("Chương " + (result.length + 1)) });
+        if (Array.isArray(item.subitems) && item.subitems.length) {
+            flattenEpubToc(item.subitems, result);
+        }
+        if (Array.isArray(item.children) && item.children.length) {
+            flattenEpubToc(item.children, result);
+        }
+    });
+    return result;
+}
+
+function normalizeEpubHref(href) {
+    return String(href || "")
+        .split("#")[0]
+        .split("?")[0]
+        .replace(/^\.\//, "")
+        .trim();
+}
+
+function updateEpubChapterSelect(href) {
+    if (!readerChapterSelect || !epubChapterOptions.length) return;
+    const target = normalizeEpubHref(href);
+    let index = epubChapterOptions.findIndex((item) => normalizeEpubHref(item.href) === target);
+    if (index < 0 && currentEpub?.spine?.get) {
+        const spineItem = currentEpub.spine.get(href);
+        if (spineItem?.href) {
+            index = epubChapterOptions.findIndex((item) => normalizeEpubHref(item.href) === normalizeEpubHref(spineItem.href));
+        }
+    }
+    if (index >= 0) readerChapterSelect.value = String(index);
+}
+
+function renderEpubChapterOptions() {
+    if (!readerChapterSelect) return;
+    readerChapterSelect.innerHTML = "";
+    epubChapterOptions.forEach((chapter, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = (index + 1) + ". " + chapter.label;
+        readerChapterSelect.appendChild(option);
+    });
+    readerEpubJump.hidden = epubChapterOptions.length === 0;
+}
+
+async function jumpToEpubChapter(index) {
+    if (!currentRendition || !epubChapterOptions[index]) return;
+    const chapter = epubChapterOptions[index];
+    try {
+        await currentRendition.display(chapter.href);
+        readerChapterSelect.value = String(index);
+    } catch (error) {
+        console.error("EPUB chapter jump:", error);
+        alert("Không thể mở chương này.");
+    }
+}
+
 async function openEpubReader(book) {
     if (typeof ePub !== "function") {
         alert("Không tải được EPUB Reader. Hãy kiểm tra kết nối internet rồi tải lại trang.");
@@ -1812,6 +1904,7 @@ async function openEpubReader(book) {
     }
 
     if (pdfToolbar) pdfToolbar.hidden = true;
+    if (readerEpubJump) readerEpubJump.hidden = true;
     readerContent.className = "";
     readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
 
@@ -1840,6 +1933,9 @@ async function openEpubReader(book) {
 
         await currentEpub.ready;
 
+        epubChapterOptions = flattenEpubToc(currentEpub.navigation?.toc || []);
+        renderEpubChapterOptions();
+
         if (currentEpub.locations) {
             currentEpub.locations.generate(1600).catch(() => {});
         }
@@ -1849,6 +1945,8 @@ async function openEpubReader(book) {
         } else {
             await currentRendition.display();
         }
+
+        updateEpubChapterSelect(currentRendition.currentLocation()?.start?.href || "");
 
         epubKeyHandler = (event) => {
             if (!currentRendition) return;
@@ -2226,6 +2324,9 @@ function closeReaderAndReturn() {
     }
 
     currentEpub = null;
+    epubChapterOptions = [];
+    if (readerEpubJump) readerEpubJump.hidden = true;
+    if (readerChapterSelect) readerChapterSelect.innerHTML = "";
     currentPdf = null;
     currentPdfBytes = null;
     currentPdfBookId = null;
