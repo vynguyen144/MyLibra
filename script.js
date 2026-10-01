@@ -1,10 +1,12 @@
-// ================================
-// MyLibra - Main Script
-// ================================
+// ========================================
+// MyLibra
+// Main Script
+// ========================================
 
-// -------------------------------
-// Demo books
-// -------------------------------
+
+// ========================================
+// DEMO BOOKS
+// ========================================
 
 let books = [
     {
@@ -12,31 +14,36 @@ let books = [
         title: "The Beginning After the End",
         author: "TurtleMe",
         genre: "Fantasy",
-        description: "Một câu chuyện fantasy về cuộc đời mới của một vị vua sau khi tái sinh.",
+        description:
+            "Một câu chuyện fantasy về cuộc đời mới của một vị vua sau khi tái sinh.",
         progress: 35,
         icon: "📖",
         fileName: "",
         fileType: "",
         file: null
     },
+
     {
         id: "demo-2",
         title: "Omniscient Reader",
         author: "Sing Shong",
         genre: "Action",
-        description: "Một độc giả duy nhất biết trước toàn bộ diễn biến của thế giới.",
+        description:
+            "Một độc giả duy nhất biết trước toàn bộ diễn biến của thế giới.",
         progress: 62,
         icon: "👁️",
         fileName: "",
         fileType: "",
         file: null
     },
+
     {
         id: "demo-3",
         title: "Solo Leveling",
         author: "Chu-Gong",
         genre: "Action",
-        description: "Một thợ săn yếu nhất thế giới bắt đầu hành trình trở thành người mạnh nhất.",
+        description:
+            "Một thợ săn yếu nhất thế giới bắt đầu hành trình trở thành người mạnh nhất.",
         progress: 18,
         icon: "⚔️",
         fileName: "",
@@ -46,154 +53,294 @@ let books = [
 ];
 
 
-// ================================
-// DOM Elements
-// ================================
+// ========================================
+// DOM
+// ========================================
 
-const bookGrid = document.getElementById("bookGrid");
-const allBookGrid = document.getElementById("allBookGrid");
-const emptyLibrary = document.getElementById("emptyLibrary");
+const libraryPage =
+    document.getElementById("libraryPage");
 
-const searchInput = document.getElementById("searchInput");
-const themeToggle = document.getElementById("themeToggle");
-const settingsButton = document.getElementById("settingsButton");
+const bookDetailPage =
+    document.getElementById("bookDetailPage");
 
-const addBookButton = document.getElementById("addBookButton");
-const addBookModal = document.getElementById("addBookModal");
-const closeAddBook = document.getElementById("closeAddBook");
-const cancelAddBook = document.getElementById("cancelAddBook");
-const confirmAddBook = document.getElementById("confirmAddBook");
-const bookFileInput = document.getElementById("bookFile");
+const bookDetail =
+    document.getElementById("bookDetail");
 
-const libraryPage = document.getElementById("libraryPage");
-const bookDetailPage = document.getElementById("bookDetailPage");
-const readerPage = document.getElementById("readerPage");
+const readerPage =
+    document.getElementById("readerPage");
 
-const backToLibrary = document.getElementById("backToLibrary");
-const backFromReader = document.getElementById("backFromReader");
+const bookGrid =
+    document.getElementById("bookGrid");
 
-const detailCover = document.getElementById("detailCover");
-const detailTitle = document.getElementById("detailTitle");
-const detailAuthor = document.getElementById("detailAuthor");
-const detailGenre = document.getElementById("detailGenre");
-const detailDescription = document.getElementById("detailDescription");
-const detailProgress = document.getElementById("detailProgress");
-const continueReadingButton = document.getElementById("continueReadingButton");
+const allBookGrid =
+    document.getElementById("allBookGrid");
 
-const readerTitle = document.getElementById("readerTitle");
-const readerContent = document.getElementById("readerContent");
-const readerProgressBar = document.getElementById("readerProgressBar");
+const emptyLibrary =
+    document.getElementById("emptyLibrary");
 
-const decreaseFont = document.getElementById("decreaseFont");
-const increaseFont = document.getElementById("increaseFont");
+const searchInput =
+    document.querySelector(".search-box input");
+
+const themeButton =
+    document.getElementById("themeButton");
+
+const addBookButton =
+    document.getElementById("addBookButton");
+
+const emptyAddBookButton =
+    document.getElementById("emptyAddBookButton");
+
+const addBookModal =
+    document.getElementById("addBookModal");
+
+const closeAddBook =
+    document.getElementById("closeAddBook");
+
+const cancelAddBook =
+    document.getElementById("cancelAddBook");
+
+const confirmAddBook =
+    document.getElementById("confirmAddBook");
+
+const bookFileInput =
+    document.getElementById("bookFile");
+
+const selectedFile =
+    document.getElementById("selectedFile");
+
+const backToLibrary =
+    document.getElementById("backToLibrary");
+
+const backFromReader =
+    document.getElementById("backFromReader");
+
+const readerTitle =
+    document.getElementById("readerTitle");
+
+const readerContent =
+    document.getElementById("readerContent");
+
+const readerProgressBar =
+    document.getElementById("readerProgressBar");
+
+const decreaseFont =
+    document.getElementById("decreaseFont");
+
+const increaseFont =
+    document.getElementById("increaseFont");
 
 
-// ================================
-// Current book
-// ================================
+// ========================================
+// CURRENT BOOK
+// ========================================
 
 let currentBookId = null;
 
 
-// ================================
-// IndexedDB
-// ================================
+// ========================================
+// INDEXEDDB
+// ========================================
 
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
 const STORE_NAME = "books";
 
+
 function openDatabase() {
+
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        const request =
+            indexedDB.open(
+                DB_NAME,
+                DB_VERSION
+            );
 
         request.onupgradeneeded = function (event) {
-            const db = event.target.result;
 
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, {
-                    keyPath: "id"
-                });
+            const db =
+                event.target.result;
+
+            if (
+                !db.objectStoreNames.contains(
+                    STORE_NAME
+                )
+            ) {
+
+                db.createObjectStore(
+                    STORE_NAME,
+                    {
+                        keyPath: "id"
+                    }
+                );
             }
         };
 
+
         request.onsuccess = function () {
+
             resolve(request.result);
         };
 
+
         request.onerror = function () {
+
             reject(request.error);
         };
+
     });
 }
 
 
 async function saveBookToDatabase(book) {
+
     try {
-        const db = await openDatabase();
 
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(
-                STORE_NAME,
-                "readwrite"
-            );
+        const db =
+            await openDatabase();
 
-            const store = transaction.objectStore(STORE_NAME);
+        return new Promise(
+            (resolve, reject) => {
 
-            store.put(book);
+                const transaction =
+                    db.transaction(
+                        STORE_NAME,
+                        "readwrite"
+                    );
 
-            transaction.oncomplete = function () {
-                resolve();
-            };
+                const store =
+                    transaction.objectStore(
+                        STORE_NAME
+                    );
 
-            transaction.onerror = function () {
-                reject(transaction.error);
-            };
-        });
+                store.put(book);
+
+
+                transaction.oncomplete =
+                    function () {
+
+                        resolve();
+                    };
+
+
+                transaction.onerror =
+                    function () {
+
+                        reject(
+                            transaction.error
+                        );
+                    };
+
+            }
+        );
+
     } catch (error) {
-        console.error("Không thể lưu sách:", error);
+
+        console.error(
+            "Không thể lưu sách:",
+            error
+        );
     }
 }
 
 
 async function loadBooksFromDatabase() {
+
     try {
-        const db = await openDatabase();
 
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(
-                STORE_NAME,
-                "readonly"
-            );
+        const db =
+            await openDatabase();
 
-            const store = transaction.objectStore(STORE_NAME);
+        return new Promise(
+            (resolve, reject) => {
 
-            const request = store.getAll();
+                const transaction =
+                    db.transaction(
+                        STORE_NAME,
+                        "readonly"
+                    );
 
-            request.onsuccess = function () {
-                resolve(request.result || []);
-            };
+                const store =
+                    transaction.objectStore(
+                        STORE_NAME
+                    );
 
-            request.onerror = function () {
-                reject(request.error);
-            };
-        });
+                const request =
+                    store.getAll();
+
+
+                request.onsuccess =
+                    function () {
+
+                        resolve(
+                            request.result || []
+                        );
+                    };
+
+
+                request.onerror =
+                    function () {
+
+                        reject(
+                            request.error
+                        );
+                    };
+
+            }
+        );
+
     } catch (error) {
-        console.error("Không thể tải sách:", error);
+
+        console.error(
+            "Không thể tải sách:",
+            error
+        );
+
         return [];
     }
 }
 
 
-// ================================
-// File helpers
-// ================================
+// ========================================
+// HELPERS
+// ========================================
+
+function escapeHTML(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function removeExtension(fileName) {
+
+    return fileName.replace(
+        /\.[^/.]+$/,
+        ""
+    );
+}
+
 
 function getFileType(fileName) {
-    const extension = fileName
-        .split(".")
-        .pop()
-        .toLowerCase();
+
+    const extension =
+        fileName
+            .split(".")
+            .pop()
+            .toLowerCase();
+
 
     if (extension === "epub") {
         return "EPUB";
@@ -212,222 +359,352 @@ function getFileType(fileName) {
 
 
 function getBookIcon(fileType) {
-    switch (fileType) {
-        case "EPUB":
-            return "📚";
 
-        case "PDF":
-            return "📕";
+    if (fileType === "EPUB") {
+        return "📚";
+    }
 
-        case "TXT":
-            return "📄";
+    if (fileType === "PDF") {
+        return "📕";
+    }
 
-        default:
-            return "📖";
+    if (fileType === "TXT") {
+        return "📄";
+    }
+
+    return "📖";
+}
+
+
+// ========================================
+// PAGE SWITCHING
+// ========================================
+
+function showLibrary() {
+
+    if (libraryPage) {
+        libraryPage.hidden = false;
+    }
+
+    if (bookDetailPage) {
+        bookDetailPage.hidden = true;
+    }
+
+    if (readerPage) {
+        readerPage.hidden = true;
     }
 }
 
 
-function removeExtension(fileName) {
-    return fileName.replace(/\.[^/.]+$/, "");
-}
+function showBookDetail() {
 
-
-// ================================
-// Render books
-// ================================
-
-function renderBooks(bookList = books) {
-
-    bookGrid.innerHTML = "";
-    allBookGrid.innerHTML = "";
-
-    // Không có sách
-    if (bookList.length === 0) {
-        emptyLibrary.style.display = "block";
-        return;
+    if (libraryPage) {
+        libraryPage.hidden = true;
     }
 
-    // Có sách -> ẩn thông báo thư viện trống
-    emptyLibrary.style.display = "none";
+    if (bookDetailPage) {
+        bookDetailPage.hidden = false;
+    }
 
-    bookList.forEach(book => {
-
-        // -------------------------
-        // Card "Đang đọc"
-        // -------------------------
-
-        const readingCard = createBookCard(book);
-
-        bookGrid.appendChild(readingCard);
-
-
-        // -------------------------
-        // Card "Tất cả truyện"
-        // -------------------------
-
-        const allCard = createBookCard(book);
-
-        allBookGrid.appendChild(allCard);
-    });
+    if (readerPage) {
+        readerPage.hidden = true;
+    }
 }
 
 
-// ================================
-// Create book card
-// ================================
+function showReader() {
+
+    if (libraryPage) {
+        libraryPage.hidden = true;
+    }
+
+    if (bookDetailPage) {
+        bookDetailPage.hidden = true;
+    }
+
+    if (readerPage) {
+        readerPage.hidden = false;
+    }
+}
+
+
+// ========================================
+// BOOK CARD
+// ========================================
 
 function createBookCard(book) {
 
-    const card = document.createElement("div");
+    const card =
+        document.createElement("div");
 
-    card.className = "book-card";
+    card.className =
+        "book-card";
+
 
     card.innerHTML = `
-        <div class="book-card-cover">
-            <div class="book-card-icon">
-                ${book.icon || "📖"}
-            </div>
+
+        <div class="book-cover">
+            ${book.icon || "📖"}
         </div>
 
-        <div class="book-card-info">
+        <div class="book-info">
 
-            <h3>${escapeHTML(book.title)}</h3>
+            <h3>
+                ${escapeHTML(book.title)}
+            </h3>
 
-            <p class="book-author">
-                ${escapeHTML(book.author || "Không rõ tác giả")}
+            <p>
+                ${escapeHTML(
+                    book.author ||
+                    "Không rõ tác giả"
+                )}
             </p>
 
-            <p class="book-genre">
-                ${escapeHTML(book.genre || "Chưa phân loại")}
-            </p>
+            <div class="progress">
 
-            <div class="book-progress">
                 <div
-                    class="book-progress-bar"
-                    style="width: ${book.progress || 0}%"
+                    class="progress-bar"
+                    style="
+                        width: ${book.progress || 0}%;
+                    "
                 ></div>
+
             </div>
 
-            <span class="book-progress-text">
-                ${book.progress || 0}%
+            <span>
+                ${book.progress || 0}% đã đọc
             </span>
 
         </div>
     `;
 
 
-    // ============================
-    // CLICK CARD
-    // ============================
+    card.addEventListener(
+        "click",
+        function () {
 
-    card.addEventListener("click", function () {
-        openBook(book.id);
-    });
+            openBook(book.id);
+
+        }
+    );
 
 
     return card;
 }
 
 
-// ================================
-// Escape HTML
-// ================================
+// ========================================
+// RENDER BOOKS
+// ========================================
 
-function escapeHTML(value) {
+function renderBooks(bookList = books) {
 
-    if (value === undefined || value === null) {
-        return "";
+    if (bookGrid) {
+        bookGrid.innerHTML = "";
     }
 
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    if (allBookGrid) {
+        allBookGrid.innerHTML = "";
+    }
+
+
+    // Không có kết quả
+    if (bookList.length === 0) {
+
+        if (emptyLibrary) {
+            emptyLibrary.hidden = false;
+        }
+
+        return;
+    }
+
+
+    // Có sách
+    if (emptyLibrary) {
+        emptyLibrary.hidden = true;
+    }
+
+
+    bookList.forEach(
+        function (book) {
+
+            // Đang đọc
+            if (bookGrid) {
+
+                const readingCard =
+                    createBookCard(book);
+
+                bookGrid.appendChild(
+                    readingCard
+                );
+            }
+
+
+            // Tất cả truyện
+            if (allBookGrid) {
+
+                const allCard =
+                    createBookCard(book);
+
+                allBookGrid.appendChild(
+                    allCard
+                );
+            }
+
+        }
+    );
 }
 
 
-// ================================
-// Search
-// ================================
+// ========================================
+// SEARCH
+// ========================================
 
 if (searchInput) {
 
-    searchInput.addEventListener("input", function () {
+    searchInput.addEventListener(
+        "input",
+        function () {
 
-        const keyword = searchInput.value
-            .trim()
-            .toLowerCase();
+            const keyword =
+                searchInput.value
+                    .trim()
+                    .toLowerCase();
 
-        if (!keyword) {
-            renderBooks();
-            return;
+
+            if (!keyword) {
+
+                renderBooks();
+
+                return;
+            }
+
+
+            const results =
+                books.filter(
+                    function (book) {
+
+                        const title =
+                            (
+                                book.title || ""
+                            ).toLowerCase();
+
+                        const author =
+                            (
+                                book.author || ""
+                            ).toLowerCase();
+
+                        const genre =
+                            (
+                                book.genre || ""
+                            ).toLowerCase();
+
+
+                        return (
+                            title.includes(
+                                keyword
+                            ) ||
+                            author.includes(
+                                keyword
+                            ) ||
+                            genre.includes(
+                                keyword
+                            )
+                        );
+                    }
+                );
+
+
+            renderBooks(results);
+
         }
-
-        const filteredBooks = books.filter(book => {
-
-            const title = (book.title || "").toLowerCase();
-            const author = (book.author || "").toLowerCase();
-            const genre = (book.genre || "").toLowerCase();
-
-            return (
-                title.includes(keyword) ||
-                author.includes(keyword) ||
-                genre.includes(keyword)
-            );
-        });
-
-        renderBooks(filteredBooks);
-    });
+    );
 }
 
 
-// ================================
-// Theme
-// ================================
+// ========================================
+// THEME
+// ========================================
 
 function applyTheme(theme) {
 
     if (theme === "dark") {
-        document.body.classList.add("dark");
-        localStorage.setItem("mylibra-theme", "dark");
+
+        document.body.classList.add(
+            "dark-mode"
+        );
+
+        localStorage.setItem(
+            "mylibra-theme",
+            "dark"
+        );
+
+        if (themeButton) {
+            themeButton.textContent = "☀️";
+        }
+
     } else {
-        document.body.classList.remove("dark");
-        localStorage.setItem("mylibra-theme", "light");
+
+        document.body.classList.remove(
+            "dark-mode"
+        );
+
+        localStorage.setItem(
+            "mylibra-theme",
+            "light"
+        );
+
+        if (themeButton) {
+            themeButton.textContent = "🌙";
+        }
     }
-}
-
-
-if (themeToggle) {
-
-    themeToggle.addEventListener("click", function () {
-
-        const isDark =
-            document.body.classList.contains("dark");
-
-        applyTheme(isDark ? "light" : "dark");
-    });
 }
 
 
 function loadTheme() {
 
     const savedTheme =
-        localStorage.getItem("mylibra-theme");
+        localStorage.getItem(
+            "mylibra-theme"
+        );
+
 
     if (savedTheme === "dark") {
+
         applyTheme("dark");
+
     } else {
+
         applyTheme("light");
     }
 }
 
 
-// ================================
-// Add Book Modal
-// ================================
+if (themeButton) {
+
+    themeButton.addEventListener(
+        "click",
+        function () {
+
+            const isDark =
+                document.body.classList.contains(
+                    "dark-mode"
+                );
+
+
+            applyTheme(
+                isDark
+                    ? "light"
+                    : "dark"
+            );
+        }
+    );
+}
+
+
+// ========================================
+// ADD BOOK MODAL
+// ========================================
 
 function openAddBookModal() {
 
@@ -435,7 +712,11 @@ function openAddBookModal() {
         return;
     }
 
-    addBookModal.classList.add("show");
+    addBookModal.hidden = false;
+
+    if (confirmAddBook) {
+        confirmAddBook.disabled = true;
+    }
 }
 
 
@@ -445,10 +726,24 @@ function closeAddBookModal() {
         return;
     }
 
-    addBookModal.classList.remove("show");
+    addBookModal.hidden = true;
+
 
     if (bookFileInput) {
         bookFileInput.value = "";
+    }
+
+
+    if (selectedFile) {
+
+        selectedFile.hidden = true;
+
+        selectedFile.textContent = "";
+    }
+
+
+    if (confirmAddBook) {
+        confirmAddBook.disabled = true;
     }
 }
 
@@ -456,6 +751,15 @@ function closeAddBookModal() {
 if (addBookButton) {
 
     addBookButton.addEventListener(
+        "click",
+        openAddBookModal
+    );
+}
+
+
+if (emptyAddBookButton) {
+
+    emptyAddBookButton.addEventListener(
         "click",
         openAddBookModal
     );
@@ -480,38 +784,51 @@ if (cancelAddBook) {
 }
 
 
-// Click outside modal
+// Click ra ngoài modal
 if (addBookModal) {
 
-    addBookModal.addEventListener("click", function (event) {
+    addBookModal.addEventListener(
+        "click",
+        function (event) {
 
-        if (event.target === addBookModal) {
-            closeAddBookModal();
+            if (
+                event.target ===
+                addBookModal
+            ) {
+
+                closeAddBookModal();
+            }
         }
-    });
+    );
 }
 
 
-// ================================
-// Add book
-// ================================
+// ========================================
+// SELECT FILE
+// ========================================
 
-if (confirmAddBook) {
+if (bookFileInput) {
 
-    confirmAddBook.addEventListener(
-        "click",
-        async function () {
-
-            if (!bookFileInput || !bookFileInput.files.length) {
-
-                alert("Bạn chưa chọn file truyện.");
-
-                return;
-            }
-
+    bookFileInput.addEventListener(
+        "change",
+        function () {
 
             const file =
                 bookFileInput.files[0];
+
+
+            if (!file) {
+
+                if (selectedFile) {
+                    selectedFile.hidden = true;
+                }
+
+                if (confirmAddBook) {
+                    confirmAddBook.disabled = true;
+                }
+
+                return;
+            }
 
 
             const fileType =
@@ -525,11 +842,62 @@ if (confirmAddBook) {
             ) {
 
                 alert(
-                    "MyLibra hiện hỗ trợ EPUB, PDF và TXT."
+                    "MyLibra chỉ hỗ trợ EPUB, PDF hoặc TXT."
                 );
+
+                bookFileInput.value = "";
+
+                if (confirmAddBook) {
+                    confirmAddBook.disabled = true;
+                }
 
                 return;
             }
+
+
+            if (selectedFile) {
+
+                selectedFile.hidden = false;
+
+                selectedFile.textContent =
+                    `${getBookIcon(fileType)}  ${file.name}`;
+            }
+
+
+            if (confirmAddBook) {
+                confirmAddBook.disabled = false;
+            }
+
+        }
+    );
+}
+
+
+// ========================================
+// ADD BOOK
+// ========================================
+
+if (confirmAddBook) {
+
+    confirmAddBook.addEventListener(
+        "click",
+        async function () {
+
+            if (
+                !bookFileInput ||
+                !bookFileInput.files.length
+            ) {
+
+                return;
+            }
+
+
+            const file =
+                bookFileInput.files[0];
+
+
+            const fileType =
+                getFileType(file.name);
 
 
             const newBook = {
@@ -539,7 +907,9 @@ if (confirmAddBook) {
                     Date.now(),
 
                 title:
-                    removeExtension(file.name),
+                    removeExtension(
+                        file.name
+                    ),
 
                 author:
                     "Chưa rõ tác giả",
@@ -554,7 +924,9 @@ if (confirmAddBook) {
                     0,
 
                 icon:
-                    getBookIcon(fileType),
+                    getBookIcon(
+                        fileType
+                    ),
 
                 fileName:
                     file.name,
@@ -569,13 +941,21 @@ if (confirmAddBook) {
 
             try {
 
-                await saveBookToDatabase(newBook);
+                await saveBookToDatabase(
+                    newBook
+                );
 
-                books.push(newBook);
+
+                books.push(
+                    newBook
+                );
+
 
                 renderBooks();
 
+
                 closeAddBookModal();
+
 
                 alert(
                     `Đã thêm "${newBook.title}" vào thư viện.`
@@ -583,25 +963,34 @@ if (confirmAddBook) {
 
             } catch (error) {
 
-                console.error(error);
+                console.error(
+                    error
+                );
 
                 alert(
-                    "Không thể lưu truyện. Hãy thử lại."
+                    "Không thể lưu truyện."
                 );
             }
+
         }
     );
 }
 
 
-// ================================
-// Book Detail
-// ================================
+// ========================================
+// OPEN BOOK DETAIL
+// ========================================
 
 function openBook(bookId) {
 
     const book =
-        books.find(item => item.id === bookId);
+        books.find(
+            function (item) {
+
+                return item.id === bookId;
+
+            }
+        );
 
 
     if (!book) {
@@ -609,79 +998,143 @@ function openBook(bookId) {
     }
 
 
-    currentBookId = bookId;
+    currentBookId =
+        bookId;
 
 
-    if (libraryPage) {
-        libraryPage.style.display = "none";
-    }
-
-    if (readerPage) {
-        readerPage.style.display = "none";
-    }
-
-    if (bookDetailPage) {
-        bookDetailPage.style.display = "block";
+    if (!bookDetail) {
+        return;
     }
 
 
-    if (detailCover) {
+    // Tạo giao diện chi tiết
+    bookDetail.innerHTML = `
 
-        detailCover.innerHTML = `
-            <div class="detail-cover-icon">
+        <div class="book-detail-cover">
+
+            <div class="book-cover-large">
                 ${book.icon || "📖"}
             </div>
-        `;
-    }
+
+        </div>
 
 
-    if (detailTitle) {
-        detailTitle.textContent =
-            book.title;
-    }
+        <div class="book-detail-info">
+
+            <span class="book-detail-category">
+                ${escapeHTML(
+                    book.genre ||
+                    "Chưa phân loại"
+                )}
+            </span>
 
 
-    if (detailAuthor) {
-        detailAuthor.textContent =
-            book.author || "Không rõ tác giả";
-    }
+            <h1>
+                ${escapeHTML(
+                    book.title
+                )}
+            </h1>
 
 
-    if (detailGenre) {
-        detailGenre.textContent =
-            book.genre || "Chưa phân loại";
-    }
+            <p class="book-author">
+                ${escapeHTML(
+                    book.author ||
+                    "Không rõ tác giả"
+                )}
+            </p>
 
 
-    if (detailDescription) {
-        detailDescription.textContent =
-            book.description ||
-            "Chưa có mô tả.";
-    }
+            <p class="book-description">
+                ${escapeHTML(
+                    book.description ||
+                    "Chưa có mô tả."
+                )}
+            </p>
 
 
-    if (detailProgress) {
+            <p>
+                Tiến độ:
+                <strong>
+                    ${book.progress || 0}%
+                </strong>
+            </p>
 
-        detailProgress.textContent =
-            `${book.progress || 0}%`;
-    }
+
+            <div class="book-actions">
+
+                <button
+                    class="primary-button"
+                    id="detailReadButton"
+                    type="button"
+                >
+                    ${book.progress > 0
+                        ? "Tiếp tục đọc"
+                        : "Bắt đầu đọc"}
+                </button>
+
+                <button
+                    class="add-button"
+                    id="detailBackButton"
+                    type="button"
+                >
+                    ← Thư viện
+                </button>
+
+            </div>
+
+        </div>
+    `;
 
 
-    if (continueReadingButton) {
+    showBookDetail();
 
-        continueReadingButton.onclick =
+
+    // Nút đọc
+    const detailReadButton =
+        document.getElementById(
+            "detailReadButton"
+        );
+
+
+    if (detailReadButton) {
+
+        detailReadButton.addEventListener(
+            "click",
             function () {
 
-                openReader(book.id);
+                openReader(
+                    book.id
+                );
 
-            };
+            }
+        );
+    }
+
+
+    // Nút quay lại
+    const detailBackButton =
+        document.getElementById(
+            "detailBackButton"
+        );
+
+
+    if (detailBackButton) {
+
+        detailBackButton.addEventListener(
+            "click",
+            function () {
+
+                showLibrary();
+
+            }
+        );
     }
 }
 
 
-// ================================
-// Back to Library
-// ================================
+// ========================================
+// BACK TO LIBRARY
+// ========================================
 
 if (backToLibrary) {
 
@@ -689,35 +1142,29 @@ if (backToLibrary) {
         "click",
         function () {
 
-            if (bookDetailPage) {
-                bookDetailPage.style.display =
-                    "none";
-            }
-
-            if (readerPage) {
-                readerPage.style.display =
-                    "none";
-            }
-
-            if (libraryPage) {
-                libraryPage.style.display =
-                    "block";
-            }
+            showLibrary();
 
             renderBooks();
+
         }
     );
 }
 
 
-// ================================
-// Reader
-// ================================
+// ========================================
+// READER
+// ========================================
 
 async function openReader(bookId) {
 
     const book =
-        books.find(item => item.id === bookId);
+        books.find(
+            function (item) {
+
+                return item.id === bookId;
+
+            }
+        );
 
 
     if (!book) {
@@ -725,23 +1172,25 @@ async function openReader(bookId) {
     }
 
 
-    currentBookId = bookId;
+    currentBookId =
+        bookId;
 
 
+    // Chưa có file
     if (!book.file) {
 
         alert(
-            "Truyện mẫu chưa có file để đọc.\n\n" +
-            "Hãy thêm một file TXT để thử Reader."
+            "Đây là truyện mẫu nên chưa có file để đọc.\n\n" +
+            "Hãy dùng '+ Thêm truyện' để thêm file TXT."
         );
 
         return;
     }
 
 
-    // -------------------------
-    // TXT Reader
-    // -------------------------
+    // ====================================
+    // TXT
+    // ====================================
 
     if (book.fileType === "TXT") {
 
@@ -752,6 +1201,7 @@ async function openReader(bookId) {
 
 
             if (readerTitle) {
+
                 readerTitle.textContent =
                     book.title;
             }
@@ -764,26 +1214,10 @@ async function openReader(bookId) {
             }
 
 
-            // Hide other pages
-            if (libraryPage) {
-                libraryPage.style.display =
-                    "none";
-            }
-
-            if (bookDetailPage) {
-                bookDetailPage.style.display =
-                    "none";
-            }
+            showReader();
 
 
-            // Show reader
-            if (readerPage) {
-                readerPage.style.display =
-                    "block";
-            }
-
-
-            // Restore position
+            // Khôi phục vị trí
             const savedPosition =
                 Number(
                     localStorage.getItem(
@@ -792,36 +1226,44 @@ async function openReader(bookId) {
                 );
 
 
-            setTimeout(function () {
+            setTimeout(
+                function () {
 
-                if (
-                    savedPosition &&
-                    !Number.isNaN(savedPosition)
-                ) {
+                    if (
+                        savedPosition &&
+                        !Number.isNaN(
+                            savedPosition
+                        )
+                    ) {
 
-                    window.scrollTo(
-                        0,
-                        savedPosition
-                    );
-                } else {
+                        window.scrollTo(
+                            0,
+                            savedPosition
+                        );
 
-                    window.scrollTo(
-                        0,
-                        0
-                    );
-                }
+                    } else {
+
+                        window.scrollTo(
+                            0,
+                            0
+                        );
+                    }
 
 
-                updateReaderProgress();
+                    updateReaderProgress();
 
-            }, 50);
+                },
+                50
+            );
 
 
             return;
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                error
+            );
 
             alert(
                 "Không thể mở file TXT."
@@ -832,9 +1274,9 @@ async function openReader(bookId) {
     }
 
 
-    // -------------------------
+    // ====================================
     // EPUB / PDF
-    // -------------------------
+    // ====================================
 
     if (
         book.fileType === "EPUB" ||
@@ -850,14 +1292,14 @@ async function openReader(bookId) {
 
 
     alert(
-        "Định dạng file này chưa được hỗ trợ."
+        "Định dạng file chưa được hỗ trợ."
     );
 }
 
 
-// ================================
-// Back from Reader
-// ================================
+// ========================================
+// BACK FROM READER
+// ========================================
 
 if (backFromReader) {
 
@@ -865,42 +1307,42 @@ if (backFromReader) {
         "click",
         function () {
 
-            if (readerPage) {
-                readerPage.style.display =
-                    "none";
-            }
-
-            if (bookDetailPage) {
-                bookDetailPage.style.display =
-                    "block";
-            }
+            showLibrary();
 
             renderBooks();
+
         }
     );
 }
 
 
-// ================================
-// Reader progress
-// ================================
+// ========================================
+// READER PROGRESS
+// ========================================
 
 function updateReaderProgress() {
 
-    if (!readerProgressBar) {
+    if (!readerPage) {
         return;
     }
 
 
-    const documentHeight =
+    if (readerPage.hidden) {
+        return;
+    }
+
+
+    const totalHeight =
         document.documentElement.scrollHeight -
         window.innerHeight;
 
 
-    if (documentHeight <= 0) {
+    if (totalHeight <= 0) {
 
-        readerProgressBar.style.width =
-            "0%";
+        if (readerProgressBar) {
+            readerProgressBar.style.width =
+                "0%";
+        }
 
         return;
     }
@@ -915,57 +1357,75 @@ function updateReaderProgress() {
             100,
             Math.max(
                 0,
-                (scrollTop / documentHeight) * 100
+                (
+                    scrollTop /
+                    totalHeight
+                ) * 100
             )
         );
 
 
-    readerProgressBar.style.width =
-        `${progress}%`;
+    if (readerProgressBar) {
+
+        readerProgressBar.style.width =
+            `${progress}%`;
+    }
 
 
-    // Save progress
-    if (currentBookId) {
+    if (!currentBookId) {
+        return;
+    }
 
-        localStorage.setItem(
-            `mylibra-position-${currentBookId}`,
-            String(scrollTop)
+
+    // Lưu vị trí
+    localStorage.setItem(
+        `mylibra-position-${currentBookId}`,
+        String(scrollTop)
+    );
+
+
+    // Lưu %
+    const book =
+        books.find(
+            function (item) {
+
+                return item.id ===
+                    currentBookId;
+
+            }
         );
 
 
-        const book =
-            books.find(
-                item =>
-                    item.id === currentBookId
+    if (book) {
+
+        book.progress =
+            Math.round(
+                progress
             );
 
-
-        if (book) {
-
-            book.progress =
-                Math.round(progress);
-
-            saveBookToDatabase(book);
-        }
+        saveBookToDatabase(
+            book
+        );
     }
 }
 
 
-// Scroll listener
-let progressSaveTimer = null;
+// ========================================
+// SCROLL
+// ========================================
+
+let progressTimer = null;
+
 
 window.addEventListener(
     "scroll",
     function () {
 
-        if (!readerPage) {
-            return;
-        }
-
-
         if (
-            readerPage.style.display === "none"
+            !readerPage ||
+            readerPage.hidden
         ) {
+
             return;
         }
 
@@ -974,28 +1434,36 @@ window.addEventListener(
 
 
         clearTimeout(
-            progressSaveTimer
+            progressTimer
         );
 
 
-        progressSaveTimer =
+        progressTimer =
             setTimeout(
                 function () {
+
                     updateReaderProgress();
+
                 },
                 300
             );
+
     }
 );
 
 
-// ================================
-// Reader Font Size
-// ================================
+// ========================================
+// FONT SIZE
+// ========================================
 
-function loadReaderFontSize() {
+function loadFontSize() {
 
-    const savedSize =
+    if (!readerContent) {
+        return;
+    }
+
+
+    const saved =
         Number(
             localStorage.getItem(
                 "mylibra-font-size"
@@ -1004,12 +1472,12 @@ function loadReaderFontSize() {
 
 
     if (
-        savedSize &&
-        readerContent
+        saved &&
+        !Number.isNaN(saved)
     ) {
 
         readerContent.style.fontSize =
-            `${savedSize}px`;
+            `${saved}px`;
     }
 }
 
@@ -1025,7 +1493,7 @@ if (decreaseFont) {
             }
 
 
-            const currentSize =
+            const current =
                 parseFloat(
                     getComputedStyle(
                         readerContent
@@ -1033,21 +1501,25 @@ if (decreaseFont) {
                 );
 
 
-            const newSize =
+            const next =
                 Math.max(
                     12,
-                    currentSize - 1
+                    current - 1
                 );
 
 
             readerContent.style.fontSize =
-                `${newSize}px`;
+                `${next}px`;
 
 
             localStorage.setItem(
                 "mylibra-font-size",
-                String(newSize)
+                String(next)
             );
+
+
+            updateReaderProgress();
+
         }
     );
 }
@@ -1064,7 +1536,7 @@ if (increaseFont) {
             }
 
 
-            const currentSize =
+            const current =
                 parseFloat(
                     getComputedStyle(
                         readerContent
@@ -1072,101 +1544,102 @@ if (increaseFont) {
                 );
 
 
-            const newSize =
+            const next =
                 Math.min(
                     40,
-                    currentSize + 1
+                    current + 1
                 );
 
 
             readerContent.style.fontSize =
-                `${newSize}px`;
+                `${next}px`;
 
 
             localStorage.setItem(
                 "mylibra-font-size",
-                String(newSize)
+                String(next)
             );
+
+
+            updateReaderProgress();
+
         }
     );
 }
 
 
-// ================================
-// Settings button
-// ================================
-
-if (settingsButton) {
-
-    settingsButton.addEventListener(
-        "click",
-        function () {
-
-            alert(
-                "Khu vực cài đặt MyLibra sẽ được phát triển ở bước tiếp theo."
-            );
-        }
-    );
-}
-
-
-// ================================
-// Initialize
-// ================================
+// ========================================
+// INITIALIZE
+// ========================================
 
 async function initializeMyLibra() {
 
+    // Theme
     loadTheme();
 
-    loadReaderFontSize();
+    // Font
+    loadFontSize();
 
 
+    // Database
     try {
 
         const storedBooks =
             await loadBooksFromDatabase();
 
 
-        if (storedBooks.length > 0) {
+        storedBooks.forEach(
+            function (storedBook) {
 
-            storedBooks.forEach(
-                storedBook => {
+                const existingIndex =
+                    books.findIndex(
+                        function (book) {
 
-                    const existingIndex =
-                        books.findIndex(
-                            book =>
-                                book.id ===
-                                storedBook.id
-                        );
+                            return book.id ===
+                                storedBook.id;
+
+                        }
+                    );
 
 
-                    if (existingIndex >= 0) {
+                if (
+                    existingIndex >= 0
+                ) {
 
-                        books[existingIndex] =
-                            storedBook;
+                    books[
+                        existingIndex
+                    ] = storedBook;
 
-                    } else {
+                } else {
 
-                        books.push(
-                            storedBook
-                        );
-                    }
+                    books.push(
+                        storedBook
+                    );
                 }
-            );
-        }
+
+            }
+        );
 
     } catch (error) {
 
         console.error(
-            "Không thể load thư viện:",
+            "Database error:",
             error
         );
     }
 
 
+    // Render
     renderBooks();
+
+
+    // Đảm bảo đúng page ban đầu
+    showLibrary();
 }
 
 
-// Start application
+// ========================================
+// START
+// ========================================
+
 initializeMyLibra();
