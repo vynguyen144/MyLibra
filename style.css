@@ -1645,3 +1645,6 @@ body.dark-mode .book-actions .danger-button {
 .epub-content-editor img{max-width:100%;height:auto}
 .epub-editor-hint{margin:8px 0 0;color:var(--text-soft);font-size:12px}
 @media (max-width:760px){.epub-editor-modal{max-height:96vh}.epub-editor-meta{grid-template-columns:1fr}.epub-editor-layout{grid-template-columns:1fr}.epub-chapter-panel{max-height:150px}.epub-editor-controls{grid-template-columns:1fr auto auto}.epub-editor-controls .danger-button{grid-column:1/-1}}
+
+.pdf-error-box{max-width:680px;margin:80px auto;padding:36px;text-align:center;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text)}
+.pdf-error-box h2{margin:12px 0 8px}.pdf-error-box p{color:var(--text-soft)}.pdf-error-box small{display:block;margin-top:14px;color:var(--text-soft);overflow-wrap:anywhere}
