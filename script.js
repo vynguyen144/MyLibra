@@ -32,6 +32,10 @@ const readerContent = $("readerContent");
 const readerProgressBar = $("readerProgressBar");
 const decreaseFont = $("decreaseFont");
 const increaseFont = $("increaseFont");
+const readerModeScroll = $("readerModeScroll");
+const readerModePage = $("readerModePage");
+const readerPrev = $("readerPrev");
+const readerNext = $("readerNext");
 
 const editBookModal = $("editBookModal");
 const closeEditBook = $("closeEditBook");
@@ -88,6 +92,7 @@ let currentPdfRotation = 0;
 let currentEpub = null;
 let epubKeyHandler = null;
 let epubEditorState = null;
+let readerMode = localStorage.getItem("mylibra-reader-mode") || "scroll";
 
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
@@ -585,7 +590,57 @@ updateFileModal?.addEventListener("click", (event) => {
     if (event.target === updateFileModal) closeModal(updateFileModal);
 });
 
-async function openReader(bookId) {
+async function setReaderMode(mode, persist = true) {
+    readerMode = mode === "page" ? "page" : "scroll";
+    if (persist) localStorage.setItem("mylibra-reader-mode", readerMode);
+
+    document.body.classList.toggle("reader-page-mode", readerMode === "page");
+    readerModeScroll?.classList.toggle("active", readerMode === "scroll");
+    readerModePage?.classList.toggle("active", readerMode === "page");
+
+    if (currentRendition && currentEpub) {
+        const book = books.find((item) => item.id === currentBookId);
+        if (book?.fileType === "EPUB") {
+            const currentCfi = localStorage.getItem("mylibra-epub-cfi-" + book.id);
+            try { currentRendition.destroy(); } catch (_) {}
+            currentRendition = null;
+            readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
+            currentRendition = currentEpub.renderTo("epubViewer", {
+                width: "100%",
+                height: "100%",
+                flow: readerMode === "page" ? "paginated" : "scrolled-doc",
+                spread: "none"
+            });
+            currentRendition.themes.default({ body: { color: "var(--text)", background: "var(--surface)" } });
+            currentRendition.on("relocated", handleEpubRelocated);
+            currentRendition.display(currentCfi || undefined).then(() => applyReaderFontSize()).catch(console.error);
+        }
+    }
+}
+
+function handleEpubRelocated(location) {
+    const book = books.find((item) => item.id === currentBookId);
+    if (!book) return;
+    if (location?.start?.cfi) localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
+    if (location?.start?.percentage !== undefined) {
+        book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
+        saveBookToDatabase(book).catch(console.error);
+        renderBooks();
+    }
+}
+
+function readerNavigate(direction) {
+    if (!currentRendition) return;
+    if (direction > 0) currentRendition.next();
+    else currentRendition.prev();
+}
+
+readerModeScroll?.addEventListener("click", () => setReaderMode("scroll"));
+readerModePage?.addEventListener("click", () => setReaderMode("page"));
+readerPrev?.addEventListener("click", () => readerNavigate(-1));
+readerNext?.addEventListener("click", () => readerNavigate(1));
+
+function openReader(bookId) {
     const book = books.find((item) => item.id === bookId);
     if (!book || !book.file) {
         alert("Truyện này chưa có file để đọc.");
@@ -595,6 +650,7 @@ async function openReader(bookId) {
     currentBookId = bookId;
     readerTitle.textContent = book.title;
     showReader();
+    setReaderMode(readerMode, false);
 
     if (currentRendition) {
         try { currentRendition.destroy(); } catch (_) {}
@@ -907,7 +963,7 @@ async function openEpubReader(book) {
         currentRendition = currentEpub.renderTo("epubViewer", {
             width: "100%",
             height: "100%",
-            flow: "scrolled-doc",
+            flow: readerMode === "page" ? "paginated" : "scrolled-doc",
             spread: "none"
         });
 
@@ -920,21 +976,7 @@ async function openEpubReader(book) {
 
         const savedCfi = localStorage.getItem("mylibra-epub-cfi-" + book.id);
 
-        currentRendition.on("relocated", async (location) => {
-            if (location?.start?.cfi) {
-                localStorage.setItem(
-                    "mylibra-epub-cfi-" + book.id,
-                    location.start.cfi
-                );
-            }
-
-            if (location?.start?.percentage !== undefined) {
-                const percentage = Math.round(location.start.percentage * 100);
-                book.progress = Math.max(0, Math.min(100, percentage));
-                await saveBookToDatabase(book);
-                renderBooks();
-            }
-        });
+        currentRendition.on("relocated", handleEpubRelocated);
 
         await currentEpub.ready;
 
@@ -1341,6 +1383,8 @@ function closeReaderAndReturn() {
 
 backFromReader?.addEventListener("click", closeReaderAndReturn);
 
+// TXT dùng cuộn dọc tự nhiên; EPUB có chế độ cuộn/trang riêng.
+// Khi cuộn TXT gần cuối, tự chuyển sang chương kế không áp dụng vì TXT không có cấu trúc chương đáng tin cậy.
 function updateReaderProgress() {
     if (readerPage.hidden || !currentBookId) return;
 
