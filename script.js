@@ -385,13 +385,64 @@ async function downloadBookFromDrive(book) {
     });
 }
 
+async function requestGoogleDriveAccess(prompt = "") {
+    if (googleDriveAccessToken) return googleDriveAccessToken;
+    if (!window.google?.accounts?.oauth2) {
+        throw new Error("Google Identity Services chưa tải xong.");
+    }
+
+    return new Promise((resolve, reject) => {
+        if (!googleDriveTokenClient) {
+            googleDriveTokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_DRIVE_SCOPE,
+                callback: (tokenResponse) => {
+                    if (tokenResponse.error || !tokenResponse.access_token) {
+                        reject(new Error(tokenResponse.error || "Không cấp được quyền Google Drive."));
+                        return;
+                    }
+                    googleDriveAccessToken = tokenResponse.access_token;
+                    localStorage.setItem("mylibra-drive-authorized", "true");
+                    resolve(googleDriveAccessToken);
+                }
+            });
+        } else {
+            const originalCallback = googleDriveTokenClient.callback;
+            googleDriveTokenClient.callback = (tokenResponse) => {
+                googleDriveTokenClient.callback = originalCallback;
+                if (tokenResponse.error || !tokenResponse.access_token) {
+                    reject(new Error(tokenResponse.error || "Không cấp được quyền Google Drive."));
+                    return;
+                }
+                googleDriveAccessToken = tokenResponse.access_token;
+                localStorage.setItem("mylibra-drive-authorized", "true");
+                resolve(googleDriveAccessToken);
+            };
+        }
+
+        try {
+            googleDriveTokenClient.requestAccessToken({prompt});
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
 async function deleteDriveFile(fileId) {
-    if (!googleDriveAccessToken || !fileId) return;
+    if (!fileId) return;
+
+    if (!googleDriveAccessToken) {
+        await requestGoogleDriveAccess("");
+    }
+
     const response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId), {
         method:"DELETE",
         headers:{Authorization:"Bearer " + googleDriveAccessToken}
     });
-    if (!response.ok && response.status !== 404) throw new Error("Không thể xóa file khỏi Google Drive.");
+
+    if (!response.ok && response.status !== 404) {
+        throw new Error("Không thể xóa file khỏi Google Drive (HTTP " + response.status + ").");
+    }
 }
 
 async function saveDriveManifest() {
@@ -1222,19 +1273,27 @@ function openBook(bookId) {
         if (!ok) return;
 
         try {
-            await deleteBookFromDatabase(book.id);
-            if (googleDriveAccessToken && book.driveFileId) {
+            // Xóa trên Drive trước. Nếu Drive không xóa được thì giữ nguyên truyện trên MyLibra.
+            if (book.driveFileId) {
+                setGoogleDriveStatus("Đang xóa truyện khỏi Google Drive…", true);
                 await deleteDriveFile(book.driveFileId);
-                await saveDriveManifest();
             }
+
+            await deleteBookFromDatabase(book.id);
             books = books.filter((item) => item.id !== book.id);
             localStorage.removeItem("mylibra-position-" + book.id);
             localStorage.removeItem("mylibra-epub-cfi-" + book.id);
+
+            if (googleDriveAccessToken) {
+                await saveDriveManifest();
+                setGoogleDriveStatus("Đã xóa truyện và đồng bộ Google Drive.", true);
+            }
+
             showLibrary();
             renderBooks();
         } catch (error) {
             console.error(error);
-            alert("Không thể xóa truyện.");
+            alert("Không thể xóa truyện. MyLibra chưa xóa bản local để tránh mất dữ liệu.\n\nChi tiết: " + (error?.message || "Lỗi không xác định"));
         }
     });
 }
