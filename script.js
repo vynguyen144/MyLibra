@@ -2002,15 +2002,26 @@ async function openEpubReader(book) {
         return;
     }
 
-    if (pdfToolbar) pdfToolbar.hidden = true;
-    if (readerEpubJump) readerEpubJump.hidden = true;
-    readerContent.className = "";
-    readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
-
-    const arrayBuffer = await book.file.arrayBuffer();
-
     try {
+        if (!book.file || typeof book.file.arrayBuffer !== "function") {
+            throw new Error("File EPUB trong bộ nhớ không hợp lệ.");
+        }
+
+        if (pdfToolbar) pdfToolbar.hidden = true;
+        if (readerEpubJump) readerEpubJump.hidden = true;
+
+        readerContent.className = "reader-content epub-reader-content";
+        readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
+
+        const arrayBuffer = await book.file.arrayBuffer();
+        if (!arrayBuffer || arrayBuffer.byteLength < 4) {
+            throw new Error("File EPUB rỗng.");
+        }
+
+        // EPUB.js 0.3.x hỗ trợ mở trực tiếp ArrayBuffer. Chờ book.ready
+        // trước khi tạo rendition để tránh race condition với ZIP/container.
         currentEpub = ePub(arrayBuffer);
+        await currentEpub.ready;
 
         currentRendition = currentEpub.renderTo("epubViewer", {
             width: "100%",
@@ -2030,9 +2041,18 @@ async function openEpubReader(book) {
 
         currentRendition.on("relocated", handleEpubRelocated);
 
-        await currentEpub.ready;
+        // epub.js chính thức dùng book.loaded.navigation cho TOC.
+        // Không phụ thuộc vào currentEpub.navigation?.toc để tương thích 0.3.93.
+        try {
+            const navigation = await currentEpub.loaded.navigation;
+            epubChapterOptions = flattenEpubToc(
+                Array.isArray(navigation) ? navigation : (navigation?.toc || [])
+            );
+        } catch (navigationError) {
+            console.warn("Không đọc được EPUB mục lục:", navigationError);
+            epubChapterOptions = [];
+        }
 
-        epubChapterOptions = flattenEpubToc(currentEpub.navigation?.toc || []);
         renderEpubChapterOptions();
 
         if (currentEpub.locations) {
@@ -2045,7 +2065,8 @@ async function openEpubReader(book) {
             await currentRendition.display();
         }
 
-        updateEpubChapterSelect(currentRendition.currentLocation()?.start?.href || "");
+        const location = currentRendition.currentLocation?.();
+        updateEpubChapterSelect(location?.start?.href || "");
 
         epubKeyHandler = (event) => {
             if (!currentRendition) return;
@@ -2056,10 +2077,26 @@ async function openEpubReader(book) {
         document.addEventListener("keyup", epubKeyHandler);
         applyReaderFontSize();
     } catch (error) {
-        console.error(error);
-        readerContent.innerHTML = "";
+        console.error("MyLibra EPUB error:", error);
+
+        try {
+            currentRendition?.destroy();
+        } catch (_) {}
+
+        currentRendition = null;
+        currentEpub = null;
+
+        if (readerEpubJump) readerEpubJump.hidden = true;
+
         readerContent.className = "reader-content";
-        alert("Không thể mở EPUB. File có thể bị lỗi hoặc không hợp lệ.");
+        readerContent.innerHTML = `
+            <div class="pdf-error-box">
+                <div style="font-size:42px">📖</div>
+                <h2>Không thể mở EPUB</h2>
+                <p>EPUB Reader gặp lỗi khi đọc file này.</p>
+                <small>${escapeHTML(error?.message || "Lỗi không xác định")}</small>
+            </div>
+        `;
     }
 }
 
