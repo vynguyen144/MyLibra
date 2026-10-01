@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MyLibra</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="logo">
+            📚 MyLibra
+        </div>
+
+        <div class="search-box">
+            <input type="text" placeholder="Tìm kiếm truyện...">
+        </div>
+
+        <div class="top-actions">
+            <button>☀️</button>
+            <button>⚙️</button>
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <section class="welcome">
+            <h1>Thư viện của bạn</h1>
+            <p>Những câu chuyện của bạn, ở một nơi.</p>
+        </section>
+
+
+        <section class="section">
+            <div class="section-header">
+                <h2>Đang đọc</h2>
+                <button class="text-button">Xem tất cả</button>
+            </div>
+
+            <div class="book-grid">
+
+                <article class="book-card">
+                    <div class="book-cover">
+                        📖
+                    </div>
+
+                    <div class="book-info">
+                        <h3>Cô Gái Đến Từ Thế Giới Khác</h3>
+                        <p>Fantasy</p>
+
+                        <div class="progress">
+                            <div class="progress-bar" style="width: 67%;"></div>
+                        </div>
+
+                        <span>67% đã đọc</span>
+                    </div>
+                </article>
+
+
+                <article class="book-card">
+                    <div class="book-cover">
+                        📕
+                    </div>
+
+                    <div class="book-info">
+                        <h3>Truyện thứ hai</h3>
+                        <p>Romance</p>
+
+                        <div class="progress">
+                            <div class="progress-bar" style="width: 32%;"></div>
+                        </div>
+
+                        <span>32% đã đọc</span>
+                    </div>
+                </article>
+
+
+                <article class="book-card">
+                    <div class="book-cover">
+                        📘
+                    </div>
+
+                    <div class="book-info">
+                        <h3>Truyện thứ ba</h3>
+                        <p>Adventure</p>
+
+                        <div class="progress">
+                            <div class="progress-bar" style="width: 15%;"></div>
+                        </div>
+
+                        <span>15% đã đọc</span>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+
+        <section class="section">
+            <div class="section-header">
+                <h2>Tất cả truyện</h2>
+
+                <button class="add-button">
+                    + Thêm truyện
+                </button>
+            </div>
+
+            <div class="empty-library">
+                <div class="empty-icon">📚</div>
+
+                <h3>Thư viện của bạn</h3>
+
+                <p>
+                    Thêm EPUB, PDF, DOCX hoặc TXT để bắt đầu đọc.
+                </p>
+
+                <button class="primary-button">
+                    + Thêm truyện
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
