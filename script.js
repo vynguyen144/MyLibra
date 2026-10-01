@@ -1,6 +1,5 @@
 /* =========================================
    MYLIBRA
-   Library System
 ========================================= */
 
 
@@ -16,8 +15,14 @@ const books = [
         title:
             "Cô Gái Đến Từ Thế Giới Khác",
 
+        author:
+            "Chưa cập nhật",
+
         genre:
             "Fantasy",
+
+        description:
+            "Một câu chuyện giả tưởng về một cô gái bước vào một thế giới hoàn toàn xa lạ.",
 
         progress:
             67,
@@ -33,8 +38,14 @@ const books = [
         title:
             "Truyện thứ hai",
 
+        author:
+            "Chưa cập nhật",
+
         genre:
             "Romance",
+
+        description:
+            "Mô tả truyện sẽ được cập nhật sau.",
 
         progress:
             32,
@@ -50,8 +61,14 @@ const books = [
         title:
             "Truyện thứ ba",
 
+        author:
+            "Chưa cập nhật",
+
         genre:
             "Adventure",
+
+        description:
+            "Mô tả truyện sẽ được cập nhật sau.",
 
         progress:
             15,
@@ -65,7 +82,7 @@ const books = [
 
 
 /* =========================================
-   GET ELEMENTS
+   ELEMENTS
 ========================================= */
 
 const bookGrid =
@@ -74,9 +91,33 @@ const bookGrid =
     );
 
 
+const libraryPage =
+    document.querySelector(
+        "#libraryPage"
+    );
+
+
+const bookDetailPage =
+    document.querySelector(
+        "#bookDetailPage"
+    );
+
+
+const bookDetail =
+    document.querySelector(
+        "#bookDetail"
+    );
+
+
+const backToLibrary =
+    document.querySelector(
+        "#backToLibrary"
+    );
+
+
 const themeButton =
     document.querySelector(
-        ".top-actions button"
+        "#themeButton"
     );
 
 
@@ -99,19 +140,12 @@ const addButtons =
 
 function renderBooks(bookList) {
 
-    /*
-        Xóa danh sách cũ
-        trước khi tạo lại
-    */
-
     bookGrid.innerHTML = "";
 
 
-    /*
-        Nếu không tìm thấy truyện
-    */
-
-    if (bookList.length === 0) {
+    if (
+        bookList.length === 0
+    ) {
 
         bookGrid.innerHTML = `
 
@@ -138,40 +172,129 @@ function renderBooks(bookList) {
     }
 
 
-    /*
-        Tạo từng book card
-    */
+    bookList.forEach(
+        book => {
 
-    bookList.forEach(book => {
+            const card =
+                document.createElement(
+                    "article"
+                );
 
-        const card =
-            document.createElement(
-                "article"
+
+            card.className =
+                "book-card";
+
+
+            card.innerHTML = `
+
+                <div class="book-cover">
+                    ${book.icon}
+                </div>
+
+
+                <div class="book-info">
+
+                    <h3>
+                        ${book.title}
+                    </h3>
+
+
+                    <p>
+                        ${book.genre}
+                    </p>
+
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar"
+                            style="
+                                width:
+                                ${book.progress}%;
+                            "
+                        ></div>
+
+                    </div>
+
+
+                    <span>
+                        ${book.progress}% đã đọc
+                    </span>
+
+                </div>
+
+            `;
+
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    openBook(
+                        book.id
+                    );
+
+                }
             );
 
 
-        card.className =
-            "book-card";
+            bookGrid.appendChild(
+                card
+            );
+
+        }
+    );
+}
 
 
-        card.innerHTML = `
 
-            <div class="book-cover">
+/* =========================================
+   OPEN BOOK DETAIL
+========================================= */
+
+function openBook(bookId) {
+
+    const book =
+        books.find(
+            item =>
+                item.id === bookId
+        );
+
+
+    if (!book) {
+        return;
+    }
+
+
+    bookDetail.innerHTML = `
+
+        <div class="book-detail-cover">
+
+            <div class="book-cover-large">
                 ${book.icon}
             </div>
 
-
-            <div class="book-info">
-
-                <h3>
-                    ${book.title}
-                </h3>
+        </div>
 
 
-                <p>
-                    ${book.genre}
-                </p>
+        <div class="book-detail-info">
 
+            <p class="book-detail-category">
+                ${book.genre}
+            </p>
+
+
+            <h1>
+                ${book.title}
+            </h1>
+
+
+            <p class="book-author">
+                ${book.author}
+            </p>
+
+
+            <div class="book-detail-progress">
 
                 <div class="progress">
 
@@ -192,46 +315,112 @@ function renderBooks(bookList) {
 
             </div>
 
-        `;
+
+            <p class="book-description">
+                ${book.description}
+            </p>
 
 
-        /*
-            Khi click vào truyện
-        */
+            <div class="book-actions">
 
-        card.addEventListener(
-            "click",
-            () => {
+                <button
+                    class="primary-button"
+                    id="continueReading"
+                >
+                    📖 Tiếp tục đọc
+                </button>
 
-                openBook(
-                    book
-                );
 
-            }
+                <button
+                    class="add-button"
+                    id="editBook"
+                >
+                    ✏️ Chỉnh sửa
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    libraryPage.hidden =
+        true;
+
+
+    bookDetailPage.hidden =
+        false;
+
+
+    window.scrollTo(
+        0,
+        0
+    );
+
+
+    const continueButton =
+        document.querySelector(
+            "#continueReading"
         );
 
 
-        bookGrid.appendChild(
-            card
+    continueButton.addEventListener(
+        "click",
+        () => {
+
+            alert(
+                `Reader sẽ được xây dựng cho "${book.title}" ở bước tiếp theo.`
+            );
+
+        }
+    );
+
+
+    const editButton =
+        document.querySelector(
+            "#editBook"
         );
 
-    });
+
+    editButton.addEventListener(
+        "click",
+        () => {
+
+            alert(
+                "Chức năng chỉnh sửa truyện sẽ được xây dựng sau."
+            );
+
+        }
+    );
 
 }
 
 
 
 /* =========================================
-   OPEN BOOK
+   BACK TO LIBRARY
 ========================================= */
 
-function openBook(book) {
+backToLibrary.addEventListener(
+    "click",
+    () => {
 
-    alert(
-        `Bạn đã chọn: ${book.title}`
-    );
+        bookDetailPage.hidden =
+            true;
 
-}
+
+        libraryPage.hidden =
+            false;
+
+
+        window.scrollTo(
+            0,
+            0
+        );
+
+    }
+);
 
 
 
@@ -259,38 +448,33 @@ searchInput.addEventListener(
                 .trim();
 
 
-        /*
-            Lọc theo:
-
-            - Tên truyện
-            - Thể loại
-        */
-
         const filteredBooks =
             books.filter(
                 book => {
 
-                    const title =
-                        book.title
-                            .toLowerCase();
-
-
-                    const genre =
-                        book.genre
-                            .toLowerCase();
-
-
                     return (
 
-                        title.includes(
-                            keyword
-                        )
+                        book.title
+                            .toLowerCase()
+                            .includes(
+                                keyword
+                            )
 
                         ||
 
-                        genre.includes(
-                            keyword
-                        )
+                        book.genre
+                            .toLowerCase()
+                            .includes(
+                                keyword
+                            )
+
+                        ||
+
+                        book.author
+                            .toLowerCase()
+                            .includes(
+                                keyword
+                            )
 
                     );
 
@@ -344,10 +528,6 @@ function setTheme(theme) {
     }
 
 
-    /*
-        Lưu theme vào trình duyệt
-    */
-
     localStorage.setItem(
         "mylibra-theme",
         theme
@@ -355,11 +535,6 @@ function setTheme(theme) {
 
 }
 
-
-
-/* =========================================
-   LOAD SAVED THEME
-========================================= */
 
 const savedTheme =
     localStorage.getItem(
@@ -391,21 +566,11 @@ themeButton.addEventListener(
                 );
 
 
-        if (isDark) {
-
-            setTheme(
-                "light"
-            );
-
-        }
-
-        else {
-
-            setTheme(
-                "dark"
-            );
-
-        }
+        setTheme(
+            isDark
+                ? "light"
+                : "dark"
+        );
 
     }
 );
