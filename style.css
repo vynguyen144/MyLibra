@@ -564,3 +564,47 @@ body {
     }
 
 }
+/* =========================
+   DARK MODE
+========================= */
+
+body.dark-mode {
+    --bg: #15131c;
+    --surface: #211e2b;
+    --surface-soft: #2a2637;
+
+    --text: #f1eef8;
+    --text-soft: #aaa4b8;
+
+    --primary: #a98be8;
+    --primary-dark: #c0a7f5;
+    --primary-soft: #352c4d;
+
+    --border: #383244;
+}
+
+
+body.dark-mode .book-card:hover {
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+
+body.dark-mode .book-cover {
+    background:
+        linear-gradient(
+            145deg,
+            #40345c,
+            #66518e
+        );
+}
+
+
+body.dark-mode .add-button:hover {
+    background: #40345c;
+}
+
+
+body.dark-mode .search-box input::placeholder {
+    color: #8f899e;
+}
