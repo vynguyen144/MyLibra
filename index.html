@@ -13,7 +13,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261001-3"
+        href="style.css?v=20261001-4"
     >
 
     <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
@@ -297,6 +297,11 @@
                 <button type="button" id="readerPrev" title="Nội dung trước">←</button>
                 <button type="button" id="readerNext" title="Nội dung tiếp theo">→</button>
 
+                <div class="reader-jump reader-epub-jump" id="readerEpubJump" hidden>
+                    <label for="readerChapterSelect">Chương</label>
+                    <select id="readerChapterSelect" aria-label="Chọn chương"></select>
+                </div>
+
                 <button
                     type="button"
                     id="decreaseFont"
@@ -320,6 +325,11 @@
             <button type="button" id="pdfPrev">←</button>
             <span id="pdfPageInfo">Trang 1 / 1</span>
             <button type="button" id="pdfNext">→</button>
+            <div class="reader-jump pdf-page-jump" id="pdfPageJump">
+                <label for="pdfPageInput">Trang</label>
+                <input id="pdfPageInput" type="number" min="1" value="1" aria-label="Nhập số trang">
+                <button type="button" id="pdfGoPage">Đi</button>
+            </div>
             <button type="button" id="pdfZoomOut">−</button>
             <button type="button" id="pdfZoomIn">+</button>
             <button type="button" id="pdfRotate">↻ Xoay</button>
@@ -674,6 +684,7 @@
 
     <script src="script.js?v=20261001-4"></script>
 
+<script src="script.js?v=20261001-4"></script>
 </body>
 
 </html>
