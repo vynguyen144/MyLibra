@@ -15,6 +15,8 @@
         rel="stylesheet"
         href="style.css"
     >
+
+    <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
 </head>
 
 
@@ -372,6 +374,97 @@
     </div>
 
 
+
+
+    <!-- =========================
+         EDIT BOOK MODAL
+    ========================== -->
+
+    <div
+        class="modal-overlay"
+        id="editBookModal"
+        hidden
+    >
+        <div class="modal book-form-modal">
+            <button class="modal-close" id="closeEditBook" type="button">×</button>
+
+            <h2>Chỉnh sửa truyện</h2>
+            <p class="modal-description">
+                Cập nhật thông tin truyện. File truyện có thể thay riêng.
+            </p>
+
+            <div class="book-form">
+                <label>
+                    Tên truyện
+                    <input type="text" id="editTitle" placeholder="Tên truyện">
+                </label>
+
+                <label>
+                    Tác giả
+                    <input type="text" id="editAuthor" placeholder="Tên tác giả">
+                </label>
+
+                <label>
+                    Thể loại
+                    <input type="text" id="editGenre" placeholder="Fantasy, Action...">
+                </label>
+
+                <label>
+                    Mô tả
+                    <textarea id="editDescription" rows="5" placeholder="Mô tả truyện..."></textarea>
+                </label>
+
+                <label>
+                    Bìa truyện
+                    <input type="file" id="editCover" accept="image/*">
+                </label>
+
+                <div class="modal-actions">
+                    <button class="add-button" id="cancelEditBook" type="button">Hủy</button>
+                    <button class="primary-button" id="saveEditBook" type="button">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================
+         UPDATE FILE MODAL
+    ========================== -->
+
+    <div
+        class="modal-overlay"
+        id="updateFileModal"
+        hidden
+    >
+        <div class="modal">
+            <button class="modal-close" id="closeUpdateFile" type="button">×</button>
+
+            <h2>Cập nhật file truyện</h2>
+            <p class="modal-description">
+                Chọn EPUB, PDF hoặc TXT mới. Thông tin và tiến độ đọc sẽ được giữ lại.
+            </p>
+
+            <label class="file-drop-zone" for="updateBookFile">
+                <div class="file-drop-icon">🔄</div>
+                <strong>Chọn file mới</strong>
+                <span>EPUB, PDF hoặc TXT</span>
+                <input
+                    type="file"
+                    id="updateBookFile"
+                    accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain"
+                >
+            </label>
+
+            <div class="selected-file" id="updateSelectedFile" hidden></div>
+
+            <div class="modal-actions">
+                <button class="add-button" id="cancelUpdateFile" type="button">Hủy</button>
+                <button class="primary-button" id="saveUpdatedFile" type="button" disabled>
+                    Cập nhật file
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 
