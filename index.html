@@ -20,6 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
         // Tự động phát hiện phiên bản mới của MyLibra và tải lại trang.
         (async () => {
@@ -73,6 +74,17 @@
                 🌙
             </button>
 
+
+            <button
+                type="button"
+                id="googleLoginButton"
+                class="google-login-button"
+                aria-label="Đăng nhập Google"
+                title="Đăng nhập Google"
+            >
+                <span id="googleAccountIcon">G</span>
+                <span id="googleAccountText">Đăng nhập</span>
+            </button>
 
             <button
                 type="button"
@@ -547,12 +559,13 @@
         <div class="modal settings-modal">
             <button class="modal-close" id="closeSettings" type="button">×</button>
             <h2>⚙️ Cài đặt MyLibra</h2>
-            <p class="modal-description">Tùy chỉnh thư viện, cách đọc và giao diện. Thiết lập được lưu trên thiết bị này.</p>
+            <p class="modal-description">Tùy chỉnh thư viện, cách đọc, giao diện và tài khoản Google của MyLibra.</p>
 
             <div class="settings-tabs" role="tablist">
                 <button class="settings-tab active" data-settings-tab="library" type="button">📚 Thư viện</button>
                 <button class="settings-tab" data-settings-tab="reader" type="button">📖 Chế độ đọc</button>
                 <button class="settings-tab" data-settings-tab="theme" type="button">🎨 Theme</button>
+                <button class="settings-tab" data-settings-tab="account" type="button">👤 Tài khoản</button>
             </div>
 
             <section class="settings-panel active" data-settings-panel="library">
@@ -576,6 +589,19 @@
                     <button class="theme-option" data-theme-choice="dark" type="button">🌙<strong>Tối</strong><small>Dịu mắt ban đêm</small></button>
                     <button class="theme-option" data-theme-choice="sepia" type="button">📜<strong>Sepia</strong><small>Tông giấy ấm</small></button>
                 </div>
+            </section>
+            <section class="settings-panel" data-settings-panel="account">
+                <h3>Tài khoản Google</h3>
+                <div class="google-account-card" id="googleAccountCard">
+                    <div class="google-account-avatar" id="googleSettingsAvatar">G</div>
+                    <div class="google-account-info">
+                        <strong id="googleSettingsName">Chưa đăng nhập</strong>
+                        <span id="googleSettingsEmail">Đăng nhập Google để chuẩn bị đồng bộ thư viện.</span>
+                    </div>
+                </div>
+                <div class="google-signin-area" id="googleSigninArea"></div>
+                <button class="add-button" id="googleLogoutButton" type="button" hidden>Đăng xuất Google</button>
+                <p class="settings-note">Bước 1 chỉ thiết lập đăng nhập Google. Ở bước tiếp theo MyLibra mới xin quyền truy cập Google Drive để lưu truyện và đồng bộ giữa các thiết bị.</p>
             </section>
 
             <div class="modal-actions settings-actions">
