@@ -46,6 +46,7 @@
 
             <button
                 type="button"
+                id="themeButton"
                 aria-label="Đổi giao diện"
             >
                 🌙
@@ -65,13 +66,13 @@
 
 
     <!-- =========================
-         MAIN
+         LIBRARY PAGE
     ========================== -->
 
-    <main class="container">
-
-
-        <!-- WELCOME -->
+    <main
+        class="container"
+        id="libraryPage"
+    >
 
         <section class="welcome">
 
@@ -86,10 +87,6 @@
         </section>
 
 
-
-        <!-- =========================
-             CURRENTLY READING
-        ========================== -->
 
         <section class="section">
 
@@ -110,11 +107,6 @@
             </div>
 
 
-            <!--
-                JavaScript sẽ tự tạo
-                các book-card ở đây
-            -->
-
             <div
                 class="book-grid"
                 id="bookGrid"
@@ -123,10 +115,6 @@
         </section>
 
 
-
-        <!-- =========================
-             ALL BOOKS
-        ========================== -->
 
         <section class="section">
 
@@ -173,6 +161,38 @@
                 </button>
 
             </div>
+
+        </section>
+
+    </main>
+
+
+
+    <!-- =========================
+         BOOK DETAIL PAGE
+    ========================== -->
+
+    <main
+        class="container book-detail-page"
+        id="bookDetailPage"
+        hidden
+    >
+
+        <button
+            class="back-button"
+            id="backToLibrary"
+            type="button"
+        >
+            ← Quay lại thư viện
+        </button>
+
+
+        <section
+            class="book-detail"
+            id="bookDetail"
+        >
+
+            <!-- JavaScript sẽ tạo nội dung -->
 
         </section>
 
