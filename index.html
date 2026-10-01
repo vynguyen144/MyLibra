@@ -19,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
 </head>
 
 
@@ -262,6 +263,18 @@
 
         </div>
 
+        <div class="reader-extra-toolbar" id="pdfToolbar" hidden>
+            <button type="button" id="pdfPrev">←</button>
+            <span id="pdfPageInfo">Trang 1 / 1</span>
+            <button type="button" id="pdfNext">→</button>
+            <button type="button" id="pdfZoomOut">−</button>
+            <button type="button" id="pdfZoomIn">+</button>
+            <button type="button" id="pdfRotate">↻ Xoay</button>
+            <button type="button" id="pdfDeletePage">🗑 Trang</button>
+            <button type="button" id="pdfAddText">T+ Thêm chữ</button>
+            <button type="button" id="pdfHighlight">🖍 Đánh dấu</button>
+            <button class="primary-button" type="button" id="pdfSave">💾 Lưu PDF</button>
+        </div>
 
         <article
             class="reader-content"
@@ -464,6 +477,41 @@
                 <button class="primary-button" id="saveUpdatedFile" type="button" disabled>
                     Cập nhật file
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="epubEditorModal" hidden>
+        <div class="modal epub-editor-modal">
+            <button class="modal-close" id="closeEpubEditor" type="button">×</button>
+            <h2>✏️ Chỉnh sửa EPUB</h2>
+            <p class="modal-description">Sửa nội dung chương, đổi tên chương, thêm/xóa/sắp xếp chương rồi xuất lại EPUB.</p>
+            <div class="epub-editor-meta">
+                <label>Tên sách<input type="text" id="epubBookTitle"></label>
+                <label>Tác giả<input type="text" id="epubBookAuthor"></label>
+            </div>
+            <div class="epub-editor-layout">
+                <aside class="epub-chapter-panel">
+                    <div class="epub-chapter-panel-head">
+                        <strong>Chương</strong>
+                        <button class="add-button" id="epubAddChapter" type="button">+ Thêm</button>
+                    </div>
+                    <div id="epubChapterList" class="epub-chapter-list"></div>
+                </aside>
+                <section class="epub-editor-main">
+                    <div class="epub-editor-controls">
+                        <input type="text" id="epubChapterTitle" placeholder="Tên chương">
+                        <button class="add-button" id="epubMoveUp" type="button">↑</button>
+                        <button class="add-button" id="epubMoveDown" type="button">↓</button>
+                        <button class="danger-button" id="epubDeleteChapter" type="button">🗑 Xóa chương</button>
+                    </div>
+                    <div id="epubContentEditor" class="epub-content-editor" contenteditable="true" spellcheck="false"></div>
+                    <p class="epub-editor-hint">Gõ/chỉnh sửa trực tiếp nội dung chương. Có thể giữ lại định dạng cơ bản và hình ảnh có sẵn.</p>
+                </section>
+            </div>
+            <div class="modal-actions">
+                <button class="add-button" id="cancelEpubEditor" type="button">Hủy</button>
+                <button class="primary-button" id="saveEpubEditor" type="button">💾 Lưu & xuất EPUB</button>
             </div>
         </div>
     </div>
