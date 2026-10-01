@@ -1,11 +1,5 @@
 /* =========================================
    MYLIBRA
-   MAIN STYLE
-========================================= */
-
-
-/* =========================================
-   VARIABLES
 ========================================= */
 
 :root {
@@ -28,17 +22,10 @@
 
     --border: #e5e1ed;
 
-    --danger: #d95f67;
-
     --radius: 16px;
 
 }
 
-
-
-/* =========================================
-   RESET
-========================================= */
 
 * {
     box-sizing: border-box;
@@ -74,7 +61,6 @@ input {
     font-family: inherit;
 
 }
-
 
 
 /* =========================================
@@ -126,8 +112,7 @@ input {
 
     max-width: 600px;
 
-    margin:
-        0 auto;
+    margin: 0 auto;
 
 }
 
@@ -155,8 +140,6 @@ input {
     color:
         var(--text);
 
-    font-size: 14px;
-
 }
 
 
@@ -164,14 +147,6 @@ input {
 
     border-color:
         var(--primary);
-
-}
-
-
-.search-box input::placeholder {
-
-    color:
-        var(--text-soft);
 
 }
 
@@ -193,14 +168,16 @@ input {
 
     border: none;
 
-    border-radius: 10px;
+    border-radius:
+        10px;
 
     background:
         transparent;
 
     cursor: pointer;
 
-    font-size: 18px;
+    font-size:
+        18px;
 
 }
 
@@ -213,9 +190,8 @@ input {
 }
 
 
-
 /* =========================================
-   MAIN CONTAINER
+   CONTAINER
 ========================================= */
 
 .container {
@@ -226,14 +202,12 @@ input {
             calc(100% - 48px)
         );
 
-    margin:
-        0 auto;
+    margin: 0 auto;
 
     padding:
         48px 0 80px;
 
 }
-
 
 
 /* =========================================
@@ -266,11 +240,7 @@ input {
     color:
         var(--text-soft);
 
-    font-size:
-        16px;
-
 }
-
 
 
 /* =========================================
@@ -320,10 +290,10 @@ input {
 
     cursor: pointer;
 
-    font-weight: 600;
+    font-weight:
+        600;
 
 }
-
 
 
 /* =========================================
@@ -347,9 +317,11 @@ input {
 
     display: flex;
 
-    gap: 16px;
+    gap:
+        16px;
 
-    padding: 16px;
+    padding:
+        16px;
 
     background:
         var(--surface);
@@ -385,9 +357,11 @@ input {
 
     flex-shrink: 0;
 
-    width: 88px;
+    width:
+        88px;
 
-    height: 120px;
+    height:
+        120px;
 
     display: flex;
 
@@ -464,7 +438,6 @@ input {
 }
 
 
-
 /* =========================================
    PROGRESS
 ========================================= */
@@ -499,7 +472,6 @@ input {
 }
 
 
-
 /* =========================================
    BUTTONS
 ========================================= */
@@ -515,13 +487,8 @@ input {
     padding:
         10px 16px;
 
-    background:
-        var(--primary);
-
-    color:
-        white;
-
-    cursor: pointer;
+    cursor:
+        pointer;
 
     font-weight:
         600;
@@ -529,11 +496,32 @@ input {
 }
 
 
-.add-button:hover,
+.primary-button {
+
+    background:
+        var(--primary);
+
+    color:
+        white;
+
+}
+
+
 .primary-button:hover {
 
     background:
         var(--primary-dark);
+
+}
+
+
+.primary-button:disabled {
+
+    opacity:
+        0.45;
+
+    cursor:
+        not-allowed;
 
 }
 
@@ -557,7 +545,6 @@ input {
 }
 
 
-
 /* =========================================
    EMPTY LIBRARY
 ========================================= */
@@ -578,7 +565,8 @@ input {
     padding:
         40px;
 
-    text-align: center;
+    text-align:
+        center;
 
     background:
         var(--surface);
@@ -625,7 +613,6 @@ input {
 }
 
 
-
 /* =========================================
    BOOK DETAIL
 ========================================= */
@@ -661,24 +648,8 @@ input {
     cursor:
         pointer;
 
-    font-size:
-        14px;
-
 }
 
-
-.back-button:hover {
-
-    background:
-        var(--surface-soft);
-
-}
-
-
-
-/* =========================================
-   DETAIL CARD
-========================================= */
 
 .book-detail {
 
@@ -707,13 +678,11 @@ input {
 
 .book-detail-cover {
 
-    display: flex;
+    display:
+        flex;
 
     justify-content:
         center;
-
-    align-items:
-        flex-start;
 
 }
 
@@ -726,7 +695,8 @@ input {
     aspect-ratio:
         2 / 3;
 
-    display: flex;
+    display:
+        flex;
 
     align-items:
         center;
@@ -744,32 +714,16 @@ input {
             #9f87d4
         );
 
-    box-shadow:
-        0 20px 45px
-        rgba(70, 50, 100, 0.16);
-
     font-size:
         80px;
 
 }
 
 
-
-/* =========================================
-   DETAIL INFORMATION
-========================================= */
-
-.book-detail-info {
-
-    padding-top:
-        8px;
-
-}
-
-
 .book-detail-category {
 
-    display: inline-block;
+    display:
+        inline-block;
 
     margin:
         0 0 12px;
@@ -803,43 +757,253 @@ input {
     font-size:
         36px;
 
-    line-height:
-        1.2;
-
 }
 
 
 .book-author {
 
-    margin:
-        0 0 28px;
+    color:
+        var(--text-soft);
+
+}
+
+
+.book-description {
+
+    max-width:
+        680px;
 
     color:
         var(--text-soft);
 
-    font-size:
-        15px;
+    line-height:
+        1.8;
 
 }
 
 
-.book-detail-progress {
+.book-actions {
 
-    max-width:
-        600px;
+    display:
+        flex;
+
+    gap:
+        12px;
+
+    flex-wrap:
+        wrap;
+
+}
+
+
+/* =========================================
+   ADD BOOK MODAL
+========================================= */
+
+.modal-overlay {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    z-index:
+        1000;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        20px;
+
+    background:
+        rgba(20, 16, 30, 0.55);
+
+    backdrop-filter:
+        blur(5px);
+
+}
+
+
+.modal {
+
+    position:
+        relative;
+
+    width:
+        min(
+            500px,
+            100%
+        );
+
+    padding:
+        32px;
+
+    background:
+        var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        20px;
+
+    box-shadow:
+        0 25px 70px
+        rgba(0, 0, 0, 0.2);
+
+}
+
+
+.modal h2 {
+
+    margin:
+        0 0 8px;
+
+}
+
+
+.modal-description {
+
+    margin:
+        0 0 24px;
+
+    color:
+        var(--text-soft);
+
+}
+
+
+.modal-close {
+
+    position:
+        absolute;
+
+    top:
+        14px;
+
+    right:
+        14px;
+
+    width:
+        36px;
+
+    height:
+        36px;
+
+    border:
+        none;
+
+    border-radius:
+        10px;
+
+    background:
+        transparent;
+
+    color:
+        var(--text-soft);
+
+    cursor:
+        pointer;
+
+    font-size:
+        24px;
+
+}
+
+
+.modal-close:hover {
+
+    background:
+        var(--surface-soft);
+
+}
+
+
+/* =========================================
+   FILE DROP ZONE
+========================================= */
+
+.file-drop-zone {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    min-height:
+        190px;
+
+    padding:
+        30px;
+
+    border:
+        2px dashed var(--border);
+
+    border-radius:
+        16px;
+
+    background:
+        var(--surface-soft);
+
+    cursor:
+        pointer;
+
+    text-align:
+        center;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+
+}
+
+
+.file-drop-zone:hover {
+
+    border-color:
+        var(--primary);
+
+    background:
+        var(--primary-soft);
+
+}
+
+
+.file-drop-icon {
 
     margin-bottom:
-        28px;
+        10px;
+
+    font-size:
+        42px;
 
 }
 
 
-.book-detail-progress span {
+.file-drop-zone strong {
 
-    display: block;
+    margin-bottom:
+        6px;
 
-    margin-top:
-        8px;
+}
+
+
+.file-drop-zone span {
 
     color:
         var(--text-soft);
@@ -850,37 +1014,63 @@ input {
 }
 
 
-.book-description {
+.file-drop-zone input {
 
-    max-width:
-        680px;
+    display:
+        none;
 
-    margin:
-        0 0 32px;
+}
 
-    color:
-        var(--text-soft);
+
+/* =========================================
+   SELECTED FILE
+========================================= */
+
+.selected-file {
+
+    margin-top:
+        16px;
+
+    padding:
+        12px 14px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius:
+        10px;
+
+    background:
+        var(--surface-soft);
 
     font-size:
-        15px;
+        14px;
 
-    line-height:
-        1.8;
+    word-break:
+        break-word;
 
 }
 
 
-.book-actions {
+/* =========================================
+   MODAL ACTIONS
+========================================= */
 
-    display: flex;
+.modal-actions {
 
-    flex-wrap: wrap;
+    display:
+        flex;
+
+    justify-content:
+        flex-end;
 
     gap:
-        12px;
+        10px;
+
+    margin-top:
+        24px;
 
 }
-
 
 
 /* =========================================
@@ -893,7 +1083,6 @@ input {
         none !important;
 
 }
-
 
 
 /* =========================================
@@ -932,27 +1121,7 @@ body.dark-mode {
 }
 
 
-body.dark-mode .book-card:hover {
-
-    box-shadow:
-        0 10px 30px
-        rgba(0, 0, 0, 0.25);
-
-}
-
-
-body.dark-mode .book-cover {
-
-    background:
-        linear-gradient(
-            145deg,
-            #40345c,
-            #66518e
-        );
-
-}
-
-
+body.dark-mode .book-cover,
 body.dark-mode .book-cover-large {
 
     background:
@@ -963,23 +1132,6 @@ body.dark-mode .book-cover-large {
         );
 
 }
-
-
-body.dark-mode .add-button:hover {
-
-    background:
-        #40345c;
-
-}
-
-
-body.dark-mode .search-box input::placeholder {
-
-    color:
-        #8f899e;
-
-}
-
 
 
 /* =========================================
@@ -1014,16 +1166,7 @@ body.dark-mode .search-box input::placeholder {
 
     }
 
-
-    .book-detail-info h1 {
-
-        font-size:
-            30px;
-
-    }
-
 }
-
 
 
 @media (max-width: 700px) {
@@ -1035,22 +1178,6 @@ body.dark-mode .search-box input::placeholder {
 
         padding:
             0 16px;
-
-    }
-
-
-    .logo {
-
-        font-size:
-            18px;
-
-    }
-
-
-    .search-box {
-
-        max-width:
-            none;
 
     }
 
@@ -1084,16 +1211,7 @@ body.dark-mode .search-box input::placeholder {
 
     }
 
-
-    .book-detail-info h1 {
-
-        font-size:
-            28px;
-
-    }
-
 }
-
 
 
 @media (max-width: 600px) {
@@ -1161,21 +1279,10 @@ body.dark-mode .search-box input::placeholder {
     }
 
 
-    .section-header {
+    .book-detail-info h1 {
 
-        align-items:
-            flex-start;
-
-        gap:
-            12px;
-
-    }
-
-
-    .book-detail {
-
-        padding:
-            20px;
+        font-size:
+            28px;
 
     }
 
@@ -1184,6 +1291,14 @@ body.dark-mode .search-box input::placeholder {
 
         width:
             180px;
+
+    }
+
+
+    .modal {
+
+        padding:
+            24px;
 
     }
 
