@@ -1885,3 +1885,21 @@ body.sepia-mode .book-cover-large {
     .google-login-button { padding: 6px 9px; }
     #googleAccountText { display: none; }
 }
+
+.google-login-button.has-google-avatar {
+    min-width: 40px !important;
+    width: 40px !important;
+    padding: 3px !important;
+    border-radius: 50%;
+}
+.google-login-button.has-google-avatar #googleAccountIcon {
+    width: 34px;
+    height: 34px;
+    background: transparent;
+}
+.google-login-button.has-google-avatar #googleAccountText {
+    display: none;
+}
+.google-login-button.has-google-avatar:hover {
+    transform: scale(1.04);
+}
