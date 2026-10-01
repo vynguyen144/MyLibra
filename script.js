@@ -1785,11 +1785,14 @@ function initializeMyLibra() {
                 else books.push(storedBook);
             });
 
+            updateFilterOptions();
+            updateFilterOptions();
             renderBooks();
             showLibrary();
         })
         .catch((error) => {
             console.error("Database error:", error);
+            updateFilterOptions();
             renderBooks();
             showLibrary();
         });
