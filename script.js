@@ -90,6 +90,12 @@ const saveUpdatedFile = $("saveUpdatedFile");
 let currentBookId = null;
 let updateFileBookId = null;
 let currentRendition = null;
+let currentPdf = null;
+let currentPdfBytes = null;
+let currentPdfBookId = null;
+let currentPdfPage = 1;
+let currentPdfScale = 1.25;
+let currentPdfRotation = 0;
 let currentEpub = null;
 let epubKeyHandler = null;
 
@@ -629,6 +635,216 @@ async function openReader(bookId) {
 
     alert("Định dạng file chưa được hỗ trợ.");
 }
+
+async function openPdfReader(book) {
+    if (typeof pdfjsLib === "undefined") {
+        alert("Không tải được PDF Reader. Hãy kiểm tra kết nối internet rồi tải lại trang.");
+        return;
+    }
+
+    currentPdfBookId = book.id;
+    currentPdfPage = Number(localStorage.getItem("mylibra-pdf-page-" + book.id)) || 1;
+    currentPdfScale = Number(localStorage.getItem("mylibra-pdf-scale-" + book.id)) || 1.25;
+    currentPdfRotation = 0;
+
+    const bytes = await book.file.arrayBuffer();
+    currentPdfBytes = bytes;
+
+    try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+        currentPdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+
+        pdfToolbar.hidden = false;
+        readerContent.className = "reader-content pdf-reader-content";
+        readerContent.innerHTML = '<div class="pdf-canvas-wrap"><canvas id="pdfCanvas"></canvas></div>';
+
+        currentPdfPage = Math.max(1, Math.min(currentPdfPage, currentPdf.numPages));
+        await renderPdfPage(currentPdfPage);
+    } catch (error) {
+        console.error(error);
+        pdfToolbar.hidden = true;
+        readerContent.innerHTML = "";
+        alert("Không thể mở PDF. File có thể bị lỗi hoặc không hợp lệ.");
+    }
+}
+
+async function renderPdfPage(pageNumber) {
+    if (!currentPdf) return;
+
+    const page = await currentPdf.getPage(pageNumber);
+    const viewport = page.getViewport({
+        scale: currentPdfScale,
+        rotation: currentPdfRotation
+    });
+
+    const canvas = document.getElementById("pdfCanvas");
+    if (!canvas) return;
+
+    const context = canvas.getContext("2d");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.style.width = viewport.width + "px";
+    canvas.style.height = viewport.height + "px";
+
+    await page.render({ canvasContext: context, viewport }).promise;
+
+    pdfPageInfo.textContent =
+        "Trang " + pageNumber + " / " + currentPdf.numPages;
+
+    const progress = Math.round((pageNumber / currentPdf.numPages) * 100);
+    readerProgressBar.style.width = progress + "%";
+    const book = books.find((item) => item.id === currentPdfBookId);
+    if (book) {
+        book.progress = progress;
+        await saveBookToDatabase(book);
+        renderBooks();
+    }
+
+    localStorage.setItem("mylibra-pdf-page-" + currentPdfBookId, String(pageNumber));
+    localStorage.setItem("mylibra-pdf-scale-" + currentPdfBookId, String(currentPdfScale));
+}
+
+async function changePdfPage(delta) {
+    if (!currentPdf) return;
+    const next = currentPdfPage + delta;
+    if (next < 1 || next > currentPdf.numPages) return;
+    currentPdfPage = next;
+    await renderPdfPage(currentPdfPage);
+}
+
+async function editPdfInMemory(action) {
+    if (!currentPdfBytes || !window.PDFLib) return;
+
+    try {
+        const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes);
+        const pages = pdfDoc.getPages();
+        if (!pages.length) return;
+
+        if (action === "rotate") {
+            const page = pages[currentPdfPage - 1];
+            const current = page.getRotation().angle || 0;
+            page.setRotation(PDFLib.degrees((current + 90) % 360));
+        }
+
+        if (action === "delete") {
+            if (pages.length === 1) {
+                alert("PDF phải còn ít nhất 1 trang.");
+                return;
+            }
+            pdfDoc.removePage(currentPdfPage - 1);
+            currentPdfPage = Math.min(currentPdfPage, pages.length - 1);
+        }
+
+        currentPdfBytes = await pdfDoc.save();
+
+        currentPdf = await pdfjsLib.getDocument({
+            data: currentPdfBytes.slice(0)
+        }).promise;
+
+        await renderPdfPage(currentPdfPage);
+    } catch (error) {
+        console.error(error);
+        alert("Không thể chỉnh sửa PDF này.");
+    }
+}
+
+async function addPdfText() {
+    if (!currentPdfBytes || !window.PDFLib || !currentPdf) return;
+
+    const text = prompt("Nhập nội dung muốn thêm vào trang hiện tại:");
+    if (!text) return;
+
+    const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes);
+    const page = pdfDoc.getPages()[currentPdfPage - 1];
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+    const pdfHeight = page.getHeight();
+    page.drawText(text, {
+        x: 50,
+        y: pdfHeight - 70,
+        size: 16,
+        font,
+        color: PDFLib.rgb(0.25, 0.12, 0.45)
+    });
+
+    currentPdfBytes = await pdfDoc.save();
+    currentPdf = await pdfjsLib.getDocument({ data: currentPdfBytes.slice(0) }).promise;
+    await renderPdfPage(currentPdfPage);
+}
+
+async function addPdfHighlight() {
+    if (!currentPdfBytes || !window.PDFLib || !currentPdf) return;
+
+    const pdfDoc = await PDFLib.PDFDocument.load(currentPdfBytes);
+    const page = pdfDoc.getPages()[currentPdfPage - 1];
+    const pageHeight = page.getHeight();
+
+    page.drawRectangle({
+        x: 50,
+        y: pageHeight - 130,
+        width: Math.min(300, page.getWidth() - 100),
+        height: 24,
+        color: PDFLib.rgb(1, 0.9, 0.2),
+        opacity: 0.35,
+        borderWidth: 0
+    });
+
+    currentPdfBytes = await pdfDoc.save();
+    currentPdf = await pdfjsLib.getDocument({ data: currentPdfBytes.slice(0) }).promise;
+    await renderPdfPage(currentPdfPage);
+}
+
+async function saveEditedPdf() {
+    if (!currentPdfBytes || !currentPdfBookId) return;
+
+    const book = books.find((item) => item.id === currentPdfBookId);
+    if (!book) return;
+
+    const blob = new Blob([currentPdfBytes], { type: "application/pdf" });
+    const fileName = (book.title || "MyLibra") + " - edited.pdf";
+
+    book.file = new File([blob], fileName, { type: "application/pdf" });
+    book.fileName = fileName;
+    book.fileType = "PDF";
+
+    try {
+        await saveBookToDatabase(book);
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        alert("Đã lưu bản PDF chỉnh sửa và tải file xuống máy.");
+    } catch (error) {
+        console.error(error);
+        alert("Không thể lưu PDF chỉnh sửa.");
+    }
+}
+
+pdfPrev?.addEventListener("click", () => changePdfPage(-1));
+pdfNext?.addEventListener("click", () => changePdfPage(1));
+pdfZoomOut?.addEventListener("click", async () => {
+    currentPdfScale = Math.max(0.6, currentPdfScale - 0.15);
+    await renderPdfPage(currentPdfPage);
+});
+pdfZoomIn?.addEventListener("click", async () => {
+    currentPdfScale = Math.min(3, currentPdfScale + 0.15);
+    await renderPdfPage(currentPdfPage);
+});
+pdfRotate?.addEventListener("click", () => editPdfInMemory("rotate"));
+pdfDeletePage?.addEventListener("click", async () => {
+    if (confirm("Xóa trang PDF hiện tại?")) await editPdfInMemory("delete");
+});
+pdfAddText?.addEventListener("click", addPdfText);
+pdfHighlight?.addEventListener("click", addPdfHighlight);
+pdfSave?.addEventListener("click", saveEditedPdf);
 
 async function openTxtReader(book) {
     try {
