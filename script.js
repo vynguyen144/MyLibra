@@ -1,11 +1,5 @@
 // ========================================
-// MyLibra
-// Main Script
-// ========================================
-
-
-// ========================================
-// DEMO BOOKS
+// MyLibra - Library / Book Management / Reader
 // ========================================
 
 let books = [
@@ -14,36 +8,31 @@ let books = [
         title: "The Beginning After the End",
         author: "TurtleMe",
         genre: "Fantasy",
-        description:
-            "Một câu chuyện fantasy về cuộc đời mới của một vị vua sau khi tái sinh.",
+        description: "Một câu chuyện fantasy về cuộc đời mới của một vị vua sau khi tái sinh.",
         progress: 35,
         icon: "📖",
         fileName: "",
         fileType: "",
         file: null
     },
-
     {
         id: "demo-2",
         title: "Omniscient Reader",
         author: "Sing Shong",
         genre: "Action",
-        description:
-            "Một độc giả duy nhất biết trước toàn bộ diễn biến của thế giới.",
+        description: "Một độc giả duy nhất biết trước toàn bộ diễn biến của thế giới.",
         progress: 62,
         icon: "👁️",
         fileName: "",
         fileType: "",
         file: null
     },
-
     {
         id: "demo-3",
         title: "Solo Leveling",
         author: "Chu-Gong",
         genre: "Action",
-        description:
-            "Một thợ săn yếu nhất thế giới bắt đầu hành trình trở thành người mạnh nhất.",
+        description: "Một thợ săn yếu nhất thế giới bắt đầu hành trình trở thành người mạnh nhất.",
         progress: 18,
         icon: "⚔️",
         fileName: "",
@@ -52,269 +41,113 @@ let books = [
     }
 ];
 
+const $ = (id) => document.getElementById(id);
 
-// ========================================
-// DOM
-// ========================================
+const libraryPage = $("libraryPage");
+const bookDetailPage = $("bookDetailPage");
+const bookDetail = $("bookDetail");
+const readerPage = $("readerPage");
+const bookGrid = $("bookGrid");
+const allBookGrid = $("allBookGrid");
+const emptyLibrary = $("emptyLibrary");
+const searchInput = document.querySelector(".search-box input");
+const themeButton = $("themeButton");
 
-const libraryPage =
-    document.getElementById("libraryPage");
+const addBookButton = $("addBookButton");
+const emptyAddBookButton = $("emptyAddBookButton");
+const addBookModal = $("addBookModal");
+const closeAddBook = $("closeAddBook");
+const cancelAddBook = $("cancelAddBook");
+const confirmAddBook = $("confirmAddBook");
+const bookFileInput = $("bookFile");
+const selectedFile = $("selectedFile");
 
-const bookDetailPage =
-    document.getElementById("bookDetailPage");
+const backToLibrary = $("backToLibrary");
+const backFromReader = $("backFromReader");
+const readerTitle = $("readerTitle");
+const readerContent = $("readerContent");
+const readerProgressBar = $("readerProgressBar");
+const decreaseFont = $("decreaseFont");
+const increaseFont = $("increaseFont");
 
-const bookDetail =
-    document.getElementById("bookDetail");
+const editBookModal = $("editBookModal");
+const closeEditBook = $("closeEditBook");
+const cancelEditBook = $("cancelEditBook");
+const saveEditBook = $("saveEditBook");
+const editTitle = $("editTitle");
+const editAuthor = $("editAuthor");
+const editGenre = $("editGenre");
+const editDescription = $("editDescription");
+const editCover = $("editCover");
 
-const readerPage =
-    document.getElementById("readerPage");
-
-const bookGrid =
-    document.getElementById("bookGrid");
-
-const allBookGrid =
-    document.getElementById("allBookGrid");
-
-const emptyLibrary =
-    document.getElementById("emptyLibrary");
-
-const searchInput =
-    document.querySelector(".search-box input");
-
-const themeButton =
-    document.getElementById("themeButton");
-
-const addBookButton =
-    document.getElementById("addBookButton");
-
-const emptyAddBookButton =
-    document.getElementById("emptyAddBookButton");
-
-const addBookModal =
-    document.getElementById("addBookModal");
-
-const closeAddBook =
-    document.getElementById("closeAddBook");
-
-const cancelAddBook =
-    document.getElementById("cancelAddBook");
-
-const confirmAddBook =
-    document.getElementById("confirmAddBook");
-
-const bookFileInput =
-    document.getElementById("bookFile");
-
-const selectedFile =
-    document.getElementById("selectedFile");
-
-const backToLibrary =
-    document.getElementById("backToLibrary");
-
-const backFromReader =
-    document.getElementById("backFromReader");
-
-const readerTitle =
-    document.getElementById("readerTitle");
-
-const readerContent =
-    document.getElementById("readerContent");
-
-const readerProgressBar =
-    document.getElementById("readerProgressBar");
-
-const decreaseFont =
-    document.getElementById("decreaseFont");
-
-const increaseFont =
-    document.getElementById("increaseFont");
-
-
-// ========================================
-// CURRENT BOOK
-// ========================================
+const updateFileModal = $("updateFileModal");
+const closeUpdateFile = $("closeUpdateFile");
+const cancelUpdateFile = $("cancelUpdateFile");
+const updateBookFile = $("updateBookFile");
+const updateSelectedFile = $("updateSelectedFile");
+const saveUpdatedFile = $("saveUpdatedFile");
 
 let currentBookId = null;
-
-
-// ========================================
-// INDEXEDDB
-// ========================================
+let updateFileBookId = null;
+let currentRendition = null;
+let currentEpub = null;
+let epubKeyHandler = null;
 
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
 const STORE_NAME = "books";
 
-
 function openDatabase() {
-
     return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        const request =
-            indexedDB.open(
-                DB_NAME,
-                DB_VERSION
-            );
-
-        request.onupgradeneeded = function (event) {
-
-            const db =
-                event.target.result;
-
-            if (
-                !db.objectStoreNames.contains(
-                    STORE_NAME
-                )
-            ) {
-
-                db.createObjectStore(
-                    STORE_NAME,
-                    {
-                        keyPath: "id"
-                    }
-                );
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: "id" });
             }
         };
 
-
-        request.onsuccess = function () {
-
-            resolve(request.result);
-        };
-
-
-        request.onerror = function () {
-
-            reject(request.error);
-        };
-
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
     });
 }
 
-
 async function saveBookToDatabase(book) {
+    const db = await openDatabase();
 
-    try {
-
-        const db =
-            await openDatabase();
-
-        return new Promise(
-            (resolve, reject) => {
-
-                const transaction =
-                    db.transaction(
-                        STORE_NAME,
-                        "readwrite"
-                    );
-
-                const store =
-                    transaction.objectStore(
-                        STORE_NAME
-                    );
-
-                store.put(book);
-
-
-                transaction.oncomplete =
-                    function () {
-
-                        resolve();
-                    };
-
-
-                transaction.onerror =
-                    function () {
-
-                        reject(
-                            transaction.error
-                        );
-                    };
-
-            }
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Không thể lưu sách:",
-            error
-        );
-    }
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).put(book);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
 }
 
+async function deleteBookFromDatabase(id) {
+    const db = await openDatabase();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        tx.objectStore(STORE_NAME).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
 
 async function loadBooksFromDatabase() {
+    const db = await openDatabase();
 
-    try {
-
-        const db =
-            await openDatabase();
-
-        return new Promise(
-            (resolve, reject) => {
-
-                const transaction =
-                    db.transaction(
-                        STORE_NAME,
-                        "readonly"
-                    );
-
-                const store =
-                    transaction.objectStore(
-                        STORE_NAME
-                    );
-
-                const request =
-                    store.getAll();
-
-
-                request.onsuccess =
-                    function () {
-
-                        resolve(
-                            request.result || []
-                        );
-                    };
-
-
-                request.onerror =
-                    function () {
-
-                        reject(
-                            request.error
-                        );
-                    };
-
-            }
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Không thể tải sách:",
-            error
-        );
-
-        return [];
-    }
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const request = tx.objectStore(STORE_NAME).getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+    });
 }
 
-
-// ========================================
-// HELPERS
-// ========================================
-
 function escapeHTML(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-    }
-
+    if (value === null || value === undefined) return "";
     return String(value)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -323,1323 +156,673 @@ function escapeHTML(value) {
         .replace(/'/g, "&#039;");
 }
 
-
 function removeExtension(fileName) {
-
-    return fileName.replace(
-        /\.[^/.]+$/,
-        ""
-    );
+    return fileName.replace(/\.[^/.]+$/, "");
 }
 
-
 function getFileType(fileName) {
-
-    const extension =
-        fileName
-            .split(".")
-            .pop()
-            .toLowerCase();
-
-
-    if (extension === "epub") {
-        return "EPUB";
-    }
-
-    if (extension === "pdf") {
-        return "PDF";
-    }
-
-    if (extension === "txt") {
-        return "TXT";
-    }
-
+    const ext = fileName.split(".").pop().toLowerCase();
+    if (ext === "epub") return "EPUB";
+    if (ext === "pdf") return "PDF";
+    if (ext === "txt") return "TXT";
     return "UNKNOWN";
 }
 
-
 function getBookIcon(fileType) {
-
-    if (fileType === "EPUB") {
-        return "📚";
-    }
-
-    if (fileType === "PDF") {
-        return "📕";
-    }
-
-    if (fileType === "TXT") {
-        return "📄";
-    }
-
+    if (fileType === "EPUB") return "📚";
+    if (fileType === "PDF") return "📕";
+    if (fileType === "TXT") return "📄";
     return "📖";
 }
 
-
-// ========================================
-// PAGE SWITCHING
-// ========================================
-
 function showLibrary() {
-
-    if (libraryPage) {
-        libraryPage.hidden = false;
-    }
-
-    if (bookDetailPage) {
-        bookDetailPage.hidden = true;
-    }
-
-    if (readerPage) {
-        readerPage.hidden = true;
-    }
+    libraryPage.hidden = false;
+    bookDetailPage.hidden = true;
+    readerPage.hidden = true;
+    currentBookId = null;
 }
-
 
 function showBookDetail() {
-
-    if (libraryPage) {
-        libraryPage.hidden = true;
-    }
-
-    if (bookDetailPage) {
-        bookDetailPage.hidden = false;
-    }
-
-    if (readerPage) {
-        readerPage.hidden = true;
-    }
+    libraryPage.hidden = true;
+    bookDetailPage.hidden = false;
+    readerPage.hidden = true;
 }
-
 
 function showReader() {
-
-    if (libraryPage) {
-        libraryPage.hidden = true;
-    }
-
-    if (bookDetailPage) {
-        bookDetailPage.hidden = true;
-    }
-
-    if (readerPage) {
-        readerPage.hidden = false;
-    }
+    libraryPage.hidden = true;
+    bookDetailPage.hidden = true;
+    readerPage.hidden = false;
 }
 
-
-// ========================================
-// BOOK CARD
-// ========================================
+function createCoverMarkup(book, large = false) {
+    const cls = large ? "book-cover-image-large" : "book-cover-image";
+    if (book.coverDataUrl) {
+        return '<img class="' + cls + '" src="' + escapeHTML(book.coverDataUrl) + '" alt="">';
+    }
+    return escapeHTML(book.icon || "📖");
+}
 
 function createBookCard(book) {
-
-    const card =
-        document.createElement("div");
-
-    card.className =
-        "book-card";
-
-
+    const card = document.createElement("div");
+    card.className = "book-card";
     card.innerHTML = `
-
         <div class="book-cover">
-            ${book.icon || "📖"}
+            ${createCoverMarkup(book)}
         </div>
-
         <div class="book-info">
-
-            <h3>
-                ${escapeHTML(book.title)}
-            </h3>
-
-            <p>
-                ${escapeHTML(
-                    book.author ||
-                    "Không rõ tác giả"
-                )}
-            </p>
-
+            <h3>${escapeHTML(book.title)}</h3>
+            <p>${escapeHTML(book.author || "Không rõ tác giả")}</p>
             <div class="progress">
-
-                <div
-                    class="progress-bar"
-                    style="
-                        width: ${book.progress || 0}%;
-                    "
-                ></div>
-
+                <div class="progress-bar" style="width:${book.progress || 0}%"></div>
             </div>
-
-            <span>
-                ${book.progress || 0}% đã đọc
-            </span>
-
+            <span>${book.progress || 0}% đã đọc</span>
         </div>
     `;
-
-
-    card.addEventListener(
-        "click",
-        function () {
-
-            openBook(book.id);
-
-        }
-    );
-
-
+    card.addEventListener("click", () => openBook(book.id));
     return card;
 }
 
-
-// ========================================
-// RENDER BOOKS
-// ========================================
-
 function renderBooks(bookList = books) {
+    bookGrid.innerHTML = "";
+    allBookGrid.innerHTML = "";
 
-    if (bookGrid) {
-        bookGrid.innerHTML = "";
-    }
-
-    if (allBookGrid) {
-        allBookGrid.innerHTML = "";
-    }
-
-
-    // Không có kết quả
-    if (bookList.length === 0) {
-
-        if (emptyLibrary) {
-            emptyLibrary.hidden = false;
-        }
-
+    if (!bookList.length) {
+        emptyLibrary.hidden = false;
         return;
     }
 
+    emptyLibrary.hidden = true;
 
-    // Có sách
-    if (emptyLibrary) {
-        emptyLibrary.hidden = true;
-    }
-
-
-    bookList.forEach(
-        function (book) {
-
-            // Đang đọc
-            if (bookGrid) {
-
-                const readingCard =
-                    createBookCard(book);
-
-                bookGrid.appendChild(
-                    readingCard
-                );
-            }
-
-
-            // Tất cả truyện
-            if (allBookGrid) {
-
-                const allCard =
-                    createBookCard(book);
-
-                allBookGrid.appendChild(
-                    allCard
-                );
-            }
-
-        }
-    );
+    bookList.forEach((book) => {
+        bookGrid.appendChild(createBookCard(book));
+        allBookGrid.appendChild(createBookCard(book));
+    });
 }
-
-
-// ========================================
-// SEARCH
-// ========================================
 
 if (searchInput) {
+    searchInput.addEventListener("input", () => {
+        const keyword = searchInput.value.trim().toLowerCase();
 
-    searchInput.addEventListener(
-        "input",
-        function () {
-
-            const keyword =
-                searchInput.value
-                    .trim()
-                    .toLowerCase();
-
-
-            if (!keyword) {
-
-                renderBooks();
-
-                return;
-            }
-
-
-            const results =
-                books.filter(
-                    function (book) {
-
-                        const title =
-                            (
-                                book.title || ""
-                            ).toLowerCase();
-
-                        const author =
-                            (
-                                book.author || ""
-                            ).toLowerCase();
-
-                        const genre =
-                            (
-                                book.genre || ""
-                            ).toLowerCase();
-
-
-                        return (
-                            title.includes(
-                                keyword
-                            ) ||
-                            author.includes(
-                                keyword
-                            ) ||
-                            genre.includes(
-                                keyword
-                            )
-                        );
-                    }
-                );
-
-
-            renderBooks(results);
-
+        if (!keyword) {
+            renderBooks();
+            return;
         }
-    );
+
+        const results = books.filter((book) =>
+            [book.title, book.author, book.genre, book.description]
+                .join(" ")
+                .toLowerCase()
+                .includes(keyword)
+        );
+
+        renderBooks(results);
+    });
 }
-
-
-// ========================================
-// THEME
-// ========================================
 
 function applyTheme(theme) {
-
-    if (theme === "dark") {
-
-        document.body.classList.add(
-            "dark-mode"
-        );
-
-        localStorage.setItem(
-            "mylibra-theme",
-            "dark"
-        );
-
-        if (themeButton) {
-            themeButton.textContent = "☀️";
-        }
-
-    } else {
-
-        document.body.classList.remove(
-            "dark-mode"
-        );
-
-        localStorage.setItem(
-            "mylibra-theme",
-            "light"
-        );
-
-        if (themeButton) {
-            themeButton.textContent = "🌙";
-        }
-    }
+    const dark = theme === "dark";
+    document.body.classList.toggle("dark-mode", dark);
+    localStorage.setItem("mylibra-theme", dark ? "dark" : "light");
+    themeButton.textContent = dark ? "☀️" : "🌙";
 }
 
+themeButton?.addEventListener("click", () => {
+    applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
+});
 
-function loadTheme() {
-
-    const savedTheme =
-        localStorage.getItem(
-            "mylibra-theme"
-        );
-
-
-    if (savedTheme === "dark") {
-
-        applyTheme("dark");
-
-    } else {
-
-        applyTheme("light");
-    }
+function openModal(modal) {
+    if (modal) modal.hidden = false;
 }
 
-
-if (themeButton) {
-
-    themeButton.addEventListener(
-        "click",
-        function () {
-
-            const isDark =
-                document.body.classList.contains(
-                    "dark-mode"
-                );
-
-
-            applyTheme(
-                isDark
-                    ? "light"
-                    : "dark"
-            );
-        }
-    );
+function closeModal(modal) {
+    if (modal) modal.hidden = true;
 }
 
-
-// ========================================
-// ADD BOOK MODAL
-// ========================================
-
-function openAddBookModal() {
-
-    if (!addBookModal) {
-        return;
-    }
-
-    addBookModal.hidden = false;
-
-    if (confirmAddBook) {
-        confirmAddBook.disabled = true;
-    }
-}
-
-
-function closeAddBookModal() {
-
-    if (!addBookModal) {
-        return;
-    }
-
-    addBookModal.hidden = true;
-
-
-    if (bookFileInput) {
-        bookFileInput.value = "";
-    }
-
-
+function resetAddModal() {
+    if (bookFileInput) bookFileInput.value = "";
     if (selectedFile) {
-
         selectedFile.hidden = true;
-
         selectedFile.textContent = "";
     }
+    if (confirmAddBook) confirmAddBook.disabled = true;
+}
 
+function openAddBookModal() {
+    resetAddModal();
+    openModal(addBookModal);
+}
 
-    if (confirmAddBook) {
-        confirmAddBook.disabled = true;
+addBookButton?.addEventListener("click", openAddBookModal);
+emptyAddBookButton?.addEventListener("click", openAddBookModal);
+closeAddBook?.addEventListener("click", () => closeModal(addBookModal));
+cancelAddBook?.addEventListener("click", () => closeModal(addBookModal));
+
+addBookModal?.addEventListener("click", (event) => {
+    if (event.target === addBookModal) closeModal(addBookModal);
+});
+
+bookFileInput?.addEventListener("change", () => {
+    const file = bookFileInput.files[0];
+    if (!file) {
+        resetAddModal();
+        return;
     }
-}
 
-
-if (addBookButton) {
-
-    addBookButton.addEventListener(
-        "click",
-        openAddBookModal
-    );
-}
-
-
-if (emptyAddBookButton) {
-
-    emptyAddBookButton.addEventListener(
-        "click",
-        openAddBookModal
-    );
-}
-
-
-if (closeAddBook) {
-
-    closeAddBook.addEventListener(
-        "click",
-        closeAddBookModal
-    );
-}
-
-
-if (cancelAddBook) {
-
-    cancelAddBook.addEventListener(
-        "click",
-        closeAddBookModal
-    );
-}
-
-
-// Click ra ngoài modal
-if (addBookModal) {
-
-    addBookModal.addEventListener(
-        "click",
-        function (event) {
-
-            if (
-                event.target ===
-                addBookModal
-            ) {
-
-                closeAddBookModal();
-            }
-        }
-    );
-}
-
-
-// ========================================
-// SELECT FILE
-// ========================================
-
-if (bookFileInput) {
-
-    bookFileInput.addEventListener(
-        "change",
-        function () {
-
-            const file =
-                bookFileInput.files[0];
-
-
-            if (!file) {
-
-                if (selectedFile) {
-                    selectedFile.hidden = true;
-                }
-
-                if (confirmAddBook) {
-                    confirmAddBook.disabled = true;
-                }
-
-                return;
-            }
-
-
-            const fileType =
-                getFileType(file.name);
-
-
-            if (
-                fileType !== "EPUB" &&
-                fileType !== "PDF" &&
-                fileType !== "TXT"
-            ) {
-
-                alert(
-                    "MyLibra chỉ hỗ trợ EPUB, PDF hoặc TXT."
-                );
-
-                bookFileInput.value = "";
-
-                if (confirmAddBook) {
-                    confirmAddBook.disabled = true;
-                }
-
-                return;
-            }
-
-
-            if (selectedFile) {
-
-                selectedFile.hidden = false;
-
-                selectedFile.textContent =
-                    `${getBookIcon(fileType)}  ${file.name}`;
-            }
-
-
-            if (confirmAddBook) {
-                confirmAddBook.disabled = false;
-            }
-
-        }
-    );
-}
-
-
-// ========================================
-// ADD BOOK
-// ========================================
-
-if (confirmAddBook) {
-
-    confirmAddBook.addEventListener(
-        "click",
-        async function () {
-
-            if (
-                !bookFileInput ||
-                !bookFileInput.files.length
-            ) {
-
-                return;
-            }
-
-
-            const file =
-                bookFileInput.files[0];
-
-
-            const fileType =
-                getFileType(file.name);
-
-
-            const newBook = {
-
-                id:
-                    "book-" +
-                    Date.now(),
-
-                title:
-                    removeExtension(
-                        file.name
-                    ),
-
-                author:
-                    "Chưa rõ tác giả",
-
-                genre:
-                    "Chưa phân loại",
-
-                description:
-                    "Truyện được thêm vào MyLibra.",
-
-                progress:
-                    0,
-
-                icon:
-                    getBookIcon(
-                        fileType
-                    ),
-
-                fileName:
-                    file.name,
-
-                fileType:
-                    fileType,
-
-                file:
-                    file
-            };
-
-
-            try {
-
-                await saveBookToDatabase(
-                    newBook
-                );
-
-
-                books.push(
-                    newBook
-                );
-
-
-                renderBooks();
-
-
-                closeAddBookModal();
-
-
-                alert(
-                    `Đã thêm "${newBook.title}" vào thư viện.`
-                );
-
-            } catch (error) {
-
-                console.error(
-                    error
-                );
-
-                alert(
-                    "Không thể lưu truyện."
-                );
-            }
-
-        }
-    );
-}
-
-
-// ========================================
-// OPEN BOOK DETAIL
-// ========================================
+    const type = getFileType(file.name);
+
+    if (!["EPUB", "PDF", "TXT"].includes(type)) {
+        alert("MyLibra chỉ hỗ trợ EPUB, PDF hoặc TXT.");
+        resetAddModal();
+        return;
+    }
+
+    selectedFile.hidden = false;
+    selectedFile.textContent = getBookIcon(type) + "  " + file.name;
+    confirmAddBook.disabled = false;
+});
+
+confirmAddBook?.addEventListener("click", async () => {
+    const file = bookFileInput.files[0];
+    if (!file) return;
+
+    const type = getFileType(file.name);
+
+    const newBook = {
+        id: "book-" + Date.now(),
+        title: removeExtension(file.name),
+        author: "Chưa rõ tác giả",
+        genre: "Chưa phân loại",
+        description: "",
+        progress: 0,
+        icon: getBookIcon(type),
+        fileName: file.name,
+        fileType: type,
+        file: file,
+        coverDataUrl: ""
+    };
+
+    try {
+        await saveBookToDatabase(newBook);
+        books.push(newBook);
+        renderBooks();
+        closeModal(addBookModal);
+        alert('Đã thêm "' + newBook.title + '" vào thư viện.');
+    } catch (error) {
+        console.error(error);
+        alert("Không thể lưu truyện.");
+    }
+});
 
 function openBook(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book) return;
 
-    const book =
-        books.find(
-            function (item) {
+    currentBookId = bookId;
 
-                return item.id === bookId;
+    const hasFile = !!book.file;
+    const readLabel = hasFile
+        ? (book.progress > 0 ? "Tiếp tục đọc" : "Bắt đầu đọc")
+        : "Chưa có file";
 
-            }
-        );
-
-
-    if (!book) {
-        return;
-    }
-
-
-    currentBookId =
-        bookId;
-
-
-    if (!bookDetail) {
-        return;
-    }
-
-
-    // Tạo giao diện chi tiết
     bookDetail.innerHTML = `
-
         <div class="book-detail-cover">
-
             <div class="book-cover-large">
-                ${book.icon || "📖"}
+                ${createCoverMarkup(book, true)}
             </div>
-
         </div>
 
-
         <div class="book-detail-info">
+            <span class="book-detail-category">${escapeHTML(book.genre || "Chưa phân loại")}</span>
 
-            <span class="book-detail-category">
-                ${escapeHTML(
-                    book.genre ||
-                    "Chưa phân loại"
-                )}
-            </span>
-
-
-            <h1>
-                ${escapeHTML(
-                    book.title
-                )}
-            </h1>
-
+            <h1>${escapeHTML(book.title)}</h1>
 
             <p class="book-author">
-                ${escapeHTML(
-                    book.author ||
-                    "Không rõ tác giả"
-                )}
+                Tác giả: ${escapeHTML(book.author || "Không rõ tác giả")}
             </p>
-
 
             <p class="book-description">
-                ${escapeHTML(
-                    book.description ||
-                    "Chưa có mô tả."
-                )}
+                ${escapeHTML(book.description || "Chưa có mô tả.")}
             </p>
 
+            <p>
+                Định dạng:
+                <strong>${escapeHTML(book.fileType || "Chưa có file")}</strong>
+            </p>
 
             <p>
                 Tiến độ:
-                <strong>
-                    ${book.progress || 0}%
-                </strong>
+                <strong>${book.progress || 0}%</strong>
             </p>
 
-
             <div class="book-actions">
-
-                <button
-                    class="primary-button"
-                    id="detailReadButton"
-                    type="button"
-                >
-                    ${book.progress > 0
-                        ? "Tiếp tục đọc"
-                        : "Bắt đầu đọc"}
+                <button class="primary-button" id="detailReadButton" type="button">
+                    ${readLabel}
                 </button>
 
-                <button
-                    class="add-button"
-                    id="detailBackButton"
-                    type="button"
-                >
-                    ← Thư viện
+                <button class="add-button" id="editBookButton" type="button">
+                    ✏️ Chỉnh sửa
                 </button>
 
+                <button class="add-button" id="updateBookButton" type="button">
+                    🔄 Cập nhật file
+                </button>
+
+                <button class="danger-button" id="deleteBookButton" type="button">
+                    🗑️ Xóa truyện
+                </button>
             </div>
-
         </div>
     `;
 
-
     showBookDetail();
 
-
-    // Nút đọc
-    const detailReadButton =
-        document.getElementById(
-            "detailReadButton"
-        );
-
-
-    if (detailReadButton) {
-
-        detailReadButton.addEventListener(
-            "click",
-            function () {
-
-                openReader(
-                    book.id
-                );
-
-            }
-        );
-    }
-
-
-    // Nút quay lại
-    const detailBackButton =
-        document.getElementById(
-            "detailBackButton"
-        );
-
-
-    if (detailBackButton) {
-
-        detailBackButton.addEventListener(
-            "click",
-            function () {
-
-                showLibrary();
-
-            }
-        );
-    }
-}
-
-
-// ========================================
-// BACK TO LIBRARY
-// ========================================
-
-if (backToLibrary) {
-
-    backToLibrary.addEventListener(
-        "click",
-        function () {
-
-            showLibrary();
-
-            renderBooks();
-
+    $("detailReadButton")?.addEventListener("click", () => {
+        if (!book.file) {
+            alert("Truyện này chưa có file để đọc.");
+            return;
         }
-    );
-}
+        openReader(book.id);
+    });
 
+    $("editBookButton")?.addEventListener("click", () => openEditBook(book.id));
+    $("updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
 
-// ========================================
-// READER
-// ========================================
-
-async function openReader(bookId) {
-
-    const book =
-        books.find(
-            function (item) {
-
-                return item.id === bookId;
-
-            }
+    $("deleteBookButton")?.addEventListener("click", async () => {
+        const ok = confirm(
+            'Xóa "' + book.title + '" khỏi MyLibra?\n\nThao tác này sẽ xóa file truyện đã lưu trên trình duyệt.'
         );
 
-
-    if (!book) {
-        return;
-    }
-
-
-    currentBookId =
-        bookId;
-
-
-    // Chưa có file
-    if (!book.file) {
-
-        alert(
-            "Đây là truyện mẫu nên chưa có file để đọc.\n\n" +
-            "Hãy dùng '+ Thêm truyện' để thêm file TXT."
-        );
-
-        return;
-    }
-
-
-    // ====================================
-    // TXT
-    // ====================================
-
-    if (book.fileType === "TXT") {
+        if (!ok) return;
 
         try {
-
-            const text =
-                await book.file.text();
-
-
-            if (readerTitle) {
-
-                readerTitle.textContent =
-                    book.title;
-            }
-
-
-            if (readerContent) {
-
-                readerContent.textContent =
-                    text;
-            }
-
-
-            showReader();
-
-
-            // Khôi phục vị trí
-            const savedPosition =
-                Number(
-                    localStorage.getItem(
-                        `mylibra-position-${book.id}`
-                    )
-                );
-
-
-            setTimeout(
-                function () {
-
-                    if (
-                        savedPosition &&
-                        !Number.isNaN(
-                            savedPosition
-                        )
-                    ) {
-
-                        window.scrollTo(
-                            0,
-                            savedPosition
-                        );
-
-                    } else {
-
-                        window.scrollTo(
-                            0,
-                            0
-                        );
-                    }
-
-
-                    updateReaderProgress();
-
-                },
-                50
-            );
-
-
-            return;
-
-        } catch (error) {
-
-            console.error(
-                error
-            );
-
-            alert(
-                "Không thể mở file TXT."
-            );
-
-            return;
-        }
-    }
-
-
-    // ====================================
-    // EPUB / PDF
-    // ====================================
-
-    if (
-        book.fileType === "EPUB" ||
-        book.fileType === "PDF"
-    ) {
-
-        alert(
-            `${book.fileType} Reader sẽ được tích hợp ở bước tiếp theo.`
-        );
-
-        return;
-    }
-
-
-    alert(
-        "Định dạng file chưa được hỗ trợ."
-    );
-}
-
-
-// ========================================
-// BACK FROM READER
-// ========================================
-
-if (backFromReader) {
-
-    backFromReader.addEventListener(
-        "click",
-        function () {
-
+            await deleteBookFromDatabase(book.id);
+            books = books.filter((item) => item.id !== book.id);
+            localStorage.removeItem("mylibra-position-" + book.id);
+            localStorage.removeItem("mylibra-epub-cfi-" + book.id);
             showLibrary();
-
             renderBooks();
-
+        } catch (error) {
+            console.error(error);
+            alert("Không thể xóa truyện.");
         }
-    );
+    });
 }
 
+backToLibrary?.addEventListener("click", () => {
+    showLibrary();
+    renderBooks();
+});
 
-// ========================================
-// READER PROGRESS
-// ========================================
+function openEditBook(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book) return;
 
-function updateReaderProgress() {
+    currentBookId = bookId;
+    editTitle.value = book.title || "";
+    editAuthor.value = book.author || "";
+    editGenre.value = book.genre || "";
+    editDescription.value = book.description || "";
+    editCover.value = "";
 
-    if (!readerPage) {
-        return;
-    }
-
-
-    if (readerPage.hidden) {
-        return;
-    }
-
-
-    const totalHeight =
-        document.documentElement.scrollHeight -
-        window.innerHeight;
-
-
-    if (totalHeight <= 0) {
-
-        if (readerProgressBar) {
-            readerProgressBar.style.width =
-                "0%";
-        }
-
-        return;
-    }
-
-
-    const scrollTop =
-        window.scrollY;
-
-
-    const progress =
-        Math.min(
-            100,
-            Math.max(
-                0,
-                (
-                    scrollTop /
-                    totalHeight
-                ) * 100
-            )
-        );
-
-
-    if (readerProgressBar) {
-
-        readerProgressBar.style.width =
-            `${progress}%`;
-    }
-
-
-    if (!currentBookId) {
-        return;
-    }
-
-
-    // Lưu vị trí
-    localStorage.setItem(
-        `mylibra-position-${currentBookId}`,
-        String(scrollTop)
-    );
-
-
-    // Lưu %
-    const book =
-        books.find(
-            function (item) {
-
-                return item.id ===
-                    currentBookId;
-
-            }
-        );
-
-
-    if (book) {
-
-        book.progress =
-            Math.round(
-                progress
-            );
-
-        saveBookToDatabase(
-            book
-        );
-    }
+    openModal(editBookModal);
 }
 
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
 
-// ========================================
-// SCROLL
-// ========================================
+saveEditBook?.addEventListener("click", async () => {
+    const book = books.find((item) => item.id === currentBookId);
+    if (!book) return;
 
-let progressTimer = null;
+    const title = editTitle.value.trim();
+    if (!title) {
+        alert("Tên truyện không được để trống.");
+        return;
+    }
 
+    book.title = title;
+    book.author = editAuthor.value.trim() || "Chưa rõ tác giả";
+    book.genre = editGenre.value.trim() || "Chưa phân loại";
+    book.description = editDescription.value.trim();
 
-window.addEventListener(
-    "scroll",
-    function () {
-
-        if (
-            !readerPage ||
-            readerPage.hidden
-        ) {
-
+    if (editCover.files[0]) {
+        try {
+            book.coverDataUrl = await readFileAsDataUrl(editCover.files[0]);
+        } catch (error) {
+            console.error(error);
+            alert("Không thể đọc ảnh bìa.");
             return;
         }
-
-
-        updateReaderProgress();
-
-
-        clearTimeout(
-            progressTimer
-        );
-
-
-        progressTimer =
-            setTimeout(
-                function () {
-
-                    updateReaderProgress();
-
-                },
-                300
-            );
-
     }
-);
 
+    try {
+        await saveBookToDatabase(book);
+        closeModal(editBookModal);
+        renderBooks();
+        openBook(book.id);
+    } catch (error) {
+        console.error(error);
+        alert("Không thể lưu thông tin truyện.");
+    }
+});
 
-// ========================================
-// FONT SIZE
-// ========================================
+closeEditBook?.addEventListener("click", () => closeModal(editBookModal));
+cancelEditBook?.addEventListener("click", () => closeModal(editBookModal));
+
+editBookModal?.addEventListener("click", (event) => {
+    if (event.target === editBookModal) closeModal(editBookModal);
+});
+
+function openUpdateFile(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book) return;
+
+    updateFileBookId = bookId;
+    updateBookFile.value = "";
+    updateSelectedFile.hidden = true;
+    updateSelectedFile.textContent = "";
+    saveUpdatedFile.disabled = true;
+    openModal(updateFileModal);
+}
+
+updateBookFile?.addEventListener("change", () => {
+    const file = updateBookFile.files[0];
+
+    if (!file) {
+        updateSelectedFile.hidden = true;
+        saveUpdatedFile.disabled = true;
+        return;
+    }
+
+    const type = getFileType(file.name);
+
+    if (!["EPUB", "PDF", "TXT"].includes(type)) {
+        alert("MyLibra chỉ hỗ trợ EPUB, PDF hoặc TXT.");
+        updateBookFile.value = "";
+        updateSelectedFile.hidden = true;
+        saveUpdatedFile.disabled = true;
+        return;
+    }
+
+    updateSelectedFile.hidden = false;
+    updateSelectedFile.textContent = getBookIcon(type) + "  " + file.name;
+    saveUpdatedFile.disabled = false;
+});
+
+saveUpdatedFile?.addEventListener("click", async () => {
+    const book = books.find((item) => item.id === updateFileBookId);
+    const file = updateBookFile.files[0];
+
+    if (!book || !file) return;
+
+    const type = getFileType(file.name);
+
+    book.file = file;
+    book.fileName = file.name;
+    book.fileType = type;
+
+    try {
+        await saveBookToDatabase(book);
+        closeModal(updateFileModal);
+        openBook(book.id);
+        renderBooks();
+        alert("Đã cập nhật file truyện. Thông tin và tiến độ vẫn được giữ lại.");
+    } catch (error) {
+        console.error(error);
+        alert("Không thể cập nhật file.");
+    }
+});
+
+closeUpdateFile?.addEventListener("click", () => closeModal(updateFileModal));
+cancelUpdateFile?.addEventListener("click", () => closeModal(updateFileModal));
+
+updateFileModal?.addEventListener("click", (event) => {
+    if (event.target === updateFileModal) closeModal(updateFileModal);
+});
+
+async function openReader(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book || !book.file) {
+        alert("Truyện này chưa có file để đọc.");
+        return;
+    }
+
+    currentBookId = bookId;
+    readerTitle.textContent = book.title;
+    showReader();
+
+    if (currentRendition) {
+        try { currentRendition.destroy(); } catch (_) {}
+        currentRendition = null;
+    }
+
+    if (epubKeyHandler) {
+        document.removeEventListener("keyup", epubKeyHandler);
+        epubKeyHandler = null;
+    }
+
+    if (book.fileType === "TXT") {
+        await openTxtReader(book);
+        return;
+    }
+
+    if (book.fileType === "EPUB") {
+        await openEpubReader(book);
+        return;
+    }
+
+    if (book.fileType === "PDF") {
+        readerContent.innerHTML = `
+            <div style="text-align:center;padding:80px 20px">
+                <h2>PDF Reader</h2>
+                <p>Phần đọc PDF sẽ được tích hợp ở bước tiếp theo.</p>
+            </div>
+        `;
+        return;
+    }
+
+    alert("Định dạng file chưa được hỗ trợ.");
+}
+
+async function openTxtReader(book) {
+    try {
+        const text = await book.file.text();
+        readerContent.className = "reader-content";
+        readerContent.innerHTML = "";
+        readerContent.textContent = text;
+
+        loadFontSize();
+
+        setTimeout(() => {
+            const saved = Number(localStorage.getItem("mylibra-position-" + book.id));
+            window.scrollTo(0, Number.isFinite(saved) ? saved : 0);
+            updateReaderProgress();
+        }, 50);
+    } catch (error) {
+        console.error(error);
+        alert("Không thể mở file TXT.");
+    }
+}
+
+async function openEpubReader(book) {
+    if (typeof ePub !== "function") {
+        alert("Không tải được EPUB Reader. Hãy kiểm tra kết nối internet rồi tải lại trang.");
+        return;
+    }
+
+    readerContent.className = "";
+    readerContent.innerHTML = '<div class="epub-reader" id="epubViewer"></div>';
+
+    const arrayBuffer = await book.file.arrayBuffer();
+
+    try {
+        currentEpub = ePub(arrayBuffer);
+
+        currentRendition = currentEpub.renderTo("epubViewer", {
+            width: "100%",
+            height: "100%",
+            flow: "scrolled-doc",
+            spread: "none"
+        });
+
+        currentRendition.themes.default({
+            body: {
+                color: "var(--text)",
+                background: "var(--surface)"
+            }
+        });
+
+        const savedCfi = localStorage.getItem("mylibra-epub-cfi-" + book.id);
+
+        currentRendition.on("relocated", async (location) => {
+            if (location?.start?.cfi) {
+                localStorage.setItem(
+                    "mylibra-epub-cfi-" + book.id,
+                    location.start.cfi
+                );
+            }
+
+            if (location?.start?.percentage !== undefined) {
+                const percentage = Math.round(location.start.percentage * 100);
+                book.progress = Math.max(0, Math.min(100, percentage));
+                await saveBookToDatabase(book);
+                renderBooks();
+            }
+        });
+
+        await currentEpub.ready;
+
+        if (currentEpub.locations) {
+            currentEpub.locations.generate(1600).catch(() => {});
+        }
+
+        if (savedCfi) {
+            await currentRendition.display(savedCfi);
+        } else {
+            await currentRendition.display();
+        }
+
+        epubKeyHandler = (event) => {
+            if (!currentRendition) return;
+            if (event.key === "ArrowRight") currentRendition.next();
+            if (event.key === "ArrowLeft") currentRendition.prev();
+        };
+
+        document.addEventListener("keyup", epubKeyHandler);
+        applyReaderFontSize();
+    } catch (error) {
+        console.error(error);
+        readerContent.innerHTML = "";
+        readerContent.className = "reader-content";
+        alert("Không thể mở EPUB. File có thể bị lỗi hoặc không hợp lệ.");
+    }
+}
+
+function applyReaderFontSize() {
+    const size = Number(localStorage.getItem("mylibra-font-size")) || 18;
+    if (currentRendition) {
+        currentRendition.themes.fontSize(size + "px");
+    }
+    if (readerContent.classList.contains("reader-content")) {
+        readerContent.style.fontSize = size + "px";
+    }
+}
 
 function loadFontSize() {
+    const size = Number(localStorage.getItem("mylibra-font-size")) || 18;
+    readerContent.style.fontSize = size + "px";
+}
 
-    if (!readerContent) {
-        return;
+decreaseFont?.addEventListener("click", () => {
+    const current = Number(localStorage.getItem("mylibra-font-size")) || 18;
+    const next = Math.max(12, current - 1);
+    localStorage.setItem("mylibra-font-size", next);
+    applyReaderFontSize();
+});
+
+increaseFont?.addEventListener("click", () => {
+    const current = Number(localStorage.getItem("mylibra-font-size")) || 18;
+    const next = Math.min(40, current + 1);
+    localStorage.setItem("mylibra-font-size", next);
+    applyReaderFontSize();
+});
+
+backFromReader?.addEventListener("click", () => {
+    if (epubKeyHandler) {
+        document.removeEventListener("keyup", epubKeyHandler);
+        epubKeyHandler = null;
     }
 
+    if (currentRendition) {
+        try { currentRendition.destroy(); } catch (_) {}
+        currentRendition = null;
+    }
 
-    const saved =
-        Number(
-            localStorage.getItem(
-                "mylibra-font-size"
-            )
+    currentEpub = null;
+    readerContent.innerHTML = "";
+    readerContent.className = "reader-content";
+    showLibrary();
+    renderBooks();
+});
+
+function updateReaderProgress() {
+    if (readerPage.hidden || !currentBookId) return;
+
+    const totalHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+
+    const progress = totalHeight <= 0
+        ? 0
+        : Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
+
+    readerProgressBar.style.width = progress + "%";
+
+    const book = books.find((item) => item.id === currentBookId);
+
+    if (book && book.fileType === "TXT") {
+        book.progress = Math.round(progress);
+        localStorage.setItem(
+            "mylibra-position-" + book.id,
+            String(window.scrollY)
         );
-
-
-    if (
-        saved &&
-        !Number.isNaN(saved)
-    ) {
-
-        readerContent.style.fontSize =
-            `${saved}px`;
+        saveBookToDatabase(book).catch(console.error);
     }
 }
 
+window.addEventListener("scroll", () => {
+    if (!readerPage.hidden && books.find((book) => book.id === currentBookId)?.fileType === "TXT") {
+        updateReaderProgress();
+    }
+});
 
-if (decreaseFont) {
+function initializeMyLibra() {
+    const savedTheme = localStorage.getItem("mylibra-theme");
+    applyTheme(savedTheme === "dark" ? "dark" : "light");
 
-    decreaseFont.addEventListener(
-        "click",
-        function () {
-
-            if (!readerContent) {
-                return;
-            }
-
-
-            const current =
-                parseFloat(
-                    getComputedStyle(
-                        readerContent
-                    ).fontSize
-                );
-
-
-            const next =
-                Math.max(
-                    12,
-                    current - 1
-                );
-
-
-            readerContent.style.fontSize =
-                `${next}px`;
-
-
-            localStorage.setItem(
-                "mylibra-font-size",
-                String(next)
-            );
-
-
-            updateReaderProgress();
-
-        }
-    );
-}
-
-
-if (increaseFont) {
-
-    increaseFont.addEventListener(
-        "click",
-        function () {
-
-            if (!readerContent) {
-                return;
-            }
-
-
-            const current =
-                parseFloat(
-                    getComputedStyle(
-                        readerContent
-                    ).fontSize
-                );
-
-
-            const next =
-                Math.min(
-                    40,
-                    current + 1
-                );
-
-
-            readerContent.style.fontSize =
-                `${next}px`;
-
-
-            localStorage.setItem(
-                "mylibra-font-size",
-                String(next)
-            );
-
-
-            updateReaderProgress();
-
-        }
-    );
-}
-
-
-// ========================================
-// INITIALIZE
-// ========================================
-
-async function initializeMyLibra() {
-
-    // Theme
-    loadTheme();
-
-    // Font
     loadFontSize();
 
+    loadBooksFromDatabase()
+        .then((storedBooks) => {
+            storedBooks.forEach((storedBook) => {
+                const index = books.findIndex((book) => book.id === storedBook.id);
+                if (index >= 0) books[index] = storedBook;
+                else books.push(storedBook);
+            });
 
-    // Database
-    try {
-
-        const storedBooks =
-            await loadBooksFromDatabase();
-
-
-        storedBooks.forEach(
-            function (storedBook) {
-
-                const existingIndex =
-                    books.findIndex(
-                        function (book) {
-
-                            return book.id ===
-                                storedBook.id;
-
-                        }
-                    );
-
-
-                if (
-                    existingIndex >= 0
-                ) {
-
-                    books[
-                        existingIndex
-                    ] = storedBook;
-
-                } else {
-
-                    books.push(
-                        storedBook
-                    );
-                }
-
-            }
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Database error:",
-            error
-        );
-    }
-
-
-    // Render
-    renderBooks();
-
-
-    // Đảm bảo đúng page ban đầu
-    showLibrary();
+            renderBooks();
+            showLibrary();
+        })
+        .catch((error) => {
+            console.error("Database error:", error);
+            renderBooks();
+            showLibrary();
+        });
 }
-
-
-// ========================================
-// START
-// ========================================
 
 initializeMyLibra();
