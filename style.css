@@ -1675,3 +1675,129 @@ body.dark-mode .book-actions .danger-button {
         padding: 7px 9px;
     }
 }
+
+
+/* =========================================
+   MYLIBRA SETTINGS
+========================================= */
+.logo-home {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.logo-home:hover { opacity: .78; }
+
+.settings-modal {
+    width: min(760px, 96vw);
+    max-height: 90vh;
+    overflow: auto;
+}
+.settings-tabs {
+    display: flex;
+    gap: 7px;
+    margin: 20px 0 14px;
+    padding: 5px;
+    border-radius: 13px;
+    background: var(--surface-soft);
+}
+.settings-tab {
+    flex: 1;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-soft);
+    font-weight: 700;
+}
+.settings-tab.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.settings-panel { display: none; }
+.settings-panel.active { display: block; }
+.settings-panel h3 { margin: 14px 0; }
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border);
+}
+.settings-row span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.settings-row small {
+    color: var(--text-soft);
+    font-weight: 400;
+}
+.settings-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+}
+.settings-row select {
+    min-width: 170px;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface-soft);
+    color: var(--text);
+}
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.theme-option {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-soft);
+    color: var(--text);
+}
+.theme-option:first-letter { font-size: 24px; }
+.theme-option strong { font-size: 14px; }
+.theme-option small { color: var(--text-soft); }
+.theme-option.active {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 2px var(--primary-soft);
+}
+.settings-actions { justify-content: space-between; }
+
+body.sepia-mode {
+    --bg: #f3ead8;
+    --surface: #fff8e9;
+    --surface-soft: #eee2ca;
+    --text: #44372a;
+    --text-soft: #7b6a55;
+    --primary: #9a7042;
+    --primary-dark: #7e5730;
+    --primary-soft: #ead8bb;
+    --border: #d7c5a7;
+}
+body.sepia-mode .book-cover,
+body.sepia-mode .book-cover-large {
+    background: linear-gradient(145deg, #e6d0a9, #c4a06c);
+}
+
+@media (max-width: 600px) {
+    .settings-tabs { overflow-x: auto; }
+    .settings-tab { min-width: 120px; white-space: nowrap; }
+    .settings-row { align-items: flex-start; }
+    .settings-row select { min-width: 130px; }
+    .theme-options { grid-template-columns: 1fr; }
+}
