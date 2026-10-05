@@ -1192,7 +1192,7 @@ function renderHome() {
             $("featuredNext")?.addEventListener("click",()=>go(featuredIndex+1));
             homeFeatured.querySelectorAll(".featured-dot").forEach(btn=>btn.addEventListener("click",()=>go(Number(btn.dataset.featuredIndex))));
             clearInterval(window.mylibraFeaturedTimer);
-            window.mylibraFeaturedTimer=setInterval(()=>go(featuredIndex+1),5000);
+            window.mylibraFeaturedTimer=setInterval(()=>go(featuredIndex+1),10000);
         } else {
             clearInterval(window.mylibraFeaturedTimer);
         }
