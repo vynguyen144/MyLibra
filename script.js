@@ -3378,6 +3378,49 @@ function applyVirtualPetSettings(reveal = false) {
         window.setTimeout(() => virtualPetCat.classList.remove("pet-entering","pet-spawn"), 1300);
     }
 }
+function playGhostMoan() {
+    if (localStorage.getItem("mylibra-pet-speech") === "false") return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.gain.exponentialRampToValueAtTime(0.075, now + 0.35);
+        master.gain.setValueAtTime(0.075, now + 1.25);
+        master.gain.exponentialRampToValueAtTime(0.0001, now + 3.1);
+        master.connect(ctx.destination);
+
+        // Hai lớp âm trầm lệch nhẹ tạo cảm giác "ưuuuu... oooo..." thay vì tiếng éc.
+        const low = ctx.createOscillator();
+        const low2 = ctx.createOscillator();
+        low.type = "sine";
+        low2.type = "triangle";
+        low.frequency.setValueAtTime(118, now);
+        low.frequency.exponentialRampToValueAtTime(92, now + 1.25);
+        low.frequency.exponentialRampToValueAtTime(72, now + 3.0);
+        low2.frequency.setValueAtTime(176, now);
+        low2.frequency.exponentialRampToValueAtTime(132, now + 1.4);
+        low2.frequency.exponentialRampToValueAtTime(105, now + 3.0);
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0.0001, now);
+        g2.gain.exponentialRampToValueAtTime(0.22, now + 0.35);
+        g2.gain.exponentialRampToValueAtTime(0.0001, now + 3.05);
+        low.connect(master);
+        low2.connect(g2);
+        g2.connect(master);
+        low.start(now);
+        low2.start(now);
+        low.stop(now + 3.15);
+        low2.stop(now + 3.15);
+
+        window.setTimeout(() => {
+            try { ctx.close(); } catch (_) {}
+        }, 3300);
+    } catch (_) {}
+}
+
 function petSay(messages) {
     if (localStorage.getItem("mylibra-pet-speech") === "false" || !virtualPetBubble) return;
     virtualPetBubble.textContent = messages[Math.floor(Math.random() * messages.length)];
@@ -3389,9 +3432,12 @@ virtualPetCat?.addEventListener("click", () => {
     void virtualPetCat.offsetWidth;
     virtualPetCat.classList.add("pet-jump");
     const pet = localStorage.getItem("mylibra-pet") || "cat";
-    petSay(pet === "ghost"
-        ? ["Bù~ 👻", "Hù bà nè!", "Bụp! ✨", "Tui đang lang thang~"]
-        : ["Meow~ 🐾", "Có ai gọi tui hả?", "Đi dạo nè!", "Cho tui cá với~"]);
+    if (pet === "ghost") {
+        petSay(["Bùuuuu~ 👻", "Hùùù bà nè...", "Uuuuuuu~", "Tui đang lang thang..."]);
+        playGhostMoan();
+    } else {
+        petSay(["Meow~ 🐾", "Có ai gọi tui hả?", "Đi dạo nè!", "Cho tui cá với~"]);
+    }
     window.setTimeout(() => virtualPetCat.classList.remove("pet-jump"), 750);
 });
 
