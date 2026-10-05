@@ -2920,3 +2920,15 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 @media(max-width:700px){
     .recommendation-card{padding:8px!important;border-radius:14px!important}
 }
+
+
+.auto-book-info{
+    margin-top:12px;
+    padding:14px;
+    border:1px solid rgba(112,86,170,.14);
+    border-radius:14px;
+    background:rgba(245,242,252,.72);
+}
+.auto-book-info-title{font-weight:700;margin-bottom:10px}
+.auto-book-info label{display:block;margin-top:10px}
+.auto-book-info small{display:block;margin-top:10px;opacity:.7;line-height:1.45}
