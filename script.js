@@ -816,18 +816,7 @@ function renderSelectedChips(container, values, type) {
             if (container === addTagChips) addTags = addTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
             if (container === editGenreChips) editGenres = editGenres.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
             if (container === editTagChips) editTags = editTags.filter((item) => normalizeSearchText(item) !== normalizeSearchText(value));
-            if (container === addGenreChips) setupChipPicker(genreFilterTrigger, genreFilterMenu, allGenres, () => selectedFilterGenres, (value) => {
-    selectedFilterGenres = toggleValue(selectedFilterGenres, value);
-    updateFilterOptions();
-    renderBooks(getFilteredBooks());
-}, "genre");
-setupChipPicker(tagFilterTrigger, tagFilterMenu, allTags, () => selectedFilterTags, (value) => {
-    selectedFilterTags = toggleValue(selectedFilterTags, value);
-    updateFilterOptions();
-    renderBooks(getFilteredBooks());
-}, "tag");
-
-renderSelectedChips(addGenreChips, addGenres, "genre");
+            renderSelectedChips(addGenreChips, addGenres, "genre");
             if (container === addTagChips) renderSelectedChips(addTagChips, addTags, "tag");
             if (container === editGenreChips) renderSelectedChips(editGenreChips, editGenres, "genre");
             if (container === editTagChips) renderSelectedChips(editTagChips, editTags, "tag");
@@ -973,6 +962,19 @@ function renderBooks(bookList = books) {
 function applyLibraryFilters() {
     renderBooks(getFilteredBooks());
 }
+
+// Khởi tạo bộ lọc thư viện: mở menu và chọn/bỏ chọn thể loại hoặc tag.
+setupChipPicker(genreFilterTrigger, genreFilterMenu, allGenres, () => selectedFilterGenres, (value) => {
+    selectedFilterGenres = toggleValue(selectedFilterGenres, value);
+    updateFilterOptions();
+    renderBooks(getFilteredBooks());
+}, "genre");
+
+setupChipPicker(tagFilterTrigger, tagFilterMenu, allTags, () => selectedFilterTags, (value) => {
+    selectedFilterTags = toggleValue(selectedFilterTags, value);
+    updateFilterOptions();
+    renderBooks(getFilteredBooks());
+}, "tag");
 
 function clearAllFilters() {
     if (searchInput) searchInput.value = "";
