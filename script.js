@@ -524,7 +524,11 @@ function getCloudSettings() {
         confirmDelete: localStorage.getItem("mylibra-confirm-delete") !== "false",
         readerMode: localStorage.getItem("mylibra-reader-mode") || "scroll",
         fontSize: localStorage.getItem("mylibra-font-size") || "18",
-        lineHeight: localStorage.getItem("mylibra-line-height") || "1.9"
+        lineHeight: localStorage.getItem("mylibra-line-height") || "1.9",
+        pet: localStorage.getItem("mylibra-pet") || "cat",
+        petEnabled: localStorage.getItem("mylibra-pet-enabled") !== "false",
+        petEffects: localStorage.getItem("mylibra-pet-effects") !== "false",
+        petSpeech: localStorage.getItem("mylibra-pet-speech") !== "false"
     };
 }
 
@@ -1482,6 +1486,14 @@ function loadSettingsUI() {
     if (settingReaderMode) settingReaderMode.value = localStorage.getItem("mylibra-reader-mode") || "scroll";
     if (settingFontSize) settingFontSize.value = String(Number(localStorage.getItem("mylibra-font-size")) || 18);
     if (settingLineHeight) settingLineHeight.value = localStorage.getItem("mylibra-line-height") || "1.9";
+    const petChoice = localStorage.getItem("mylibra-pet") || "cat";
+    const petCat = $("settingPetCat"), petGhost = $("settingPetGhost");
+    if (petCat) petCat.checked = petChoice === "cat";
+    if (petGhost) petGhost.checked = petChoice === "ghost";
+    const petEnabled = $("settingPetEnabled"), petEffects = $("settingPetEffects"), petSpeech = $("settingPetSpeech");
+    if (petEnabled) petEnabled.checked = localStorage.getItem("mylibra-pet-enabled") !== "false";
+    if (petEffects) petEffects.checked = localStorage.getItem("mylibra-pet-effects") !== "false";
+    if (petSpeech) petSpeech.checked = localStorage.getItem("mylibra-pet-speech") !== "false";
 }
 
 function saveSettingsValues() {
@@ -1491,6 +1503,11 @@ function saveSettingsValues() {
     localStorage.setItem("mylibra-reader-mode", settingReaderMode?.value || "scroll");
     localStorage.setItem("mylibra-font-size", settingFontSize?.value || "18");
     localStorage.setItem("mylibra-line-height", settingLineHeight?.value || "1.9");
+    localStorage.setItem("mylibra-pet", $("settingPetGhost")?.checked ? "ghost" : "cat");
+    localStorage.setItem("mylibra-pet-enabled", String($("settingPetEnabled")?.checked !== false));
+    localStorage.setItem("mylibra-pet-effects", String($("settingPetEffects")?.checked !== false));
+    localStorage.setItem("mylibra-pet-speech", String($("settingPetSpeech")?.checked !== false));
+    applyVirtualPetSettings();
     markCloudSettingsChanged();
     scheduleDriveManifestSync();
     readerMode = settingReaderMode?.value === "page" ? "page" : "scroll";
@@ -1503,7 +1520,7 @@ settingsButton?.addEventListener("click", () => { loadSettingsUI(); openModal(se
 closeSettings?.addEventListener("click", () => closeModal(settingsModal));
 saveSettings?.addEventListener("click", () => { saveSettingsValues(); closeModal(settingsModal); });
 resetSettings?.addEventListener("click", () => {
-    localStorage.removeItem("mylibra-show-reading"); localStorage.removeItem("mylibra-sort"); localStorage.removeItem("mylibra-confirm-delete"); localStorage.removeItem("mylibra-reader-mode"); localStorage.removeItem("mylibra-font-size"); localStorage.removeItem("mylibra-line-height");
+    localStorage.removeItem("mylibra-show-reading"); localStorage.removeItem("mylibra-sort"); localStorage.removeItem("mylibra-confirm-delete"); localStorage.removeItem("mylibra-reader-mode"); localStorage.removeItem("mylibra-font-size"); localStorage.removeItem("mylibra-line-height"); localStorage.removeItem("mylibra-pet"); localStorage.removeItem("mylibra-pet-enabled"); localStorage.removeItem("mylibra-pet-effects"); localStorage.removeItem("mylibra-pet-speech");
     loadSettingsUI(); applyTheme("light"); markCloudSettingsChanged(); scheduleDriveManifestSync(); renderBooks();
 });
 document.querySelectorAll(".settings-tab").forEach((tab) => tab.addEventListener("click", () => {
@@ -3337,19 +3354,69 @@ initializeMyLibra();
 /* =========================================================
    PIXEL CAT INTERACTION
 ========================================================= */
+
+/* =========================================================
+   VIRTUAL PET — cow cat / little ghost
+========================================================= */
 const virtualPetCat = document.getElementById("virtualPetCat");
 const virtualPetBubble = document.getElementById("virtualPetBubble");
+const virtualPetSprite = document.getElementById("virtualPetSprite");
 
+function applyVirtualPetSettings(reveal = false) {
+    if (!virtualPetCat) return;
+    const pet = localStorage.getItem("mylibra-pet") || "cat";
+    const enabled = localStorage.getItem("mylibra-pet-enabled") !== "false";
+    const effects = localStorage.getItem("mylibra-pet-effects") !== "false";
+    virtualPetCat.classList.toggle("pet-cat", pet === "cat");
+    virtualPetCat.classList.toggle("pet-ghost", pet === "ghost");
+    virtualPetCat.hidden = !enabled;
+    if (!enabled) return;
+    virtualPetCat.classList.remove("pet-entering","pet-dissolving","pet-spawn");
+    if (reveal && effects) {
+        void virtualPetCat.offsetWidth;
+        virtualPetCat.classList.add(pet === "cat" ? "pet-entering" : "pet-spawn");
+        window.setTimeout(() => virtualPetCat.classList.remove("pet-entering","pet-spawn"), 1300);
+    }
+}
+function petSay(messages) {
+    if (localStorage.getItem("mylibra-pet-speech") === "false" || !virtualPetBubble) return;
+    virtualPetBubble.textContent = messages[Math.floor(Math.random() * messages.length)];
+    virtualPetCat?.classList.add("pet-show-bubble");
+    window.setTimeout(() => virtualPetCat?.classList.remove("pet-show-bubble"), 1500);
+}
 virtualPetCat?.addEventListener("click", () => {
     virtualPetCat.classList.remove("pet-jump");
     void virtualPetCat.offsetWidth;
     virtualPetCat.classList.add("pet-jump");
-    if (virtualPetBubble) {
-        const messages = ["meo~ 🐾", "nya~ ✨", "đi dạo nè!", "🐟 đâu rồi ta?", "ôm tui hong?"];
-        virtualPetBubble.textContent = messages[Math.floor(Math.random() * messages.length)];
-    }
-    virtualPetCat.classList.add("pet-show-bubble");
-    window.setTimeout(() => virtualPetCat.classList.remove("pet-show-bubble"), 1400);
+    const pet = localStorage.getItem("mylibra-pet") || "cat";
+    petSay(pet === "ghost"
+        ? ["Bù~ 👻", "Hù bà nè!", "Bụp! ✨", "Tui đang lang thang~"]
+        : ["Meow~ 🐾", "Có ai gọi tui hả?", "Đi dạo nè!", "Cho tui cá với~"]);
     window.setTimeout(() => virtualPetCat.classList.remove("pet-jump"), 750);
 });
+
+// Đổi hướng mà không lật bong bóng / chữ.
+window.setInterval(() => {
+    if (!virtualPetCat || virtualPetCat.hidden) return;
+    virtualPetCat.classList.toggle("pet-facing-left");
+}, 9900);
+
+$("settingPetCat")?.addEventListener("change", () => {
+    if (!$("settingPetCat").checked) return;
+    localStorage.setItem("mylibra-pet","cat");
+    applyVirtualPetSettings(true);
+});
+$("settingPetGhost")?.addEventListener("change", () => {
+    if (!$("settingPetGhost").checked) return;
+    localStorage.setItem("mylibra-pet","ghost");
+    applyVirtualPetSettings(true);
+});
+$("settingPetEnabled")?.addEventListener("change", (e) => {
+    localStorage.setItem("mylibra-pet-enabled", String(e.target.checked));
+    applyVirtualPetSettings(e.target.checked);
+});
+$("settingPetEffects")?.addEventListener("change", (e) => localStorage.setItem("mylibra-pet-effects", String(e.target.checked)));
+$("settingPetSpeech")?.addEventListener("change", (e) => localStorage.setItem("mylibra-pet-speech", String(e.target.checked)));
+
+applyVirtualPetSettings(false);
 
