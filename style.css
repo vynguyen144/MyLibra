@@ -3264,3 +3264,7 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
  .virtual-pet-cat,.virtual-pet-cat *{animation:none!important}
 }
 
+/* Pet animation override: movement belongs to the container; direction only flips the sprite. */
+.virtual-pet-cat{animation-name:petWalk!important;animation-duration:22s!important;animation-timing-function:linear!important;animation-iteration-count:infinite!important}
+.virtual-pet-cat.pet-jump{animation-name:petWalk!important}
+
