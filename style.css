@@ -3,22 +3,20 @@
 ========================================= */
 
 :root {
-
-    --bg: #f8f7fc;
+    --bg: #fff7fb;
     --surface: #ffffff;
-    --surface-soft: #f1eff8;
+    --surface-soft: #fff0f6;
 
-    --text: #272330;
-    --text-soft: #777181;
+    --text: #4a2636;
+    --text-soft: #92727f;
 
-    --primary: #8064c8;
-    --primary-dark: #684db0;
-    --primary-soft: #eee8fb;
+    --primary: #e779a1;
+    --primary-dark: #cf5e88;
+    --primary-soft: #ffe1ec;
 
-    --border: #e5e1ed;
+    --border: #f2d4df;
 
     --radius: 16px;
-
 }
 
 
@@ -43,8 +41,10 @@ body {
         sans-serif;
 
     background:
+        radial-gradient(circle at 8% 14%, rgba(255, 206, 224, .32) 0 2px, transparent 3px),
+        radial-gradient(circle at 92% 76%, rgba(255, 206, 224, .28) 0 2px, transparent 3px),
         var(--bg);
-
+    background-size: 190px 190px, 230px 230px, auto;
     color:
         var(--text);
 
@@ -90,6 +90,7 @@ button {
 
     border-bottom:
         1px solid var(--border);
+    box-shadow: 0 3px 18px rgba(218, 113, 151, .07);
 
 }
 
@@ -146,7 +147,7 @@ button {
     outline: none;
 
     background:
-        var(--surface-soft);
+        #fff5f9;
 
     color:
         var(--text);
@@ -2874,4 +2875,141 @@ body.sepia-mode .book-cover-large {
     .book-image-upload-grid { grid-template-columns: 1fr; }
     .recommendation-card { flex-basis: 140px; }
     .recommendation-cover { width: 140px; }
+}
+
+/* =========================================
+   PINK CAT THEME POLISH
+========================================= */
+.topbar {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,246,250,.98));
+}
+
+.logo {
+    color: #8d4d67;
+}
+.logo span {
+    letter-spacing: -.02em;
+}
+.logo::after {
+    content: "✦";
+    margin-left: -3px;
+    margin-top: -14px;
+    color: #f2a1bd;
+    font-size: 10px;
+    animation: logoSparkle 2.4s ease-in-out infinite;
+}
+
+.search-box input {
+    border-color: #f1d9e2;
+    background: #fff8fb;
+}
+.search-box input:focus {
+    border-color: #ed9fba;
+    box-shadow: 0 0 0 3px rgba(237,159,186,.14);
+}
+
+.top-actions button:hover {
+    background: #ffeaf2;
+    color: #cf5e88;
+}
+
+.container {
+    padding-top: 40px;
+}
+
+.home-page {
+    position: relative;
+}
+
+.home-page::before {
+    content: "🐾";
+    position: absolute;
+    top: 10px;
+    right: 1%;
+    color: #f5b8cc;
+    opacity: .45;
+    font-size: 26px;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+
+.home-hero {
+    border: 1px solid #f5dbe5;
+    background:
+        radial-gradient(circle at 85% 20%, rgba(255, 191, 214, .5), transparent 27%),
+        radial-gradient(circle at 75% 90%, rgba(255, 224, 236, .8), transparent 35%),
+        linear-gradient(110deg, #fff2f7, #fffafd);
+    box-shadow: 0 14px 38px rgba(218, 113, 151, .10);
+}
+
+.home-eyebrow {
+    color: #dc668f;
+}
+
+.home-featured-content h1 {
+    color: #4b2637;
+}
+
+.primary-button {
+    background: linear-gradient(135deg, #ed7fa6, #dc6490);
+    box-shadow: 0 6px 15px rgba(220,100,144,.18);
+}
+.primary-button:hover {
+    background: linear-gradient(135deg, #e66d99, #cf5883);
+}
+
+.add-button {
+    background: #ffe7f0;
+    color: #c95778;
+}
+.add-button:hover {
+    background: #ffd7e5;
+}
+
+.section-header h2 {
+    color: #4b2637;
+}
+
+.recommendation-card {
+    transition: transform .18s ease;
+}
+.recommendation-card:hover {
+    transform: translateY(-3px);
+}
+.recommendation-cover {
+    border: 2px solid #f6dce6;
+    box-shadow: 0 7px 20px rgba(207, 93, 135, .12);
+}
+.recommendation-cover:hover {
+    border-color: #f1aec5;
+    box-shadow: 0 12px 26px rgba(207, 93, 135, .19);
+}
+.recommendation-info h3 {
+    color: #4d2939;
+}
+.recommendation-more,
+.text-button {
+    color: #d15f87;
+}
+
+.book-card,
+.reading-list-card,
+.book-detail,
+.modal-content {
+    border-color: #f1dce4;
+    box-shadow: 0 7px 24px rgba(205, 116, 148, .06);
+}
+
+.book-card:hover {
+    box-shadow: 0 12px 30px rgba(205, 116, 148, .13);
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #f29abb, #df6d9a);
+}
+
+@keyframes logoSparkle {
+    0%,100% { opacity: .35; transform: translateY(1px) scale(.9); }
+    50% { opacity: 1; transform: translateY(-2px) scale(1.15); }
 }
