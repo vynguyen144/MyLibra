@@ -156,6 +156,7 @@ const saveUpdatedFile = $("saveUpdatedFile");
 let currentBookId = null;
 let currentListChooserBookId = null;
 const READING_LISTS_KEY = "mylibra-reading-lists";
+const READING_LIST_DELETED_KEY = "mylibra-reading-lists-deleted";
 
 function loadReadingLists() {
     try {
@@ -168,6 +169,13 @@ function saveReadingLists(lists) {
     scheduleDriveManifestSync();
 }
 function getReadingLists() { return loadReadingLists(); }
+function getDeletedReadingLists() {
+    try { return JSON.parse(localStorage.getItem(READING_LIST_DELETED_KEY) || "{}") || {}; }
+    catch (_) { return {}; }
+}
+function saveDeletedReadingLists(value) {
+    localStorage.setItem(READING_LIST_DELETED_KEY, JSON.stringify(value || {}));
+}
 function createReadingList(name) {
     const cleanName = String(name || "").trim();
     if (!cleanName) return null;
@@ -206,6 +214,9 @@ function removeBookFromReadingLists(bookId) {
     if (changed) saveReadingLists(lists);
 }
 function deleteReadingList(listId) {
+    const deleted = getDeletedReadingLists();
+    deleted[listId] = Date.now();
+    saveDeletedReadingLists(deleted);
     saveReadingLists(getReadingLists().filter((list) => list.id !== listId));
     renderReadingLists();
 }
@@ -500,6 +511,7 @@ function clearBookDeleted(id) {
 function getCloudSettings() {
     return {
         theme: localStorage.getItem("mylibra-theme") || "light",
+        featuredBookId: localStorage.getItem("mylibra-featured-book") || "",
         showReading: localStorage.getItem("mylibra-show-reading") !== "false",
         sort: localStorage.getItem("mylibra-sort") || "added",
         confirmDelete: localStorage.getItem("mylibra-confirm-delete") !== "false",
@@ -537,6 +549,7 @@ function markCloudPositionsChanged() {
 function applyCloudSettings(settings) {
     if (!settings || typeof settings !== "object") return;
     if (settings.theme) applyTheme(settings.theme, false);
+    if (settings.featuredBookId) localStorage.setItem("mylibra-featured-book", settings.featuredBookId);
     if (settings.showReading !== undefined) localStorage.setItem("mylibra-show-reading", String(settings.showReading));
     if (settings.sort) localStorage.setItem("mylibra-sort", settings.sort);
     if (settings.confirmDelete !== undefined) localStorage.setItem("mylibra-confirm-delete", String(settings.confirmDelete));
@@ -683,6 +696,7 @@ async function saveDriveManifest() {
         positions: getCloudReadingPositions(),
         positionsUpdatedAt,
         readingLists: getReadingLists(),
+        deletedReadingLists: getDeletedReadingLists(),
         deletedBooks,
         books: books.map(getBookCloudMetadata)
     };
@@ -807,6 +821,11 @@ async function syncToGoogleDrive() {
 
         // Reading lists use per-list timestamps so both devices can keep independent lists.
         const remoteLists = Array.isArray(remoteManifest.readingLists) ? remoteManifest.readingLists : [];
+        const remoteDeletedLists = remoteManifest.deletedReadingLists && typeof remoteManifest.deletedReadingLists === "object" ? remoteManifest.deletedReadingLists : {};
+        const localDeletedLists = getDeletedReadingLists();
+        Object.entries(remoteDeletedLists).forEach(([id, deletedAt]) => {
+            if ((Number(deletedAt)||0) > (Number(localDeletedLists[id])||0)) localDeletedLists[id] = Number(deletedAt)||0;
+        });
         const localLists = getReadingLists();
         const localListById = new Map(localLists.map((list) => [list.id, list]));
         remoteLists.forEach((remoteList) => {
@@ -815,7 +834,8 @@ async function syncToGoogleDrive() {
                 localListById.set(remoteList.id, remoteList);
             }
         });
-        const mergedLists = [...localListById.values()].filter((list) => list && list.name);
+        const mergedLists = [...localListById.values()].filter((list) => list && list.name && (Number(localDeletedLists[list.id])||0) < (Number(list.updatedAt)||0));
+        saveDeletedReadingLists(localDeletedLists);
         if (JSON.stringify(mergedLists) !== JSON.stringify(localLists)) {
             localStorage.setItem(READING_LISTS_KEY, JSON.stringify(mergedLists));
             renderReadingLists();
@@ -1101,7 +1121,7 @@ function getRecommendedBooks() {
 function createRecommendationCard(book) {
     const card=document.createElement("article");
     card.className="recommendation-card";
-    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book)+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem truyện →</button></div>';
+    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book)+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem thêm →</button></div>';
     card.querySelector(".recommendation-cover").addEventListener("click",()=>openBook(book.id));
     card.querySelector(".recommendation-more").addEventListener("click",()=>openBook(book.id));
     return card;
@@ -1697,6 +1717,7 @@ function openBook(bookId) {
     $("detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
     $("detailFeaturedButton")?.addEventListener("click", () => {
         localStorage.setItem("mylibra-featured-book", book.id);
+        markCloudSettingsChanged();
         renderHome();
         alert('Đã đặt "' + book.title + '" làm truyện nổi bật trên Trang chủ.');
     });
