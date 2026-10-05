@@ -3414,12 +3414,24 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     backdrop-filter: blur(10px);
 }
 @keyframes featuredEnter {
-    from { opacity: 0; transform: translateX(24px) scale(1.015); filter: blur(4px); }
-    to { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+    0% {
+        opacity: 0;
+        transform: scale(1.012);
+        filter: brightness(.42) blur(6px);
+    }
+    55% {
+        opacity: .72;
+        filter: brightness(.72) blur(2px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1) blur(0);
+    }
 }
 .home-featured-cover .book-cover-image-large,
 .home-featured-cover .cover-fallback {
-    animation: featuredEnter .55s cubic-bezier(.22,.61,.36,1);
+    animation: featuredEnter .8s cubic-bezier(.22,.61,.36,1);
 }
 @media (max-width: 700px) {
     .featured-carousel-controls {
