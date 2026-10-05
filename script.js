@@ -92,6 +92,10 @@ const cancelAddBook = $("cancelAddBook");
 const confirmAddBook = $("confirmAddBook");
 const bookFileInput = $("bookFile");
 const selectedFile = $("selectedFile");
+const autoBookInfo = $("autoBookInfo");
+const addTitle = $("addTitle");
+const addAuthor = $("addAuthor");
+const addDescription = $("addDescription");
 
 const backToLibrary = $("backToLibrary");
 const backFromReader = $("backFromReader");
@@ -1525,6 +1529,10 @@ function resetAddModal() {
         selectedFile.hidden = true;
         selectedFile.textContent = "";
     }
+    if (autoBookInfo) autoBookInfo.hidden = true;
+    if (addTitle) addTitle.value = "";
+    if (addAuthor) addAuthor.value = "";
+    if (addDescription) addDescription.value = "";
     if (confirmAddBook) confirmAddBook.disabled = true;
 }
 
@@ -1542,7 +1550,7 @@ addBookModal?.addEventListener("click", (event) => {
     if (event.target === addBookModal) closeModal(addBookModal);
 });
 
-bookFileInput?.addEventListener("change", () => {
+bookFileInput?.addEventListener("change", async () => {
     const file = bookFileInput.files[0];
     if (!file) {
         resetAddModal();
@@ -1559,8 +1567,169 @@ bookFileInput?.addEventListener("change", () => {
 
     selectedFile.hidden = false;
     selectedFile.textContent = getBookIcon(type) + "  " + file.name;
-    confirmAddBook.disabled = false;
+    confirmAddBook.disabled = true;
+
+    try {
+        const metadata = await autoDetectBookMetadata(file, type);
+        if (addTitle) addTitle.value = metadata.title || removeExtension(file.name);
+        if (addAuthor) addAuthor.value = metadata.author || "Chưa rõ tác giả";
+        if (addDescription) addDescription.value = metadata.description || "";
+        addGenres = uniqueValues(metadata.genres || []);
+        addTags = uniqueValues(metadata.tags || []);
+        renderSelectedChips(addGenreChips, addGenres, "genre");
+        renderSelectedChips(addTagChips, addTags, "tag");
+        refreshAddPickerMenus();
+        if (autoBookInfo) autoBookInfo.hidden = false;
+    } catch (error) {
+        console.warn("Tự động đọc metadata:", error);
+        if (addTitle) addTitle.value = removeExtension(file.name);
+        if (addAuthor) addAuthor.value = "Chưa rõ tác giả";
+        if (autoBookInfo) autoBookInfo.hidden = false;
+    } finally {
+        confirmAddBook.disabled = false;
+    }
 });
+
+
+// ========================================
+// AUTO BOOK METADATA / GENRE / TAG DETECTION
+// ========================================
+function cleanMetadataText(value) {
+    return String(value || "").replace(/\\s+/g, " ").trim();
+}
+
+function metadataFirst(value) {
+    if (Array.isArray(value)) return value.map(cleanMetadataText).find(Boolean) || "";
+    return cleanMetadataText(value);
+}
+
+async function autoDetectEpubMetadata(file) {
+    if (!window.JSZip) throw new Error("JSZip chưa tải xong.");
+    const zip = await JSZip.loadAsync(file);
+    const containerFile = zip.file("META-INF/container.xml");
+    if (!containerFile) throw new Error("EPUB thiếu container.xml.");
+    const containerXml = await containerFile.async("text");
+    const rootMatch = containerXml.match(/full-path=["']([^"']+)["']/i);
+    if (!rootMatch) throw new Error("Không tìm thấy OPF.");
+    const opfPath = rootMatch[1];
+    const opfFile = zip.file(opfPath);
+    if (!opfFile) throw new Error("Không tìm thấy OPF.");
+    const opfXml = await opfFile.async("text");
+    const xml = new DOMParser().parseFromString(opfXml, "application/xml");
+    const textOf = (name) => {
+        const el = xml.getElementsByTagNameNS("*", name)[0] || xml.getElementsByTagName(name)[0];
+        return el ? cleanMetadataText(el.textContent) : "";
+    };
+    const subjects = [...xml.getElementsByTagNameNS("*", "subject"), ...xml.getElementsByTagName("subject")]
+        .map((el) => cleanMetadataText(el.textContent)).filter(Boolean);
+    return {
+        title: textOf("title"),
+        author: textOf("creator"),
+        description: textOf("description"),
+        subjects
+    };
+}
+
+async function autoDetectPdfMetadata(file) {
+    if (!window.pdfjsLib) throw new Error("PDF.js chưa tải xong.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+    const meta = await pdf.getMetadata().catch(() => null);
+    const info = meta?.info || {};
+    let description = "";
+    try {
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        description = content.items.map((item) => item.str || "").join(" ").replace(/\\s+/g, " ").trim().slice(0, 1800);
+    } catch (_) {}
+    return {
+        title: cleanMetadataText(info.Title),
+        author: cleanMetadataText(info.Author),
+        description
+    };
+}
+
+async function autoDetectTxtMetadata(file) {
+    const text = await file.text();
+    const lines = text.split(/\\r?\\n/).map((line) => line.trim()).filter(Boolean);
+    const title = lines[0] || removeExtension(file.name);
+    let author = "";
+    const authorLine = lines.slice(0, 12).find((line) => /^(tác giả|author|by)\\s*[:：-]/i.test(line));
+    if (authorLine) author = authorLine.replace(/^(tác giả|author|by)\\s*[:：-]\\s*/i, "").trim();
+    return {title, author, description: text.slice(0, 1800), subjects: []};
+}
+
+const AUTO_GENRE_RULES = [
+    ["Bách hợp", ["bách hợp","yuri","girls love","gl","nữ nữ"]],
+    ["Đam mỹ", ["đam mỹ","danmei","bl","boys love","nam nam"]],
+    ["Đồng nhân", ["đồng nhân","fanfic","fanfiction","crossover","harry potter","hogwarts","marvel","dc comics","anime"]],
+    ["Xuyên không", ["xuyên không","xuyên qua","xuyên đến","xuyên thư"]],
+    ["Trọng sinh", ["trọng sinh","sống lại","rebirth","regression"]],
+    ["Mạt thế", ["mạt thế","tận thế","post-apocalyptic","apocalypse"]],
+    ["Sinh tồn", ["sinh tồn","survival","sống sót","zombie"]],
+    ["Huyền huyễn", ["huyền huyễn","fantasy"]],
+    ["Tu tiên", ["tu tiên","cultivation","xianxia"]],
+    ["Cổ đại", ["cổ đại","ancient","phong kiến"]],
+    ["Hiện đại", ["hiện đại","modern"]],
+    ["School Life", ["school life","học đường","trường học","học viện"]],
+    ["Horror", ["kinh dị","horror","ma quỷ","ghost"]],
+    ["Mystery", ["trinh thám","mystery","bí ẩn","điều tra"]],
+    ["Romance", ["romance","tình yêu","lãng mạn","ngôn tình"]],
+    ["Action", ["action","chiến đấu","võ thuật"]],
+    ["Comedy", ["comedy","hài","hài hước"]],
+    ["Drama", ["drama","bi kịch","đau thương"]]
+];
+
+const AUTO_TAG_RULES = [
+    ["Harry Potter", ["harry potter","hogwarts","hermione","ron weasley","dumbledore","gryffindor","slytherin"]],
+    ["Hogwarts", ["hogwarts","học viện phù thủy"]],
+    ["Phép thuật", ["phép thuật","magic","wizard","witch","phù thủy"]],
+    ["Zombie", ["zombie","xác sống"]],
+    ["Tận thế", ["tận thế","apocalypse","mạt thế"]],
+    ["Xuyên không", ["xuyên không","xuyên qua","xuyên thư"]],
+    ["Trọng sinh", ["trọng sinh","sống lại","rebirth"]],
+    ["Sinh tồn", ["sinh tồn","survival","sống sót"]],
+    ["Cổ trang", ["cổ trang","cổ đại","giang hồ"]],
+    ["Học đường", ["học đường","school life","trường học","học viện"]],
+    ["Bách hợp", ["bách hợp","yuri","girls love","gl"]],
+    ["Đồng nhân", ["đồng nhân","fanfic","fanfiction"]],
+    ["Ma pháp", ["magic","mage","spell","pháp sư"]],
+    ["Nữ cường", ["nữ cường","nữ chính mạnh","nữ chủ mạnh"]]
+];
+
+function inferBookGenresAndTags(title, author, description, subjects = []) {
+    const source = normalizeSearchText([title, author, description, ...subjects].join(" "));
+    const genres = [];
+    const tags = [];
+    AUTO_GENRE_RULES.forEach(([genre, keywords]) => {
+        if (keywords.some((keyword) => source.includes(normalizeSearchText(keyword)))) genres.push(genre);
+    });
+    AUTO_TAG_RULES.forEach(([tag, keywords]) => {
+        if (keywords.some((keyword) => source.includes(normalizeSearchText(keyword)))) tags.push(tag);
+    });
+    subjects.forEach((subject) => {
+        if (!genres.some((g) => normalizeSearchText(g) === normalizeSearchText(subject)) &&
+            !tags.some((t) => normalizeSearchText(t) === normalizeSearchText(subject))) {
+            tags.push(subject);
+        }
+    });
+    return {genres: uniqueValues(genres), tags: uniqueValues(tags)};
+}
+
+async function autoDetectBookMetadata(file, type) {
+    let data = {title: removeExtension(file.name), author: "", description: "", subjects: []};
+    if (type === "EPUB") data = {...data, ...(await autoDetectEpubMetadata(file))};
+    else if (type === "PDF") data = {...data, ...(await autoDetectPdfMetadata(file))};
+    else if (type === "TXT") data = {...data, ...(await autoDetectTxtMetadata(file))};
+    const inferred = inferBookGenresAndTags(data.title, data.author, data.description, data.subjects);
+    return {
+        ...data,
+        title: data.title || removeExtension(file.name),
+        author: data.author || "Chưa rõ tác giả",
+        genres: inferred.genres,
+        tags: inferred.tags
+    };
+}
 
 function refreshAddPickerMenus() {
     createPickerMenu(addGenreMenu, allGenres(), addGenres, (value) => {
@@ -1622,11 +1791,11 @@ confirmAddBook?.addEventListener("click", async () => {
 
     const newBook = {
         id: "book-" + Date.now(),
-        title: removeExtension(file.name),
-        author: "Chưa rõ tác giả",
+        title: (addTitle?.value || removeExtension(file.name)).trim(),
+        author: (addAuthor?.value || "Chưa rõ tác giả").trim(),
         genre: addGenres.length ? [...addGenres] : ["Chưa phân loại"],
         tags: [...addTags],
-        description: "",
+        description: (addDescription?.value || "").trim(),
         progress: 0,
         icon: getBookIcon(type),
         fileName: file.name,
