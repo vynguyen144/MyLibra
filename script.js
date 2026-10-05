@@ -682,6 +682,7 @@ async function saveDriveManifest() {
         settingsUpdatedAt,
         positions: getCloudReadingPositions(),
         positionsUpdatedAt,
+        readingLists: getReadingLists(),
         deletedBooks,
         books: books.map(getBookCloudMetadata)
     };
@@ -802,6 +803,22 @@ async function syncToGoogleDrive() {
         if (remotePositionsUpdatedAt > localPositionsUpdatedAt && remoteManifest.positions) {
             applyCloudReadingPositions(remoteManifest.positions);
             localStorage.setItem(DRIVE_POSITIONS_UPDATED_KEY, String(remotePositionsUpdatedAt));
+        }
+
+        // Reading lists use per-list timestamps so both devices can keep independent lists.
+        const remoteLists = Array.isArray(remoteManifest.readingLists) ? remoteManifest.readingLists : [];
+        const localLists = getReadingLists();
+        const localListById = new Map(localLists.map((list) => [list.id, list]));
+        remoteLists.forEach((remoteList) => {
+            const localList = localListById.get(remoteList.id);
+            if (!localList || Number(remoteList.updatedAt || 0) > Number(localList.updatedAt || 0)) {
+                localListById.set(remoteList.id, remoteList);
+            }
+        });
+        const mergedLists = [...localListById.values()].filter((list) => list && list.name);
+        if (JSON.stringify(mergedLists) !== JSON.stringify(localLists)) {
+            localStorage.setItem(READING_LISTS_KEY, JSON.stringify(mergedLists));
+            renderReadingLists();
         }
 
         // 1) Apply remote deletions only when they are newer than the local book.
@@ -1649,6 +1666,7 @@ function openBook(bookId) {
                 </button>
 
                 <button class="add-button" id="detailListButton" type="button">📑 Danh sách đọc</button>
+                <button class="add-button" id="detailFeaturedButton" type="button">⭐ Đặt nổi bật</button>
                 <button class="add-button" id="editBookButton" type="button">
                     ✏️ Chỉnh sửa
                 </button>
@@ -1677,6 +1695,11 @@ function openBook(bookId) {
     });
 
     $("detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
+    $("detailFeaturedButton")?.addEventListener("click", () => {
+        localStorage.setItem("mylibra-featured-book", book.id);
+        renderHome();
+        alert('Đã đặt "' + book.title + '" làm truyện nổi bật trên Trang chủ.');
+    });
     $("editBookButton")?.addEventListener("click", () => openEditBook(book.id));
     $("editEpubButton")?.addEventListener("click", () => openEpubEditor(book.id));
     $("updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
