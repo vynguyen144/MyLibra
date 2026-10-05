@@ -1146,7 +1146,7 @@ function renderHome() {
     if(!hasBooks){homeFeatured.innerHTML="";homeRecommendations.innerHTML="";homeReadingGrid.innerHTML="";homeReadingSection.hidden=true;return;}
     const featured=getFeaturedBook();
     if(featured){
-        homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true,"cover")+'</div>';
+        homeFeatured.innerHTML='<div class="home-featured-content"><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><img class="home-featured-cover-image" src="'+escapeHTML(featured.coverDataUrl||"")+'" alt="" hidden><div class="home-featured-title-overlay"><span class="home-eyebrow">✦ TRUYỆN NỔI BẬT ✦</span><h1>'+escapeHTML(featured.title)+'</h1><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+getBookTags(featured).slice(0,4).map(v=>chipHTML(v,false,"tag")).join("")+'</div></div>'+createCoverMarkup(featured,true,"cover")+'</div>';
         $("homeFeaturedRead")?.addEventListener("click", async () => {
             if (featured.file) {
                 await openReader(featured.id);
@@ -1877,8 +1877,9 @@ saveEditBook?.addEventListener("click", async () => {
 closeEditBook?.addEventListener("click", () => closeModal(editBookModal));
 cancelEditBook?.addEventListener("click", () => closeModal(editBookModal));
 
+// Không tự đóng khi click nhầm vùng nền; chỉ đóng bằng nút × hoặc Hủy.
 editBookModal?.addEventListener("click", (event) => {
-    if (event.target === editBookModal) closeModal(editBookModal);
+    if (event.target === editBookModal) event.preventDefault();
 });
 
 function openUpdateFile(bookId) {
