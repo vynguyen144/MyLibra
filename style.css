@@ -1785,3 +1785,9 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     0%,100% { opacity: .35; transform: translateY(1px) scale(.9); }
     50% { opacity: 1; transform: translateY(-2px) scale(1.15); }
 }
+
+.single-cover-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
