@@ -537,7 +537,7 @@ async function deleteDriveFile(fileId) {
 }
 
 async function saveDriveManifest() {
-    if (!googleDriveAccessToken || googleDriveSyncInProgress) return;
+    if (!googleDriveAccessToken) return;
     const folderId = await ensureDriveFolder();
     const settingsUpdatedAt = Number(localStorage.getItem(DRIVE_SETTINGS_UPDATED_KEY)) || 0;
     const positionsUpdatedAt = Number(localStorage.getItem(DRIVE_POSITIONS_UPDATED_KEY)) || 0;
