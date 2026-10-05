@@ -114,9 +114,7 @@ const saveEditBook = $("saveEditBook");
 const editTitle = $("editTitle");
 const editAuthor = $("editAuthor");
 const editDescription = $("editDescription");
-const editAvatar = $("editAvatar");
 const editCover = $("editCover");
-const addAvatar = $("addAvatar");
 const addCover = $("addCover");
 
 const pdfToolbar = $("pdfToolbar");
@@ -233,7 +231,7 @@ function renderReadingLists() {
     readingListsGrid.innerHTML = lists.map((list) => {
         const listBooks = (list.bookIds || []).map((id) => books.find((book) => book.id === id)).filter(Boolean);
         const preview = listBooks.slice(0,5).map((book) =>
-            '<button class="reading-list-book" type="button" data-book-id="'+escapeHTML(book.id)+'" title="'+escapeHTML(book.title)+'">'+createAvatarMarkup(book)+'</button>'
+            '<button class="reading-list-book" type="button" data-book-id="'+escapeHTML(book.id)+'" title="'+escapeHTML(book.title)+'">'+createCoverMarkup(book)+'</button>'
         ).join("");
         return '<article class="reading-list-card"><div class="reading-list-card-head"><div><h3>'+escapeHTML(list.name)+'</h3><span>'+listBooks.length+' truyện</span></div><button class="list-delete-button" type="button" data-list-id="'+escapeHTML(list.id)+'" title="Xóa danh sách">×</button></div><div class="reading-list-preview">'+(preview || '<div class="reading-list-no-books">Chưa có truyện<br><small>Mở một truyện để thêm vào danh sách.</small></div>')+'</div><button class="text-button reading-list-open" type="button" data-list-id="'+escapeHTML(list.id)+'">Xem danh sách →</button></article>';
     }).join("");
@@ -587,7 +585,6 @@ function getBookCloudMetadata(book) {
         fileName: book.fileName || "",
         fileType: book.fileType || "",
         imageDataVersion: 2,
-        avatarDataUrl: book.avatarDataUrl || "",
         coverDataUrl: book.coverDataUrl || "",
         driveFileId: book.driveFileId || "",
         fileUpdatedAt: Number(book.fileUpdatedAt) || 0,
@@ -1105,31 +1102,18 @@ function showReader() {
 
 function normalizeBookImages(book) {
     if (!book || typeof book !== "object") return book;
-    if (Number(book.imageDataVersion) < 2) {
-        if (!book.avatarDataUrl && book.coverDataUrl) book.avatarDataUrl = book.coverDataUrl;
-        book.coverDataUrl = "";
-        book.imageDataVersion = 2;
-    }
-    book.avatarDataUrl = book.avatarDataUrl || "";
+    if (!book.coverDataUrl && book.avatarDataUrl) book.coverDataUrl = book.avatarDataUrl;
     book.coverDataUrl = book.coverDataUrl || "";
+    book.imageDataVersion = 3;
+    delete book.avatarDataUrl;
     return book;
-}
-
-function createAvatarMarkup(book, large = false) {
-    normalizeBookImages(book);
-    const cls = large ? "book-cover-image-large" : "book-cover-image";
-    if (book.avatarDataUrl) {
-        return '<img class="' + cls + '" src="' + escapeHTML(book.avatarDataUrl) + '" alt="">';
-    }
-    return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
 }
 
 function createCoverMarkup(book, large = false) {
     normalizeBookImages(book);
     const cls = large ? "book-cover-image-large" : "book-cover-image";
-    const image = book.coverDataUrl || book.avatarDataUrl;
-    if (image) {
-        return '<img class="' + cls + '" src="' + escapeHTML(image) + '" alt="">';
+    if (book.coverDataUrl) {
+        return '<img class="' + cls + '" src="' + escapeHTML(book.coverDataUrl) + '" alt="">';
     }
     return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
 }
@@ -1177,7 +1161,7 @@ function createBookCard(book) {
     card.className = "book-card";
     card.innerHTML = `
         <div class="book-cover">
-            ${createAvatarMarkup(book)}
+            ${createCoverMarkup(book)}
         </div>
         <div class="book-info">
             <h3>${escapeHTML(book.title)}</h3>
@@ -1635,12 +1619,10 @@ confirmAddBook?.addEventListener("click", async () => {
         file: file,
         fileUpdatedAt: Date.now(),
         imageDataVersion: 2,
-        avatarDataUrl: "",
         coverDataUrl: ""
     };
 
     try {
-        if (addAvatar?.files[0]) newBook.avatarDataUrl = await readFileAsDataUrl(addAvatar.files[0]);
         if (addCover?.files[0]) newBook.coverDataUrl = await readFileAsDataUrl(addCover.files[0]);
         await saveBookToDatabase(newBook);
         books.push(newBook);
@@ -1684,7 +1666,7 @@ function openBook(bookId) {
     bookDetail.innerHTML = `
         <div class="book-detail-cover">
             <div class="book-cover-large">
-                ${createAvatarMarkup(book, true)}
+                ${createCoverMarkup(book, true)}
             </div>
         </div>
 
@@ -1849,7 +1831,6 @@ saveEditBook?.addEventListener("click", async () => {
     normalizeBookImages(book);
     book.imageDataVersion = 2;
     try {
-        if (editAvatar.files[0]) book.avatarDataUrl = await readFileAsDataUrl(editAvatar.files[0]);
         if (editCover.files[0]) book.coverDataUrl = await readFileAsDataUrl(editCover.files[0]);
     } catch (error) {
         console.error(error);
