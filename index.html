@@ -18,7 +18,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261005-20"
+        href="style.css?v=20261005-21"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -258,6 +258,13 @@
                 <input type="file" id="bookFile" accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain">
             </label>
             <div class="selected-file" id="selectedFile" hidden></div>
+            <div class="auto-book-info" id="autoBookInfo" hidden>
+                <div class="auto-book-info-title">✨ Tự động nhận diện</div>
+                <label>Tên truyện<input type="text" id="addTitle" placeholder="Tên truyện"></label>
+                <label>Tác giả<input type="text" id="addAuthor" placeholder="Tên tác giả"></label>
+                <label>Mô tả<textarea id="addDescription" rows="4" placeholder="Mô tả truyện..."></textarea></label>
+                <small>MyLibra sẽ đọc metadata/nội dung file để đề xuất thể loại và tag. Bà vẫn có thể chỉnh lại trước khi thêm.</small>
+            </div>
             <div class="book-image-upload-grid">
                 <label class="image-upload-field">
                     <span>🖼️ Ảnh bìa Trang chủ</span>
@@ -453,7 +460,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261005-24"></script>
+    <script src="script.js?v=20261005-25"></script>
 </body>
 
 </html>
