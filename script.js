@@ -520,8 +520,7 @@ async function syncFromGoogleDrive() {
             return;
         }
 
-        const response = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
-        const manifest = await response.json();
+        const manifest = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
         const remoteBooks = Array.isArray(manifest.books) ? manifest.books : [];
 
         for (const remoteBook of remoteBooks) {
