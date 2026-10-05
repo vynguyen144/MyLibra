@@ -138,6 +138,7 @@ let currentPdfBookId = null;
 let currentPdfPage = 1;
 let currentPdfScale = 1.25;
 let currentPdfRotation = 0;
+let currentPdfRenderTask = null;
 let pdfOutlineItems = [];
 let currentEpub = null;
 let epubKeyHandler = null;
@@ -288,14 +289,23 @@ function setGoogleDriveStatus(message, connected = false) {
 
 async function driveRequest(url, options = {}) {
     if (!googleDriveAccessToken) throw new Error("Chưa có quyền truy cập Google Drive.");
+
+    const { rawResponse = false, ...fetchOptions } = options;
+
     const response = await fetch(url, {
-        ...options,
-        headers: {...(options.headers || {}), Authorization: "Bearer " + googleDriveAccessToken}
+        ...fetchOptions,
+        headers: {
+            ...(fetchOptions.headers || {}),
+            Authorization: "Bearer " + googleDriveAccessToken
+        }
     });
     if (!response.ok) {
         const text = await response.text().catch(() => "");
         throw new Error("Google Drive API " + response.status + ": " + (text || response.statusText));
     }
+
+    if (rawResponse) return response;
+
     const type = response.headers.get("content-type") || "";
     return type.includes("application/json") ? response.json() : response;
 }
@@ -355,6 +365,7 @@ async function uploadDriveFile(file, existingId = null) {
     if (!existingId) metadata.parents = [folderId];
 
     const init = await driveRequest(endpoint, {
+        rawResponse: true,
         method: existingId ? "PATCH" : "POST",
         headers: {
             "Content-Type":"application/json; charset=UTF-8",
@@ -368,7 +379,9 @@ async function uploadDriveFile(file, existingId = null) {
 
     const uploadResponse = await fetch(sessionUrl, {
         method:"PUT",
-        headers:{"Content-Length":String(file.size)},
+        headers: {
+            "Content-Type": mimeType
+        },
         body:file
     });
     if (!uploadResponse.ok) throw new Error("Tải file lên Google Drive thất bại: " + uploadResponse.status);
@@ -1730,13 +1743,38 @@ async function renderPdfPage(pageNumber) {
     const canvas = document.getElementById("pdfCanvas");
     if (!canvas) return;
 
-    const context = canvas.getContext("2d");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    // Render theo mật độ pixel thật của màn hình để PDF không bị mờ
+    // trên Retina/iPad, trong khi kích thước hiển thị vẫn giữ nguyên.
+    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+    const outputScale = devicePixelRatio;
+    const context = canvas.getContext("2d", { alpha: false });
+
+    canvas.width = Math.ceil(viewport.width * outputScale);
+    canvas.height = Math.ceil(viewport.height * outputScale);
     canvas.style.width = viewport.width + "px";
     canvas.style.height = viewport.height + "px";
 
-    await page.render({ canvasContext: context, viewport }).promise;
+    if (currentPdfRenderTask) {
+        try { currentPdfRenderTask.cancel(); } catch (_) {}
+        currentPdfRenderTask = null;
+    }
+
+    currentPdfRenderTask = page.render({
+        canvasContext: context,
+        viewport,
+        transform: outputScale !== 1
+            ? [outputScale, 0, 0, outputScale, 0, 0]
+            : null
+    });
+
+    try {
+        await currentPdfRenderTask.promise;
+    } catch (error) {
+        if (error?.name === "RenderingCancelledException") return;
+        throw error;
+    } finally {
+        currentPdfRenderTask = null;
+    }
 
     pdfPageInfo.textContent =
         "Trang " + pageNumber + " / " + currentPdf.numPages;
