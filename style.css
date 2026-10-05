@@ -95,13 +95,25 @@ button {
 
 
 .logo {
-
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
     font-size: 20px;
-
     font-weight: 700;
-
     white-space: nowrap;
+    cursor: pointer;
+}
 
+.logo img {
+    width: 30px;
+    height: 30px;
+    display: block;
+    object-fit: contain;
+    border-radius: 7px;
 }
 
 
