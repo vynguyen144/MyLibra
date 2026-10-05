@@ -11,9 +11,9 @@
 
     <title>MyLibra</title>
 
-    <link rel="icon" href="icon.svg?v=20261005-1" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="icon.svg?v=20261005-1" sizes="180x180">
-    <link rel="manifest" href="manifest.json?v=20261005-1">
+    <link rel="icon" href="icon-192.png?v=20261005-4" type="image/png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261005-4" sizes="180x180">
+    <link rel="manifest" href="manifest.json?v=20261005-4">
     <meta name="theme-color" content="#0b5c62">
 
     <link
@@ -44,7 +44,7 @@
     </script>
 </head>
 
-
+<!-- The remainder of index.html is unchanged. -->
 <body>
 
     <!-- =========================
@@ -55,74 +55,24 @@
 
         <button class="logo logo-home" id="homeButton" type="button" title="Về trang chủ">📚 MyLibra</button>
 
-
         <div class="search-box">
-
-            <input
-                type="text"
-                placeholder="Tìm kiếm truyện..."
-                aria-label="Tìm kiếm truyện"
-            >
-
+            <input type="text" placeholder="Tìm kiếm truyện..." aria-label="Tìm kiếm truyện">
         </div>
 
-
         <div class="top-actions">
-
-            <button
-                type="button"
-                id="themeButton"
-                aria-label="Đổi giao diện"
-            >
-                🌙
-            </button>
-
-
-            <button
-                type="button"
-                id="googleLoginButton"
-                class="google-login-button"
-                aria-label="Đăng nhập Google"
-                title="Đăng nhập Google"
-            >
+            <button type="button" id="themeButton" aria-label="Đổi giao diện">🌙</button>
+            <button type="button" id="googleLoginButton" class="google-login-button" aria-label="Đăng nhập Google" title="Đăng nhập Google">
                 <span id="googleAccountIcon">G</span>
                 <span id="googleAccountText">Đăng nhập</span>
             </button>
-
-            <button
-                type="button"
-                id="settingsButton"
-                aria-label="Cài đặt MyLibra"
-                title="Cài đặt MyLibra"
-            >
-                ⚙️
-            </button>
-
+            <button type="button" id="settingsButton" aria-label="Cài đặt MyLibra" title="Cài đặt MyLibra">⚙️</button>
         </div>
-
     </header>
 
-
-
-    <!-- =========================
-         LIBRARY
-    ========================== -->
-
-    <main
-        class="container"
-        id="libraryPage"
-    >
-
+    <main class="container" id="libraryPage">
         <section class="welcome">
-
-            <h1>
-                Thư viện của bạn
-            </h1>
-
-            <p>
-                Những câu chuyện của bạn, ở một nơi.
-            </p>
-
+            <h1>Thư viện của bạn</h1>
+            <p>Những câu chuyện của bạn, ở một nơi.</p>
         </section>
 
         <section class="library-filters" aria-label="Tìm kiếm và lọc thư viện">
@@ -132,196 +82,59 @@
                 </button>
                 <div class="chip-picker-menu" id="genreFilterMenu" hidden></div>
             </div>
-
             <div class="chip-picker filter-picker" id="tagFilterPicker">
                 <button class="chip-picker-trigger" id="tagFilterTrigger" type="button">
                     <span># Tag</span><span class="chip-picker-arrow">⌄</span>
                 </button>
                 <div class="chip-picker-menu" id="tagFilterMenu" hidden></div>
             </div>
-
             <button class="add-button" id="clearFilters" type="button">✕ Xóa lọc</button>
         </section>
 
-
-
-        <section
-            class="section"
-            id="readingSection"
-        >
-
+        <section class="section" id="readingSection">
             <div class="section-header">
-
-                <h2>
-                    Đang đọc
-                </h2>
-
-                <button
-                    class="text-button"
-                    type="button"
-                >
-                    Xem tất cả
-                </button>
-
+                <h2>Đang đọc</h2>
+                <button class="text-button" type="button">Xem tất cả</button>
             </div>
-
-
-            <div
-                class="book-grid"
-                id="bookGrid"
-            ></div>
-
+            <div class="book-grid" id="bookGrid"></div>
         </section>
-
-
 
         <section class="section">
-
             <div class="section-header">
-
-                <h2>
-                    Tất cả truyện
-                </h2>
-
-
-                <button
-                    class="add-button"
-                    type="button"
-                    id="addBookButton"
-                >
-                    + Thêm truyện
-                </button>
-
+                <h2>Tất cả truyện</h2>
+                <button class="add-button" type="button" id="addBookButton">+ Thêm truyện</button>
             </div>
-
-
-            <div
-                class="empty-library"
-                id="emptyLibrary"
-            >
-
-                <div class="empty-icon">
-                    📚
-                </div>
-
-                <h3>
-                    Thư viện của bạn
-                </h3>
-
-                <p>
-                    Thêm EPUB, PDF hoặc TXT
-                    để bắt đầu đọc.
-                </p>
-
-                <button
-                    class="primary-button"
-                    type="button"
-                    id="emptyAddBookButton"
-                >
-                    + Thêm truyện
-                </button>
-
+            <div class="empty-library" id="emptyLibrary">
+                <div class="empty-icon">📚</div>
+                <h3>Thư viện của bạn</h3>
+                <p>Thêm EPUB, PDF hoặc TXT để bắt đầu đọc.</p>
+                <button class="primary-button" type="button" id="emptyAddBookButton">+ Thêm truyện</button>
             </div>
-
-
-            <div
-                class="book-grid"
-                id="allBookGrid"
-            ></div>
-
+            <div class="book-grid" id="allBookGrid"></div>
         </section>
-
     </main>
 
-
-
-    <!-- =========================
-         BOOK DETAIL
-    ========================== -->
-
-    <main
-        class="container book-detail-page"
-        id="bookDetailPage"
-        hidden
-    >
-
-        <button
-            class="back-button"
-            id="backToLibrary"
-            type="button"
-        >
-            ← Quay lại thư viện
-        </button>
-
-
-        <section
-            class="book-detail"
-            id="bookDetail"
-        ></section>
-
+    <main class="container book-detail-page" id="bookDetailPage" hidden>
+        <button class="back-button" id="backToLibrary" type="button">← Quay lại thư viện</button>
+        <section class="book-detail" id="bookDetail"></section>
     </main>
 
-
-
-    <!-- =========================
-         READER
-    ========================== -->
-
-    <main
-        class="reader-page"
-        id="readerPage"
-        hidden
-    >
-
+    <main class="reader-page" id="readerPage" hidden>
         <div class="reader-toolbar">
-
-            <button
-                class="back-button"
-                id="backFromReader"
-                type="button"
-            >
-                ← Thư viện
-            </button>
-
-
-            <div class="reader-title">
-
-                <strong id="readerTitle">
-                    Đang đọc
-                </strong>
-
-            </div>
-
-
+            <button class="back-button" id="backFromReader" type="button">← Thư viện</button>
+            <div class="reader-title"><strong id="readerTitle">Đang đọc</strong></div>
             <div class="reader-controls">
-
                 <button type="button" id="readerModeScroll" title="Đọc bằng cách cuộn dọc">📜 Cuộn</button>
                 <button type="button" id="readerModePage" title="Đọc bằng nút qua lại">📖 Trang</button>
                 <button type="button" id="readerPrev" title="Nội dung trước">←</button>
                 <button type="button" id="readerNext" title="Nội dung tiếp theo">→</button>
-
                 <div class="reader-jump reader-epub-jump" id="readerEpubJump" hidden>
                     <label for="readerChapterSelect">Chương</label>
                     <select id="readerChapterSelect" aria-label="Chọn chương"></select>
                 </div>
-
-                <button
-                    type="button"
-                    id="decreaseFont"
-                >
-                    A−
-                </button>
-
-
-                <button
-                    type="button"
-                    id="increaseFont"
-                >
-                    A+
-                </button>
-
+                <button type="button" id="decreaseFont">A−</button>
+                <button type="button" id="increaseFont">A+</button>
             </div>
-
         </div>
 
         <div class="reader-extra-toolbar" id="pdfToolbar" hidden>
@@ -346,205 +159,69 @@
             <button class="primary-button" type="button" id="pdfSave">💾 Lưu PDF</button>
         </div>
 
-        <article
-            class="reader-content"
-            id="readerContent"
-        ></article>
-
-
-        <div class="reader-progress">
-
-            <div
-                class="reader-progress-bar"
-                id="readerProgressBar"
-            ></div>
-
-        </div>
-
+        <article class="reader-content" id="readerContent"></article>
+        <div class="reader-progress"><div class="reader-progress-bar" id="readerProgressBar"></div></div>
     </main>
 
-
-
-    <!-- =========================
-         ADD BOOK MODAL
-    ========================== -->
-
-    <div
-        class="modal-overlay"
-        id="addBookModal"
-        hidden
-    >
-
+    <div class="modal-overlay" id="addBookModal" hidden>
         <div class="modal">
-
-            <button
-                class="modal-close"
-                id="closeAddBook"
-                type="button"
-            >
-                ×
-            </button>
-
-
-            <h2>
-                Thêm truyện
-            </h2>
-
-
-            <p class="modal-description">
-                Chọn file truyện từ thiết bị của bạn.
-            </p>
-
-
-            <label
-                class="file-drop-zone"
-                for="bookFile"
-            >
-
-                <div class="file-drop-icon">
-                    📚
-                </div>
-
-
-                <strong>
-                    Chọn file truyện
-                </strong>
-
-
-                <span>
-                    EPUB, PDF hoặc TXT
-                </span>
-
-
-                <input
-                    type="file"
-                    id="bookFile"
-                    accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain"
-                >
-
+            <button class="modal-close" id="closeAddBook" type="button">×</button>
+            <h2>Thêm truyện</h2>
+            <p class="modal-description">Chọn file truyện từ thiết bị của bạn.</p>
+            <label class="file-drop-zone" for="bookFile">
+                <div class="file-drop-icon">📚</div>
+                <strong>Chọn file truyện</strong>
+                <span>EPUB, PDF hoặc TXT</span>
+                <input type="file" id="bookFile" accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain">
             </label>
-
-
-            <div
-                class="selected-file"
-                id="selectedFile"
-                hidden
-            ></div>
-
+            <div class="selected-file" id="selectedFile" hidden></div>
             <div class="book-form add-book-meta">
-                <label>
-                    Thể loại
+                <label>Thể loại
                     <div class="chip-picker" id="addGenrePicker">
-                        <button class="chip-picker-trigger" id="addGenreTrigger" type="button">
-                            <span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span>
-                        </button>
+                        <button class="chip-picker-trigger" id="addGenreTrigger" type="button"><span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span></button>
                         <div class="chip-list" id="addGenreChips"></div>
                         <div class="chip-picker-menu" id="addGenreMenu" hidden></div>
                     </div>
                 </label>
-
-                <label>
-                    Tag
+                <label>Tag
                     <div class="chip-picker" id="addTagPicker">
-                        <button class="chip-picker-trigger" id="addTagTrigger" type="button">
-                            <span>Chọn tag</span><span class="chip-picker-arrow">⌄</span>
-                        </button>
+                        <button class="chip-picker-trigger" id="addTagTrigger" type="button"><span>Chọn tag</span><span class="chip-picker-arrow">⌄</span></button>
                         <div class="chip-list" id="addTagChips"></div>
                         <div class="chip-picker-menu" id="addTagMenu" hidden></div>
                     </div>
                 </label>
             </div>
-
-
             <div class="modal-actions">
-
-                <button
-                    class="add-button"
-                    id="cancelAddBook"
-                    type="button"
-                >
-                    Hủy
-                </button>
-
-
-                <button
-                    class="primary-button"
-                    id="confirmAddBook"
-                    type="button"
-                    disabled
-                >
-                    Thêm vào thư viện
-                </button>
-
+                <button class="add-button" id="cancelAddBook" type="button">Hủy</button>
+                <button class="primary-button" id="confirmAddBook" type="button" disabled>Thêm vào thư viện</button>
             </div>
-
         </div>
-
     </div>
 
-
-
-
-    <!-- =========================
-         EDIT BOOK MODAL
-    ========================== -->
-
-    <div
-        class="modal-overlay"
-        id="editBookModal"
-        hidden
-    >
+    <div class="modal-overlay" id="editBookModal" hidden>
         <div class="modal book-form-modal">
             <button class="modal-close" id="closeEditBook" type="button">×</button>
-
             <h2>Chỉnh sửa truyện</h2>
-            <p class="modal-description">
-                Cập nhật thông tin truyện. File truyện có thể thay riêng.
-            </p>
-
+            <p class="modal-description">Cập nhật thông tin truyện. File truyện có thể thay riêng.</p>
             <div class="book-form">
-                <label>
-                    Tên truyện
-                    <input type="text" id="editTitle" placeholder="Tên truyện">
-                </label>
-
-                <label>
-                    Tác giả
-                    <input type="text" id="editAuthor" placeholder="Tên tác giả">
-                </label>
-
-                <label>
-                    Thể loại
+                <label>Tên truyện<input type="text" id="editTitle" placeholder="Tên truyện"></label>
+                <label>Tác giả<input type="text" id="editAuthor" placeholder="Tên tác giả"></label>
+                <label>Thể loại
                     <div class="chip-picker" id="editGenrePicker">
-                        <button class="chip-picker-trigger" id="editGenreTrigger" type="button">
-                            <span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span>
-                        </button>
+                        <button class="chip-picker-trigger" id="editGenreTrigger" type="button"><span>Chọn thể loại</span><span class="chip-picker-arrow">⌄</span></button>
                         <div class="chip-list" id="editGenreChips"></div>
                         <div class="chip-picker-menu" id="editGenreMenu" hidden></div>
                     </div>
                 </label>
-
-                <label>
-                    Tag
+                <label>Tag
                     <div class="chip-picker" id="editTagPicker">
-                        <button class="chip-picker-trigger" id="editTagTrigger" type="button">
-                            <span>Chọn tag</span><span class="chip-picker-arrow">⌄</span>
-                        </button>
+                        <button class="chip-picker-trigger" id="editTagTrigger" type="button"><span>Chọn tag</span><span class="chip-picker-arrow">⌄</span></button>
                         <div class="chip-list" id="editTagChips"></div>
                         <div class="chip-picker-menu" id="editTagMenu" hidden></div>
                     </div>
                 </label>
-
-                <label>
-                    Mô tả
-                    <textarea id="editDescription" rows="5" placeholder="Mô tả truyện..."></textarea>
-                </label>
-
-                <label>
-                    Bìa truyện
-                    <input type="file" id="editCover" accept="image/*">
-                </label>
-
+                <label>Mô tả<textarea id="editDescription" rows="5" placeholder="Mô tả truyện..."></textarea></label>
+                <label>Bìa truyện<input type="file" id="editCover" accept="image/*"></label>
                 <div class="modal-actions">
                     <button class="add-button" id="cancelEditBook" type="button">Hủy</button>
                     <button class="primary-button" id="saveEditBook" type="button">Lưu thay đổi</button>
@@ -553,41 +230,21 @@
         </div>
     </div>
 
-    <!-- =========================
-         UPDATE FILE MODAL
-    ========================== -->
-
-    <div
-        class="modal-overlay"
-        id="updateFileModal"
-        hidden
-    >
+    <div class="modal-overlay" id="updateFileModal" hidden>
         <div class="modal">
             <button class="modal-close" id="closeUpdateFile" type="button">×</button>
-
             <h2>Cập nhật file truyện</h2>
-            <p class="modal-description">
-                Chọn EPUB, PDF hoặc TXT mới. Thông tin và tiến độ đọc sẽ được giữ lại.
-            </p>
-
+            <p class="modal-description">Chọn EPUB, PDF hoặc TXT mới. Thông tin và tiến độ đọc sẽ được giữ lại.</p>
             <label class="file-drop-zone" for="updateBookFile">
                 <div class="file-drop-icon">🔄</div>
                 <strong>Chọn file mới</strong>
                 <span>EPUB, PDF hoặc TXT</span>
-                <input
-                    type="file"
-                    id="updateBookFile"
-                    accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain"
-                >
+                <input type="file" id="updateBookFile" accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain">
             </label>
-
             <div class="selected-file" id="updateSelectedFile" hidden></div>
-
             <div class="modal-actions">
                 <button class="add-button" id="cancelUpdateFile" type="button">Hủy</button>
-                <button class="primary-button" id="saveUpdatedFile" type="button" disabled>
-                    Cập nhật file
-                </button>
+                <button class="primary-button" id="saveUpdatedFile" type="button" disabled>Cập nhật file</button>
             </div>
         </div>
     </div>
@@ -603,10 +260,7 @@
             </div>
             <div class="epub-editor-layout">
                 <aside class="epub-chapter-panel">
-                    <div class="epub-chapter-panel-head">
-                        <strong>Chương</strong>
-                        <button class="add-button" id="epubAddChapter" type="button">+ Thêm</button>
-                    </div>
+                    <div class="epub-chapter-panel-head"><strong>Chương</strong><button class="add-button" id="epubAddChapter" type="button">+ Thêm</button></div>
                     <div id="epubChapterList" class="epub-chapter-list"></div>
                 </aside>
                 <section class="epub-editor-main">
@@ -627,37 +281,29 @@
         </div>
     </div>
 
-
-    <!-- =========================
-         SETTINGS
-    ========================== -->
     <div class="modal-overlay" id="settingsModal" hidden>
         <div class="modal settings-modal">
             <button class="modal-close" id="closeSettings" type="button">×</button>
             <h2>⚙️ Cài đặt MyLibra</h2>
             <p class="modal-description">Tùy chỉnh thư viện, cách đọc, giao diện và tài khoản Google của MyLibra.</p>
-
             <div class="settings-tabs" role="tablist">
                 <button class="settings-tab active" data-settings-tab="library" type="button">📚 Thư viện</button>
                 <button class="settings-tab" data-settings-tab="reader" type="button">📖 Chế độ đọc</button>
                 <button class="settings-tab" data-settings-tab="theme" type="button">🎨 Theme</button>
                 <button class="settings-tab" data-settings-tab="account" type="button">👤 Tài khoản</button>
             </div>
-
             <section class="settings-panel active" data-settings-panel="library">
                 <h3>Cài đặt thư viện</h3>
                 <label class="settings-row"><span><strong>Hiển thị mục “Đang đọc”</strong><small>Ẩn mục này nếu bạn muốn thư viện gọn hơn.</small></span><input type="checkbox" id="settingShowReading" checked></label>
                 <label class="settings-row"><span><strong>Sắp xếp truyện</strong><small>Chọn thứ tự hiển thị trong thư viện.</small></span><select id="settingSort"><option value="added">Mới thêm trước</option><option value="title">Tên A → Z</option><option value="progress">Tiến độ đọc</option></select></label>
                 <label class="settings-row"><span><strong>Xác nhận trước khi xóa</strong><small>Hỏi lại trước khi xóa truyện khỏi thư viện.</small></span><input type="checkbox" id="settingConfirmDelete" checked></label>
             </section>
-
             <section class="settings-panel" data-settings-panel="reader">
                 <h3>Cài đặt chế độ đọc</h3>
                 <label class="settings-row"><span><strong>Kiểu đọc EPUB</strong><small>Cuộn dọc hoặc chuyển từng trang.</small></span><select id="settingReaderMode"><option value="scroll">📜 Cuộn dọc</option><option value="page">📖 Chuyển trang</option></select></label>
                 <label class="settings-row"><span><strong>Cỡ chữ mặc định</strong><small>Áp dụng cho nội dung văn bản.</small></span><select id="settingFontSize"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="22">22 px</option><option value="24">24 px</option></select></label>
                 <label class="settings-row"><span><strong>Khoảng dòng</strong><small>Điều chỉnh độ thoáng khi đọc.</small></span><select id="settingLineHeight"><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="1.9">1.9</option><option value="2.1">2.1</option></select></label>
             </section>
-
             <section class="settings-panel" data-settings-panel="theme">
                 <h3>Theme giao diện</h3>
                 <div class="theme-options">
@@ -681,7 +327,6 @@
                 <button class="add-button" id="googleLogoutButton" type="button" hidden>Đăng xuất Google</button>
                 <p class="settings-note">Google Drive sẽ lưu file truyện trong thư mục <strong>MyLibra</strong> và đồng bộ thông tin + tiến độ đọc giữa các thiết bị.</p>
             </section>
-
             <div class="modal-actions settings-actions">
                 <button class="add-button" id="resetSettings" type="button">Khôi phục mặc định</button>
                 <button class="primary-button" id="saveSettings" type="button">💾 Lưu cài đặt</button>
