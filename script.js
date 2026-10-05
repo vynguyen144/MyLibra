@@ -114,7 +114,10 @@ const saveEditBook = $("saveEditBook");
 const editTitle = $("editTitle");
 const editAuthor = $("editAuthor");
 const editDescription = $("editDescription");
+const editAvatar = $("editAvatar");
 const editCover = $("editCover");
+const addAvatar = $("addAvatar");
+const addCover = $("addCover");
 
 const pdfToolbar = $("pdfToolbar");
 const pdfPrev = $("pdfPrev");
@@ -230,7 +233,7 @@ function renderReadingLists() {
     readingListsGrid.innerHTML = lists.map((list) => {
         const listBooks = (list.bookIds || []).map((id) => books.find((book) => book.id === id)).filter(Boolean);
         const preview = listBooks.slice(0,5).map((book) =>
-            '<button class="reading-list-book" type="button" data-book-id="'+escapeHTML(book.id)+'" title="'+escapeHTML(book.title)+'">'+createCoverMarkup(book)+'</button>'
+            '<button class="reading-list-book" type="button" data-book-id="'+escapeHTML(book.id)+'" title="'+escapeHTML(book.title)+'">'+createAvatarMarkup(book)+'</button>'
         ).join("");
         return '<article class="reading-list-card"><div class="reading-list-card-head"><div><h3>'+escapeHTML(list.name)+'</h3><span>'+listBooks.length+' truyện</span></div><button class="list-delete-button" type="button" data-list-id="'+escapeHTML(list.id)+'" title="Xóa danh sách">×</button></div><div class="reading-list-preview">'+(preview || '<div class="reading-list-no-books">Chưa có truyện<br><small>Mở một truyện để thêm vào danh sách.</small></div>')+'</div><button class="text-button reading-list-open" type="button" data-list-id="'+escapeHTML(list.id)+'">Xem danh sách →</button></article>';
     }).join("");
@@ -583,6 +586,8 @@ function getBookCloudMetadata(book) {
         icon: book.icon || "📖",
         fileName: book.fileName || "",
         fileType: book.fileType || "",
+        imageDataVersion: 2,
+        avatarDataUrl: book.avatarDataUrl || "",
         coverDataUrl: book.coverDataUrl || "",
         driveFileId: book.driveFileId || "",
         fileUpdatedAt: Number(book.fileUpdatedAt) || 0,
@@ -863,7 +868,7 @@ async function syncToGoogleDrive() {
 
             if (!local) {
                 if (localDeletedAt > remoteUpdatedAt) continue;
-                const cloudBook = {...remoteBook, file:null};
+                const cloudBook = normalizeBookImages({...remoteBook, file:null});
                 books.push(cloudBook);
                 clearBookDeleted(cloudBook.id);
                 await saveBookToDatabase(cloudBook, {touch:false});
@@ -877,7 +882,7 @@ async function syncToGoogleDrive() {
                 const localFileIsCurrent = sameDriveFile &&
                     Number(local.fileUpdatedAt || 0) >= Number(remoteBook.fileUpdatedAt || 0);
 
-                Object.assign(local, remoteBook);
+                Object.assign(local, normalizeBookImages({...remoteBook}));
                 local.file = localFileIsCurrent ? localFile : null;
                 await saveBookToDatabase(local, {touch:false});
             }
@@ -1098,12 +1103,35 @@ function showReader() {
     readerPage.hidden = false;
 }
 
-function createCoverMarkup(book, large = false) {
-    const cls = large ? "book-cover-image-large" : "book-cover-image";
-    if (book.coverDataUrl) {
-        return '<img class="' + cls + '" src="' + escapeHTML(book.coverDataUrl) + '" alt="">';
+function normalizeBookImages(book) {
+    if (!book || typeof book !== "object") return book;
+    if (Number(book.imageDataVersion) < 2) {
+        if (!book.avatarDataUrl && book.coverDataUrl) book.avatarDataUrl = book.coverDataUrl;
+        book.coverDataUrl = "";
+        book.imageDataVersion = 2;
     }
-    return escapeHTML(book.icon || "📖");
+    book.avatarDataUrl = book.avatarDataUrl || "";
+    book.coverDataUrl = book.coverDataUrl || "";
+    return book;
+}
+
+function createAvatarMarkup(book, large = false) {
+    normalizeBookImages(book);
+    const cls = large ? "book-cover-image-large" : "book-cover-image";
+    if (book.avatarDataUrl) {
+        return '<img class="' + cls + '" src="' + escapeHTML(book.avatarDataUrl) + '" alt="">';
+    }
+    return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
+}
+
+function createCoverMarkup(book, large = false) {
+    normalizeBookImages(book);
+    const cls = large ? "book-cover-image-large" : "book-cover-image";
+    const image = book.coverDataUrl || book.avatarDataUrl;
+    if (image) {
+        return '<img class="' + cls + '" src="' + escapeHTML(image) + '" alt="">';
+    }
+    return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
 }
 
 function getFeaturedBook() {
@@ -1149,7 +1177,7 @@ function createBookCard(book) {
     card.className = "book-card";
     card.innerHTML = `
         <div class="book-cover">
-            ${createCoverMarkup(book)}
+            ${createAvatarMarkup(book)}
         </div>
         <div class="book-info">
             <h3>${escapeHTML(book.title)}</h3>
@@ -1605,10 +1633,14 @@ confirmAddBook?.addEventListener("click", async () => {
         fileType: type,
         file: file,
         fileUpdatedAt: Date.now(),
+        imageDataVersion: 2,
+        avatarDataUrl: "",
         coverDataUrl: ""
     };
 
     try {
+        if (addAvatar?.files[0]) newBook.avatarDataUrl = await readFileAsDataUrl(addAvatar.files[0]);
+        if (addCover?.files[0]) newBook.coverDataUrl = await readFileAsDataUrl(addCover.files[0]);
         await saveBookToDatabase(newBook);
         books.push(newBook);
         if (googleDriveAccessToken) {
@@ -1651,7 +1683,7 @@ function openBook(bookId) {
     bookDetail.innerHTML = `
         <div class="book-detail-cover">
             <div class="book-cover-large">
-                ${createCoverMarkup(book, true)}
+                ${createAvatarMarkup(book, true)}
             </div>
         </div>
 
@@ -1781,6 +1813,8 @@ function openEditBook(bookId) {
     renderSelectedChips(editTagChips, editTags, "tag");
     refreshEditPickerMenus();
     editDescription.value = book.description || "";
+    normalizeBookImages(book);
+    editAvatar.value = "";
     editCover.value = "";
 
     openModal(editBookModal);
@@ -1811,14 +1845,15 @@ saveEditBook?.addEventListener("click", async () => {
     book.tags = [...editTags];
     book.description = editDescription.value.trim();
 
-    if (editCover.files[0]) {
-        try {
-            book.coverDataUrl = await readFileAsDataUrl(editCover.files[0]);
-        } catch (error) {
-            console.error(error);
-            alert("Không thể đọc ảnh bìa.");
-            return;
-        }
+    normalizeBookImages(book);
+    book.imageDataVersion = 2;
+    try {
+        if (editAvatar.files[0]) book.avatarDataUrl = await readFileAsDataUrl(editAvatar.files[0]);
+        if (editCover.files[0]) book.coverDataUrl = await readFileAsDataUrl(editCover.files[0]);
+    } catch (error) {
+        console.error(error);
+        alert("Không thể đọc ảnh. Hãy thử lại với ảnh khác.");
+        return;
     }
 
     try {
@@ -3070,6 +3105,7 @@ function initializeMyLibra() {
     loadBooksFromDatabase()
         .then((storedBooks) => {
             storedBooks.forEach((storedBook) => {
+                normalizeBookImages(storedBook);
                 const index = books.findIndex((book) => book.id === storedBook.id);
                 if (index >= 0) books[index] = storedBook;
                 else books.push(storedBook);
