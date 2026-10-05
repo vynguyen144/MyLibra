@@ -3078,3 +3078,36 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     }
 }
 
+
+/* =========================================================
+   LONG MODALS — scroll inside the modal instead of clipping
+========================================================= */
+.modal-overlay{
+    overflow-y:auto!important;
+    align-items:center!important;
+}
+
+.modal{
+    box-sizing:border-box!important;
+    max-height:calc(100vh - 40px)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    scrollbar-width:auto;
+}
+
+@media (max-width:600px){
+    .modal-overlay{
+        align-items:flex-start!important;
+        padding:10px!important;
+    }
+
+    .modal{
+        width:100%!important;
+        max-height:calc(100vh - 20px)!important;
+        padding:22px 16px!important;
+        border-radius:16px!important;
+    }
+}
+
