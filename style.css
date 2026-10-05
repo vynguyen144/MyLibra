@@ -3381,19 +3381,23 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     pointer-events: auto;
 }
 .featured-dot {
-    width: 7px;
-    height: 7px;
+    width: 9px;
+    height: 9px;
     padding: 0;
     border: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,.45);
+    border-radius: 2px;
+    background: rgba(255,255,255,.42);
     cursor: pointer;
-    transition: width .25s ease, background .25s ease, transform .25s ease;
+    transform: rotate(45deg);
+    transition: transform .25s ease, background .25s ease, box-shadow .25s ease, scale .25s ease;
 }
 .featured-dot.active {
-    width: 22px;
-    border-radius: 999px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
     background: #fff;
+    transform: rotate(45deg) scale(1.18);
+    box-shadow: 0 0 10px rgba(255,255,255,.55);
 }
 .featured-counter {
     position: absolute;
