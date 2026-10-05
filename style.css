@@ -2874,3 +2874,19 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 .home-featured-meta>*{background:rgba(255,255,255,.91)!important;color:#35294a!important;border:1px solid rgba(255,255,255,.8)!important;box-shadow:0 2px 8px rgba(0,0,0,.12)!important}
 @media(max-width:700px){.home-featured-title-overlay{gap:7px!important;padding:15px!important}.home-featured-title-overlay .home-eyebrow{font-size:10px!important;padding:5px 9px!important;letter-spacing:1px!important}.home-featured-title-overlay h1{font-size:clamp(20px,5vw,28px)!important}.home-featured-title-overlay .home-featured-author{font-size:13px!important}.home-featured-meta{gap:5px!important}.home-featured-cover{height:clamp(260px,65vw,380px)!important}}
 @media(min-width:701px){.home-featured-cover{min-height:390px!important}}
+
+
+/* Recommendation descriptions: keep cards compact and readable. */
+.recommendation-info{width:190px;min-width:0}
+.recommendation-description{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;
+ overflow:hidden;max-height:5.8em;line-height:1.45;margin-top:8px;overflow-wrap:anywhere;
+ position:relative
+}
+.recommendation-description::after{
+ content:"";position:absolute;right:0;bottom:0;width:42%;height:1.45em;
+ background:linear-gradient(90deg,transparent,var(--bg));pointer-events:none
+}
+.recommendation-more{margin-top:7px;display:inline-block}
+@media(max-width:900px){.recommendation-info{width:160px}}
+@media(max-width:700px){.recommendation-info{width:140px}.recommendation-description{-webkit-line-clamp:3;line-clamp:3;max-height:4.35em}}
