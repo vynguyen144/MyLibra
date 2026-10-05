@@ -3207,3 +3207,60 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     100%{bottom:4px}
 }
 
+/* =========================================================
+   PET SELECTOR + COW CAT / GHOST
+========================================================= */
+.pet-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 18px}
+.pet-choice{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #f3c8dc;border-radius:14px;background:#fff8fc;cursor:pointer;transition:.2s}
+.pet-choice:has(input:checked){border-color:#e77ca9;box-shadow:0 5px 16px rgba(210,105,150,.12);background:#fff0f7}
+.pet-choice input{accent-color:#df6e9e}
+.pet-choice-preview{width:54px;height:54px;display:grid;place-items:center;border-radius:12px;background:#fff;border:1px solid #f5d8e5;font-size:32px;flex:0 0 auto}
+.pet-choice>span:last-child{display:flex;flex-direction:column;gap:3px}
+.pet-choice small{color:var(--text-soft);line-height:1.35}
+.pet-settings-list{display:grid;gap:4px}
+
+.virtual-pet-cat{
+    position:fixed;z-index:999;left:-110px;bottom:8px;width:100px;height:86px;
+    pointer-events:auto;cursor:pointer;user-select:none;animation:petWalk 22s linear infinite;
+    filter:drop-shadow(0 4px 2px rgba(95,55,75,.14));
+}
+.virtual-pet-sprite{position:absolute;left:9px;bottom:4px;width:82px;height:72px;transform-origin:center bottom}
+.pixel-pet{width:82px;height:72px;display:none;overflow:visible}
+.virtual-pet-cat.pet-cat .pixel-cat{display:block}
+.virtual-pet-cat.pet-ghost .pixel-ghost{display:block}
+.virtual-pet-cat.pet-facing-left .virtual-pet-sprite{transform:scaleX(-1)}
+.virtual-pet-cat.pet-facing-left .virtual-pet-bubble{transform:translateX(-50%) scaleX(1)!important}
+.pet-tail{transform-origin:74px 32px;animation:petTail .7s steps(2,end) infinite}
+.virtual-pet-cat.pet-ghost .virtual-pet-sprite{animation:ghostFloat 1.4s ease-in-out infinite}
+.virtual-pet-bubble{
+    position:absolute;z-index:5;left:50%;bottom:72px;transform:translateX(-50%);
+    padding:4px 8px;border:1px solid rgba(245,139,176,.4);border-radius:8px;
+    background:rgba(255,248,252,.96);color:#9a5874;font-size:10px;font-weight:700;
+    line-height:1;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.virtual-pet-cat.pet-show-bubble .virtual-pet-bubble,.virtual-pet-cat:hover .virtual-pet-bubble{opacity:1}
+.pet-door{position:absolute;left:0;bottom:4px;width:34px;height:62px;background:#8d8d99;border:3px solid #696976;border-radius:3px;opacity:0;transform-origin:left bottom;z-index:3}
+.pet-door:after{content:"";position:absolute;right:5px;top:31px;width:5px;height:5px;background:#f6c66e}
+.virtual-pet-cat.pet-entering .pet-door{opacity:1;animation:petDoorOpen 1.2s steps(3,end) forwards}
+.virtual-pet-cat.pet-entering .virtual-pet-sprite{animation:petEnterDoor 1.2s steps(4,end) forwards}
+.virtual-pet-cat.pet-dissolving .virtual-pet-sprite{animation:ghostDissolve .8s steps(5,end) forwards}
+.virtual-pet-cat.pet-spawn .virtual-pet-sprite{animation:petSpawn .7s steps(4,end)}
+.virtual-pet-cat.pet-jump .virtual-pet-sprite{animation:petJump .7s steps(4,end)}
+
+@keyframes petWalk{0%{left:-110px}45%{left:calc(100vw - 80px)}55%{left:calc(100vw - 80px)}100%{left:-110px}}
+@keyframes petTail{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(14deg)}}
+@keyframes ghostFloat{0%,100%{bottom:3px}50%{bottom:10px}}
+@keyframes petDoorOpen{0%{transform:perspective(60px) rotateY(0);opacity:1}70%{transform:perspective(60px) rotateY(-70deg);opacity:1}100%{transform:perspective(60px) rotateY(-88deg);opacity:0}}
+@keyframes petEnterDoor{0%{left:9px;opacity:0}30%{left:9px;opacity:1}100%{left:-8px;opacity:0}}
+@keyframes petSpawn{0%{transform:scale(.1);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes ghostDissolve{0%{opacity:1;filter:none}45%{opacity:.75;transform:translateY(-5px)}75%{opacity:.3;filter:blur(1px);transform:translateY(-12px)}100%{opacity:0;filter:blur(3px);transform:translateY(-20px)}}
+@keyframes petJump{0%,100%{transform:translateY(0)}35%{transform:translateY(-26px)}65%{transform:translateY(-12px)}}
+
+@media(max-width:600px){
+ .pet-choice-grid{grid-template-columns:1fr}
+ .virtual-pet-cat{transform:scale(.82);transform-origin:bottom left;bottom:3px}
+}
+@media(prefers-reduced-motion:reduce){
+ .virtual-pet-cat,.virtual-pet-cat *{animation:none!important}
+}
+
