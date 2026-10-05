@@ -3417,21 +3417,23 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     0% {
         opacity: 0;
         transform: scale(1.012);
-        filter: brightness(.42) blur(6px);
     }
-    55% {
-        opacity: .72;
-        filter: brightness(.72) blur(2px);
+    45% {
+        opacity: .48;
+        transform: scale(1.006);
     }
     100% {
         opacity: 1;
         transform: scale(1);
-        filter: brightness(1) blur(0);
     }
 }
 .home-featured-cover .book-cover-image-large,
 .home-featured-cover .cover-fallback {
-    animation: featuredEnter .8s cubic-bezier(.22,.61,.36,1);
+    animation: featuredEnter .8s ease-out both;
+    -webkit-animation: featuredEnter .8s ease-out both;
+    will-change: opacity, transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 @media (max-width: 700px) {
     .featured-carousel-controls {
