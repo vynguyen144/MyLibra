@@ -1128,17 +1128,34 @@ function createCoverMarkup(book, large = false, imageType = "avatar") {
     return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
 }
 
+function getFeaturedBookIds() {
+    try {
+        const ids = JSON.parse(localStorage.getItem("mylibra-featured-books") || "[]");
+        if (Array.isArray(ids)) return ids.filter(id => books.some(book => book.id === id));
+    } catch (_) {}
+    const legacy = localStorage.getItem("mylibra-featured-book");
+    return legacy && books.some(book => book.id === legacy) ? [legacy] : [];
+}
+function saveFeaturedBookIds(ids) {
+    const valid = [...new Set(ids)].filter(id => books.some(book => book.id === id));
+    localStorage.setItem("mylibra-featured-books", JSON.stringify(valid));
+    if (valid[0]) localStorage.setItem("mylibra-featured-book", valid[0]);
+    else localStorage.removeItem("mylibra-featured-book");
+}
 function getFeaturedBook() {
-    const featuredId = localStorage.getItem("mylibra-featured-book");
-    return books.find((book) => book.id === featuredId) ||
+    const ids = getFeaturedBookIds();
+    return books.find(book => book.id === ids[0]) ||
         [...books].sort((a,b) => (b.addedAt||b.updatedAt||0)-(a.addedAt||a.updatedAt||0))[0] || null;
 }
+function getFeaturedBooks() {
+    const ids = getFeaturedBookIds();
+    const selected = ids.map(id => books.find(book => book.id === id)).filter(Boolean);
+    return selected.length ? selected : (getFeaturedBook() ? [getFeaturedBook()] : []);
+}
 function getRecommendedBooks() {
-    const featured = getFeaturedBook();
-    // Ưu tiên truyện mới thêm vào thư viện, thay vì chấm điểm theo tiến độ/tag.
-    // addedAt là thời điểm thêm truyện; updatedAt chỉ dùng làm fallback cho dữ liệu cũ.
+    const featuredIds = new Set(getFeaturedBookIds());
     return [...books]
-        .filter((book) => !featured || book.id !== featured.id)
+        .filter(book => !featuredIds.has(book.id))
         .sort((a, b) => {
             const addedA = Number(a.addedAt || a.updatedAt || 0);
             const addedB = Number(b.addedAt || b.updatedAt || 0);
@@ -1157,17 +1174,24 @@ function renderHome() {
     const hasBooks=books.length>0;
     homeEmpty.hidden=hasBooks;
     if(!hasBooks){homeFeatured.innerHTML="";homeRecommendations.innerHTML="";homeReadingGrid.innerHTML="";homeReadingSection.hidden=true;return;}
-    const featured=getFeaturedBook();
+    const featuredBooks=getFeaturedBooks();
+    const featuredIndex=Math.min(Number(localStorage.getItem("mylibra-featured-index") || 0), Math.max(0, featuredBooks.length-1));
+    const featured=featuredBooks[featuredIndex] || featuredBooks[0];
     if(featured){
-        homeFeatured.innerHTML='<div class="home-featured-content"><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><img class="home-featured-cover-image" src="'+escapeHTML(featured.coverDataUrl||"")+'" alt="" hidden><div class="home-featured-title-overlay"><span class="home-eyebrow">✦ TRUYỆN NỔI BẬT ✦</span><h1>'+escapeHTML(featured.title)+'</h1><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+getBookTags(featured).slice(0,4).map(v=>chipHTML(v,false,"tag")).join("")+'</div></div>'+createCoverMarkup(featured,true,"cover")+'</div>';
-        $("homeFeaturedRead")?.addEventListener("click", async () => {
-            if (featured.file) {
-                await openReader(featured.id);
-            } else {
-                openBook(featured.id);
-            }
-        });
+        const hasCarousel=featuredBooks.length>1;
+        homeFeatured.innerHTML='<div class="home-featured-content"><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><img class="home-featured-cover-image" src="'+escapeHTML(featured.coverDataUrl||"")+'" alt="" hidden><div class="home-featured-title-overlay"><span class="home-eyebrow">✦ TRUYỆN NỔI BẬT ✦</span><h1>'+escapeHTML(featured.title)+'</h1><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+getBookTags(featured).slice(0,4).map(v=>chipHTML(v,false,"tag")).join("")+'</div></div>'+createCoverMarkup(featured,true,"cover")+(hasCarousel?'<div class="featured-carousel-controls"><button class="featured-arrow featured-prev" id="featuredPrev" type="button" aria-label="Truyện nổi bật trước">‹</button><div class="featured-dots">'+featuredBooks.map((_,i)=>'<button class="featured-dot '+(i===featuredIndex?"active":"")+'" data-featured-index="'+i+'" type="button" aria-label="Truyện nổi bật '+(i+1)+'"></button>').join("")+'</div><button class="featured-arrow featured-next" id="featuredNext" type="button" aria-label="Truyện nổi bật tiếp theo">›</button></div><span class="featured-counter">'+(featuredIndex+1)+' / '+featuredBooks.length+'</span>':'')+'</div>';
+        $("homeFeaturedRead")?.addEventListener("click", async () => { if (featured.file) await openReader(featured.id); else openBook(featured.id); });
         $("homeFeaturedList")?.addEventListener("click",()=>openReadingListChooser(featured.id));
+        if(hasCarousel){
+            const go=(index)=>{ localStorage.setItem("mylibra-featured-index",String((index+featuredBooks.length)%featuredBooks.length)); renderHome(); };
+            $("featuredPrev")?.addEventListener("click",()=>go(featuredIndex-1));
+            $("featuredNext")?.addEventListener("click",()=>go(featuredIndex+1));
+            homeFeatured.querySelectorAll(".featured-dot").forEach(btn=>btn.addEventListener("click",()=>go(Number(btn.dataset.featuredIndex))));
+            clearInterval(window.mylibraFeaturedTimer);
+            window.mylibraFeaturedTimer=setInterval(()=>go(featuredIndex+1),5000);
+        } else {
+            clearInterval(window.mylibraFeaturedTimer);
+        }
     }
     homeRecommendations.innerHTML="";
     getRecommendedBooks().slice(0,10).forEach(book=>homeRecommendations.appendChild(createRecommendationCard(book)));
@@ -1176,7 +1200,6 @@ function renderHome() {
     homeReadingGrid.innerHTML="";
     reading.slice(0,4).forEach(book=>homeReadingGrid.appendChild(createBookCard(book, "cover")));
 }
-
 function createBookCard(book, imageType = "avatar") {
     const card = document.createElement("div");
     card.className = "book-card";
@@ -1942,10 +1965,13 @@ function openBook(bookId) {
 
     bookDetail.querySelector("#detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
     bookDetail.querySelector("#detailFeaturedButton")?.addEventListener("click", () => {
-        localStorage.setItem("mylibra-featured-book", book.id);
+        const ids=getFeaturedBookIds();
+        const next=ids.includes(book.id) ? ids.filter(id=>id!==book.id) : [...ids,book.id];
+        saveFeaturedBookIds(next);
+        localStorage.setItem("mylibra-featured-index", "0");
         markCloudSettingsChanged();
         renderHome();
-        alert('Đã đặt "' + book.title + '" làm truyện nổi bật trên Trang chủ.');
+        bookDetail.querySelector("#detailFeaturedButton").textContent = next.includes(book.id) ? "⭐ Bỏ nổi bật" : "⭐ Đặt nổi bật";
     });
     bookDetail.querySelector("#editBookButton")?.addEventListener("click", (event) => {
         event.preventDefault();
