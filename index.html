@@ -416,6 +416,7 @@
                 <button class="settings-tab active" data-settings-tab="library" type="button">📚 Thư viện</button>
                 <button class="settings-tab" data-settings-tab="reader" type="button">📖 Chế độ đọc</button>
                 <button class="settings-tab" data-settings-tab="theme" type="button">🎨 Theme</button>
+                <button class="settings-tab" data-settings-tab="pet" type="button">🐾 Pet</button>
                 <button class="settings-tab" data-settings-tab="account" type="button">👤 Tài khoản</button>
             </div>
             <section class="settings-panel active" data-settings-panel="library">
@@ -439,6 +440,27 @@
                     <button class="theme-option" data-theme-choice="pink" type="button">🐾<strong>Hồng phấn mèo</strong><small>Pastel cute, chủ đề mèo</small></button>
                 </div>
             </section>
+            <section class="settings-panel" data-settings-panel="pet">
+    <h3>🐾 Thú cưng đồng hành</h3>
+    <p class="settings-note">Chọn một bé để lang thang ở cuối trang. Mỗi bé có hoạt ảnh riêng.</p>
+    <div class="pet-choice-grid">
+        <label class="pet-choice">
+            <input type="radio" name="petChoice" value="cat" id="settingPetCat">
+            <span class="pet-choice-preview pet-preview-cat">🐈‍⬛</span>
+            <span><strong>Mèo bò sữa</strong><small>Mèo pixel đi dạo, vẫy đuôi, ngồi nghỉ.</small></span>
+        </label>
+        <label class="pet-choice">
+            <input type="radio" name="petChoice" value="ghost" id="settingPetGhost">
+            <span class="pet-choice-preview pet-preview-ghost">👻</span>
+            <span><strong>Ma nhỏ</strong><small>Bụp xuất hiện, lơ lửng rồi tan rã.</small></span>
+        </label>
+    </div>
+    <div class="pet-settings-list">
+        <label class="settings-row"><span><strong>Hiển thị thú cưng</strong><small>Tắt nếu bà muốn cuối trang trống.</small></span><input type="checkbox" id="settingPetEnabled" checked></label>
+        <label class="settings-row"><span><strong>Hiệu ứng xuất hiện / biến mất</strong><small>Mèo mở cửa đi vào; ma bụp ra rồi tan rã.</small></span><input type="checkbox" id="settingPetEffects" checked></label>
+        <label class="settings-row"><span><strong>Bong bóng lời nói</strong><small>Bấm vào pet để xem câu nói ngẫu nhiên.</small></span><input type="checkbox" id="settingPetSpeech" checked></label>
+    </div>
+</section>
             <section class="settings-panel" data-settings-panel="account">
                 <h3>Tài khoản Google</h3>
                 <div class="google-account-card" id="googleAccountCard">
@@ -462,39 +484,35 @@
     </div>
 
 
-    <div class="virtual-pet-cat" id="virtualPetCat" aria-label="Mèo pixel MyLibra" title="Bấm vào tui nè 🐾">
+    <div class="virtual-pet-cat" id="virtualPetCat" aria-label="Thú cưng pixel MyLibra" title="Bấm vào tui nè 🐾">
+        <div class="pet-door" aria-hidden="true"><span></span></div>
         <div class="virtual-pet-bubble" id="virtualPetBubble">meo~</div>
-        <svg class="pixel-cat-art" viewBox="0 0 80 64" aria-hidden="true" shape-rendering="crispEdges">
-            <g class="cat-tail">
-                <rect x="65" y="30" width="7" height="7" rx="1"/>
-                <rect x="70" y="23" width="7" height="7" rx="1"/>
-                <rect x="73" y="15" width="7" height="9" rx="1"/>
-                <rect x="68" y="10" width="7" height="7" rx="1"/>
-            </g>
-            <rect x="21" y="20" width="42" height="31" rx="3"/>
-            <rect x="15" y="14" width="12" height="15"/>
-            <rect x="51" y="14" width="12" height="15"/>
-            <rect x="25" y="10" width="6" height="7"/>
-            <rect x="49" y="10" width="6" height="7"/>
-            <rect class="cat-face" x="27" y="22" width="30" height="22" rx="2"/>
-            <rect class="cat-eye" x="31" y="27" width="5" height="5"/>
-            <rect class="cat-eye" x="48" y="27" width="5" height="5"/>
-            <rect class="cat-nose" x="40" y="33" width="6" height="4"/>
-            <rect class="cat-mouth" x="38" y="38" width="4" height="3"/>
-            <rect class="cat-mouth" x="44" y="38" width="4" height="3"/>
-            <g class="cat-legs">
-                <rect x="25" y="48" width="10" height="13" rx="1"/>
-                <rect x="48" y="48" width="10" height="13" rx="1"/>
-            </g>
-            <rect class="cat-paw" x="20" y="57" width="16" height="5" rx="1"/>
-            <rect class="cat-paw" x="47" y="57" width="16" height="5" rx="1"/>
-            <rect class="cat-bow" x="37" y="44" width="7" height="7"/>
-            <rect class="cat-bow" x="31" y="42" width="8" height="9"/>
-            <rect class="cat-bow" x="44" y="42" width="8" height="9"/>
-        </svg>
+        <div class="virtual-pet-sprite" id="virtualPetSprite" aria-hidden="true">
+            <svg class="pixel-pet pixel-cat" viewBox="0 0 96 72" shape-rendering="crispEdges">
+                <g class="pet-tail"><rect x="73" y="29" width="8" height="8"/><rect x="78" y="21" width="8" height="8"/><rect x="82" y="12" width="8" height="10"/></g>
+                <rect x="20" y="20" width="50" height="37" fill="#fff"/>
+                <rect x="14" y="14" width="14" height="17" fill="#fff"/><rect x="58" y="14" width="14" height="17" fill="#fff"/>
+                <rect x="22" y="8" width="8" height="10" fill="#222"/><rect x="57" y="8" width="8" height="10" fill="#222"/>
+                <rect x="26" y="22" width="38" height="26" fill="#fff"/>
+                <rect x="28" y="21" width="9" height="9" fill="#222"/><rect x="54" y="22" width="9" height="8" fill="#222"/>
+                <rect x="31" y="28" width="5" height="5" fill="#111"/><rect x="54" y="28" width="5" height="5" fill="#111"/>
+                <rect x="43" y="34" width="6" height="4" fill="#e88da7"/><rect x="39" y="38" width="5" height="3" fill="#222"/><rect x="48" y="38" width="5" height="3" fill="#222"/>
+                <rect x="35" y="48" width="9" height="18" fill="#fff"/><rect x="53" y="48" width="9" height="18" fill="#fff"/>
+                <rect x="31" y="61" width="16" height="6" fill="#222"/><rect x="51" y="61" width="16" height="6" fill="#222"/>
+                <rect x="40" y="47" width="14" height="7" fill="#e98cab"/>
+            </svg>
+            <svg class="pixel-pet pixel-ghost" viewBox="0 0 72 72" shape-rendering="crispEdges">
+                <rect x="25" y="8" width="22" height="5" fill="#b99ce8"/><rect x="18" y="13" width="36" height="7" fill="#b99ce8"/>
+                <rect x="13" y="20" width="46" height="31" fill="#fff"/><rect x="18" y="15" width="36" height="42" fill="#fff"/>
+                <rect x="13" y="49" width="10" height="10" fill="#fff"/><rect x="25" y="53" width="9" height="9" fill="#fff"/><rect x="39" y="53" width="9" height="9" fill="#fff"/><rect x="50" y="49" width="10" height="10" fill="#fff"/>
+                <rect x="24" y="30" width="6" height="7" fill="#443d56"/><rect x="43" y="30" width="6" height="7" fill="#443d56"/>
+                <rect x="33" y="41" width="6" height="3" fill="#e9b1d0"/>
+                <rect x="18" y="20" width="6" height="6" fill="#d9c5f4"/><rect x="50" y="20" width="6" height="6" fill="#d9c5f4"/>
+            </svg>
+        </div>
     </div>
 
-    <script src="script.js?v=20261005-30"></script>
+    <script src="script.js?v=20261005-31"></script>
 </body>
 
 </html>
