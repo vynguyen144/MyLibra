@@ -3111,3 +3111,99 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     }
 }
 
+/* =========================================================
+   PIXEL VIRTUAL CAT — MyLibra footer companion
+========================================================= */
+.virtual-pet-cat{
+    position:fixed;
+    z-index:999;
+    left:-100px;
+    bottom:8px;
+    width:80px;
+    height:72px;
+    pointer-events:auto;
+    cursor:pointer;
+    animation:virtualCatWalk 22s linear infinite;
+    filter:drop-shadow(0 3px 2px rgba(95,55,75,.16));
+    user-select:none;
+}
+.pixel-cat-art{
+    display:block;
+    width:80px;
+    height:64px;
+    overflow:visible;
+}
+.pixel-cat-art > g,
+.pixel-cat-art > rect{
+    fill:#5b9da0;
+}
+.pixel-cat-art .cat-face{fill:#74b8b5}
+.pixel-cat-art .cat-eye{fill:#fff}
+.pixel-cat-art .cat-nose{fill:#ef8da9}
+.pixel-cat-art .cat-mouth{fill:#6f5268}
+.pixel-cat-art .cat-bow{fill:#f58bb0}
+.pixel-cat-art .cat-paw{fill:#8bc8c2}
+.pixel-cat-art .cat-tail{fill:#5b9da0;transform-origin:68px 35px;animation:virtualCatTail .8s steps(2,end) infinite}
+.pixel-cat-art .cat-legs{fill:#5b9da0;animation:virtualCatLegs .38s steps(2,end) infinite}
+.virtual-pet-bubble{
+    position:absolute;
+    left:50%;
+    bottom:67px;
+    transform:translateX(-50%);
+    padding:3px 7px;
+    border:1px solid rgba(245,139,176,.4);
+    border-radius:8px;
+    background:rgba(255,248,252,.94);
+    color:#9a5874;
+    font-size:10px;
+    font-weight:700;
+    line-height:1;
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity .2s ease;
+    pointer-events:none;
+}
+.virtual-pet-cat:hover .virtual-pet-bubble,
+.virtual-pet-cat.pet-show-bubble .virtual-pet-bubble{
+    opacity:1;
+}
+.virtual-pet-cat.pet-jump{
+    animation:virtualCatJump .7s steps(4,end), virtualCatWalk 22s linear infinite;
+}
+@keyframes virtualCatWalk{
+    0%{left:-90px;transform:scaleX(1)}
+    45%{left:calc(100vw - 10px);transform:scaleX(1)}
+    50%{left:calc(100vw - 10px);transform:scaleX(-1)}
+    95%{left:-90px;transform:scaleX(-1)}
+    100%{left:-90px;transform:scaleX(1)}
+}
+@keyframes virtualCatTail{
+    0%,100%{transform:rotate(-8deg)}
+    50%{transform:rotate(14deg)}
+}
+@keyframes virtualCatLegs{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(2px)}
+}
+@keyframes virtualCatJump{
+    0%{bottom:8px}
+    35%{bottom:45px}
+    65%{bottom:32px}
+    100%{bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){
+    .virtual-pet-cat,
+    .pixel-cat-art .cat-tail,
+    .pixel-cat-art .cat-legs{animation:none!important}
+}
+@media(max-width:600px){
+    .virtual-pet-cat{transform:scale(.82);transform-origin:bottom left;bottom:4px}
+    .virtual-pet-cat.pet-jump{animation:virtualCatJumpMobile .7s steps(4,end)}
+}
+@keyframes virtualCatJumpMobile{
+    0%{bottom:4px}
+    35%{bottom:34px}
+    65%{bottom:24px}
+    100%{bottom:4px}
+}
+
