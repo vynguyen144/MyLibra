@@ -3487,7 +3487,10 @@ const spotifyScopes = [
     "user-read-email",
     "user-read-private",
     "user-read-playback-state",
-    "user-modify-playback-state"
+    "user-modify-playback-state",
+    "playlist-read-private",
+    "user-read-recently-played",
+    "user-top-read"
 ].join(" ");
 
 function spotifyRedirectUri() {
@@ -3757,6 +3760,94 @@ async function spotifySearch() {
         setSpotifyStatus(e.message);
     }
 }
+async function spotifyPlayContext(contextUri, position = 0) {
+    try {
+        const ready = await ensureSpotifyReady();
+        if (!ready) return;
+        await transferToMyLibra();
+        await new Promise(resolve => setTimeout(resolve, 250));
+        await spotifyApi("/me/player/play", {
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({context_uri:contextUri, offset:{position}})
+        });
+    } catch (e) {
+        setSpotifyStatus(e.message);
+    }
+}
+function spotifyTrackImage(track) {
+    return track?.album?.images?.[2]?.url || track?.album?.images?.[0]?.url || "";
+}
+function spotifyTrackArtists(track) {
+    return (track?.artists || []).map(a => a.name).join(", ");
+}
+function renderSpotifyTrackRows(targetId, tracks, emptyText) {
+    const box = $(targetId);
+    if (!box) return;
+    box.innerHTML = "";
+    const unique = [];
+    const seen = new Set();
+    for (const track of tracks || []) {
+        if (!track?.uri || seen.has(track.uri)) continue;
+        seen.add(track.uri);
+        unique.push(track);
+    }
+    unique.slice(0, 8).forEach(track => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "spotify-track-row";
+        row.innerHTML = '<img alt=""><span><strong></strong><small></small></span>';
+        const image = row.querySelector("img");
+        if (image) image.src = spotifyTrackImage(track);
+        row.querySelector("strong").textContent = track.name || "Không rõ tên bài";
+        row.querySelector("small").textContent = spotifyTrackArtists(track);
+        row.addEventListener("click", () => spotifyPlayUri(track.uri));
+        box.appendChild(row);
+    });
+    if (!box.children.length) box.innerHTML = '<div class="spotify-music-empty">' + escapeHTML(emptyText || "Chưa có dữ liệu.") + '</div>';
+}
+async function spotifyLoadMusicHub() {
+    const hub = $("spotifyMusicHub");
+    if (!hub || !spotifyTokenData()) return;
+    hub.hidden = false;
+    const playlistsBox = $("spotifyPlaylists");
+    const recentBox = $("spotifyRecentTracks");
+    const topBox = $("spotifyTopTracks");
+    if (playlistsBox) playlistsBox.innerHTML = '<div class="spotify-music-empty">Đang tải playlist...</div>';
+    if (recentBox) recentBox.innerHTML = '<div class="spotify-music-empty">Đang tải...</div>';
+    if (topBox) topBox.innerHTML = '<div class="spotify-music-empty">Đang tải...</div>';
+    try {
+        const [playlists, recent, top] = await Promise.all([
+            spotifyApi("/me/playlists?limit=12"),
+            spotifyApi("/me/player/recently-played?limit=8"),
+            spotifyApi("/me/top/tracks?limit=8&time_range=medium_term")
+        ]);
+        if (playlistsBox) {
+            playlistsBox.innerHTML = "";
+            (playlists.items || []).forEach(playlist => {
+                const card = document.createElement("button");
+                card.type = "button";
+                card.className = "spotify-playlist";
+                const image = playlist.images?.[0]?.url || "";
+                card.innerHTML = '<img alt=""><strong></strong><small></small>';
+                card.querySelector("img").src = image;
+                card.querySelector("strong").textContent = playlist.name || "Playlist";
+                card.querySelector("small").textContent = (playlist.tracks?.total || 0) + " bài";
+                card.addEventListener("click", () => spotifyPlayContext(playlist.uri, 0));
+                playlistsBox.appendChild(card);
+            });
+            if (!playlistsBox.children.length) playlistsBox.innerHTML = '<div class="spotify-music-empty">Bà chưa có playlist nào.</div>';
+        }
+        renderSpotifyTrackRows("spotifyRecentTracks", (recent.items || []).map(item => item.track).filter(Boolean), "Chưa có lịch sử nghe gần đây.");
+        renderSpotifyTrackRows("spotifyTopTracks", top.items || [], "Chưa đủ dữ liệu để đề xuất.");
+        setSpotifyStatus("Spotify đã kết nối — sẵn sàng phát nhạc.");
+    } catch (e) {
+        if (playlistsBox) playlistsBox.innerHTML = '<div class="spotify-music-empty">Cần cấp lại quyền Spotify để đọc playlist.</div>';
+        if (recentBox) recentBox.innerHTML = '<div class="spotify-music-empty">Cần cấp lại quyền Spotify.</div>';
+        if (topBox) topBox.innerHTML = '<div class="spotify-music-empty">Cần cấp lại quyền Spotify.</div>';
+        setSpotifyStatus("Cần đăng nhập lại Spotify để cấp quyền playlist và gợi ý.");
+    }
+}
 async function spotifyTogglePlay() {
     try {
         const ready = await ensureSpotifyReady();
@@ -3800,6 +3891,7 @@ async function handleSpotifyCallback() {
         window.history.replaceState({}, "", spotifyRedirectUri());
         await initSpotifyPlayer();
         setSpotifyButtons(true);
+        await spotifyLoadMusicHub();
     } catch (e) {
         setSpotifyStatus(e.message);
         window.history.replaceState({}, "", spotifyRedirectUri());
@@ -3810,6 +3902,7 @@ $("spotifyLoginSmall")?.addEventListener("click", spotifyLogin);
 $("spotifyLoginButton")?.addEventListener("click", spotifyLogin);
 $("spotifyLogoutButton")?.addEventListener("click", spotifyLogout);
 $("spotifySearchButton")?.addEventListener("click", spotifySearch);
+$("spotifyRefreshButton")?.addEventListener("click", spotifyLoadMusicHub);
 $("spotifySearchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") spotifySearch(); });
 $("spotifyPlayButton")?.addEventListener("click", spotifyTogglePlay);
 $("spotifyNextButton")?.addEventListener("click", spotifyNext);
@@ -3826,4 +3919,8 @@ function loadSpotifySettings() {
 }
 loadSpotifySettings();
 handleSpotifyCallback().catch(e => setSpotifyStatus(e.message));
+if (spotifyTokenData()) {
+    initSpotifyPlayer().catch(e => setSpotifyStatus(e.message));
+    spotifyLoadMusicHub().catch(() => {});
+}
 
