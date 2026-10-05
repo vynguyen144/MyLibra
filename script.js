@@ -1135,7 +1135,7 @@ function getRecommendedBooks() {
 function createRecommendationCard(book) {
     const card=document.createElement("article");
     card.className="recommendation-card";
-    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book, false, "cover")+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem thêm →</button></div>';
+    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book, false, "avatar")+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem thêm →</button></div>';
     card.querySelector(".recommendation-cover").addEventListener("click",()=>openBook(book.id));
     card.querySelector(".recommendation-more").addEventListener("click",()=>openBook(book.id));
     return card;
