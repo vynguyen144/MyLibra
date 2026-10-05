@@ -6,6 +6,17 @@ let books = [];
 
 const $ = (id) => document.getElementById(id);
 
+const homePage = $("homePage");
+const homeFeatured = $("homeFeatured");
+const homeRecommendations = $("homeRecommendations");
+const homeReadingGrid = $("homeReadingGrid");
+const homeReadingSection = $("homeReadingSection");
+const homeEmpty = $("homeEmpty");
+const homeTab = $("homeTab");
+const libraryTab = $("libraryTab");
+const homeSeeLibrary = $("homeSeeLibrary");
+const homeAddBookButton = $("homeAddBookButton");
+
 const libraryPage = $("libraryPage");
 const bookDetailPage = $("bookDetailPage");
 const bookDetail = $("bookDetail");
@@ -62,6 +73,19 @@ const settingLineHeight = $("settingLineHeight");
 
 const addBookButton = $("addBookButton");
 const emptyAddBookButton = $("emptyAddBookButton");
+const readingListModal = $("readingListModal");
+const closeReadingListModal = $("closeReadingListModal");
+const cancelReadingList = $("cancelReadingList");
+const saveReadingList = $("saveReadingList");
+const readingListName = $("readingListName");
+const createReadingListButton = $("createReadingListButton");
+const readingListsGrid = $("readingListsGrid");
+const readingListChooserModal = $("readingListChooserModal");
+const closeReadingListChooser = $("closeReadingListChooser");
+const cancelReadingListChooser = $("cancelReadingListChooser");
+const readingListChooser = $("readingListChooser");
+const readingListChooserBookName = $("readingListChooserBookName");
+
 const addBookModal = $("addBookModal");
 const closeAddBook = $("closeAddBook");
 const cancelAddBook = $("cancelAddBook");
@@ -130,6 +154,114 @@ const updateSelectedFile = $("updateSelectedFile");
 const saveUpdatedFile = $("saveUpdatedFile");
 
 let currentBookId = null;
+let currentListChooserBookId = null;
+const READING_LISTS_KEY = "mylibra-reading-lists";
+
+function loadReadingLists() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(READING_LISTS_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) { return []; }
+}
+function saveReadingLists(lists) {
+    localStorage.setItem(READING_LISTS_KEY, JSON.stringify(lists));
+    scheduleDriveManifestSync();
+}
+function getReadingLists() { return loadReadingLists(); }
+function createReadingList(name) {
+    const cleanName = String(name || "").trim();
+    if (!cleanName) return null;
+    const lists = getReadingLists();
+    if (lists.some((list) => normalizeSearchText(list.name) === normalizeSearchText(cleanName))) {
+        throw new Error("Tên danh sách này đã tồn tại.");
+    }
+    const now = Date.now();
+    const list = {id:"list-"+now, name:cleanName, bookIds:[], createdAt:now, updatedAt:now};
+    lists.push(list);
+    saveReadingLists(lists);
+    return list;
+}
+function toggleBookInReadingList(listId, bookId) {
+    const lists = getReadingLists();
+    const list = lists.find((item) => item.id === listId);
+    if (!list) return;
+    list.bookIds = Array.isArray(list.bookIds) ? list.bookIds : [];
+    list.bookIds = list.bookIds.includes(bookId)
+        ? list.bookIds.filter((id) => id !== bookId)
+        : [...list.bookIds, bookId];
+    list.updatedAt = Date.now();
+    saveReadingLists(lists);
+    renderReadingLists();
+    renderReadingListChooser();
+}
+function removeBookFromReadingLists(bookId) {
+    const lists = getReadingLists();
+    let changed = false;
+    lists.forEach((list) => {
+        const next = (list.bookIds || []).filter((id) => id !== bookId);
+        if (next.length !== (list.bookIds || []).length) {
+            list.bookIds = next; list.updatedAt = Date.now(); changed = true;
+        }
+    });
+    if (changed) saveReadingLists(lists);
+}
+function deleteReadingList(listId) {
+    saveReadingLists(getReadingLists().filter((list) => list.id !== listId));
+    renderReadingLists();
+}
+function renderReadingLists() {
+    if (!readingListsGrid) return;
+    const lists = getReadingLists();
+    if (!lists.length) {
+        readingListsGrid.innerHTML = '<div class="reading-list-empty"><span>📑</span><strong>Chưa có danh sách đọc</strong><small>Tạo một danh sách để gom những truyện muốn đọc cùng nhau.</small></div>';
+        return;
+    }
+    readingListsGrid.innerHTML = lists.map((list) => {
+        const listBooks = (list.bookIds || []).map((id) => books.find((book) => book.id === id)).filter(Boolean);
+        const preview = listBooks.slice(0,5).map((book) =>
+            '<button class="reading-list-book" type="button" data-book-id="'+escapeHTML(book.id)+'" title="'+escapeHTML(book.title)+'">'+createCoverMarkup(book)+'</button>'
+        ).join("");
+        return '<article class="reading-list-card"><div class="reading-list-card-head"><div><h3>'+escapeHTML(list.name)+'</h3><span>'+listBooks.length+' truyện</span></div><button class="list-delete-button" type="button" data-list-id="'+escapeHTML(list.id)+'" title="Xóa danh sách">×</button></div><div class="reading-list-preview">'+(preview || '<div class="reading-list-no-books">Chưa có truyện<br><small>Mở một truyện để thêm vào danh sách.</small></div>')+'</div><button class="text-button reading-list-open" type="button" data-list-id="'+escapeHTML(list.id)+'">Xem danh sách →</button></article>';
+    }).join("");
+    readingListsGrid.querySelectorAll(".reading-list-book").forEach((button) => button.addEventListener("click", () => openBook(button.dataset.bookId)));
+    readingListsGrid.querySelectorAll(".list-delete-button").forEach((button) => button.addEventListener("click", () => {
+        const list = getReadingLists().find((item) => item.id === button.dataset.listId);
+        if (list && confirm('Xóa danh sách "'+list.name+'"? Các truyện vẫn được giữ trong thư viện.')) deleteReadingList(list.id);
+    }));
+    readingListsGrid.querySelectorAll(".reading-list-open").forEach((button) => button.addEventListener("click", () => showReadingList(button.dataset.listId)));
+}
+function showReadingList(listId) {
+    const list = getReadingLists().find((item) => item.id === listId);
+    if (!list) return;
+    selectedFilterGenres = []; selectedFilterTags = [];
+    if (searchInput) searchInput.value = "";
+    updateFilterOptions();
+    const listBooks = (list.bookIds || []).map((id) => books.find((book) => book.id === id)).filter(Boolean);
+    setMainTab("library");
+    renderBooks(listBooks);
+    document.querySelector(".reading-lists-section")?.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function renderReadingListChooser() {
+    if (!readingListChooser || !currentListChooserBookId) return;
+    const lists = getReadingLists();
+    if (!lists.length) {
+        readingListChooser.innerHTML = '<div class="reading-list-empty compact"><span>📑</span><strong>Chưa có danh sách</strong><small>Hãy tạo danh sách trước.</small></div>';
+        return;
+    }
+    readingListChooser.innerHTML = lists.map((list) => {
+        const checked = (list.bookIds || []).includes(currentListChooserBookId);
+        return '<button class="reading-list-choice '+(checked?'selected':'')+'" type="button" data-list-id="'+escapeHTML(list.id)+'"><span>'+(checked?'✓':'＋')+'</span><strong>'+escapeHTML(list.name)+'</strong><small>'+((list.bookIds||[]).length)+' truyện</small></button>';
+    }).join("");
+    readingListChooser.querySelectorAll(".reading-list-choice").forEach((button) => button.addEventListener("click", () => toggleBookInReadingList(button.dataset.listId,currentListChooserBookId)));
+}
+function openReadingListChooser(bookId) {
+    const book = books.find((item) => item.id === bookId);
+    if (!book) return;
+    currentListChooserBookId = bookId;
+    if (readingListChooserBookName) readingListChooserBookName.textContent = "Chọn những danh sách muốn thêm “"+book.title+"” vào.";
+    renderReadingListChooser();
+    openModal(readingListChooserModal);
+}
 let updateFileBookId = null;
 let currentRendition = null;
 let currentPdf = null;
@@ -894,14 +1026,30 @@ function getBookIcon(fileType) {
     return "📖";
 }
 
+function setMainTab(tab) {
+    const isHome = tab === "home";
+    homePage.hidden = !isHome;
+    libraryPage.hidden = isHome;
+    homeTab?.classList.toggle("active", isHome);
+    libraryTab?.classList.toggle("active", !isHome);
+}
+function showHome() {
+    bookDetailPage.hidden = true; readerPage.hidden = true; currentBookId = null;
+    setMainTab("home"); renderHome();
+}
 function showLibrary() {
-    libraryPage.hidden = false;
-    bookDetailPage.hidden = true;
-    readerPage.hidden = true;
-    currentBookId = null;
+    bookDetailPage.hidden = true; readerPage.hidden = true; currentBookId = null;
+    setMainTab("library");
+}
+function showBookDetail() {
+    homePage.hidden = true; libraryPage.hidden = true; bookDetailPage.hidden = false; readerPage.hidden = true;
+    homeTab?.classList.remove("active"); libraryTab?.classList.remove("active");
 }
 
-function showBookDetail() {
+function showReader() {
+    homePage.hidden = true; libraryPage.hidden = true; bookDetailPage.hidden = true; readerPage.hidden = false;
+    homeTab?.classList.remove("active"); libraryTab?.classList.remove("active");
+} {
     libraryPage.hidden = true;
     bookDetailPage.hidden = false;
     readerPage.hidden = true;
@@ -919,6 +1067,44 @@ function createCoverMarkup(book, large = false) {
         return '<img class="' + cls + '" src="' + escapeHTML(book.coverDataUrl) + '" alt="">';
     }
     return escapeHTML(book.icon || "📖");
+}
+
+function getFeaturedBook() {
+    const featuredId = localStorage.getItem("mylibra-featured-book");
+    return books.find((book) => book.id === featuredId) ||
+        [...books].sort((a,b) => (b.addedAt||b.updatedAt||0)-(a.addedAt||a.updatedAt||0))[0] || null;
+}
+function getRecommendedBooks() {
+    const featured = getFeaturedBook();
+    return [...books].filter((book) => !featured || book.id !== featured.id).sort((a,b) => {
+        const score = (book) => (Number(book.progress)>0 ? 4 : 0) + getBookGenres(book).length*2 + getBookTags(book).length + Number(book.updatedAt||0)/1e13;
+        return score(b)-score(a);
+    });
+}
+function createRecommendationCard(book) {
+    const card=document.createElement("article");
+    card.className="recommendation-card";
+    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book)+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem truyện →</button></div>';
+    card.querySelector(".recommendation-cover").addEventListener("click",()=>openBook(book.id));
+    card.querySelector(".recommendation-more").addEventListener("click",()=>openBook(book.id));
+    return card;
+}
+function renderHome() {
+    const hasBooks=books.length>0;
+    homeEmpty.hidden=hasBooks;
+    if(!hasBooks){homeFeatured.innerHTML="";homeRecommendations.innerHTML="";homeReadingGrid.innerHTML="";homeReadingSection.hidden=true;return;}
+    const featured=getFeaturedBook();
+    if(featured){
+        homeFeatured.innerHTML='<div class="home-featured-cover">'+createCoverMarkup(featured,true)+'</div><div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><h1>'+escapeHTML(featured.title)+'</h1><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><p class="home-featured-description">'+escapeHTML(featured.description||"Một câu chuyện đang chờ bạn khám phá.")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Tiếp tục đọc":"▶ Bắt đầu đọc"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div>';
+        $("homeFeaturedRead")?.addEventListener("click",()=>featured.file?openReader(featured.id):openBook(featured.id));
+        $("homeFeaturedList")?.addEventListener("click",()=>openReadingListChooser(featured.id));
+    }
+    homeRecommendations.innerHTML="";
+    getRecommendedBooks().slice(0,10).forEach(book=>homeRecommendations.appendChild(createRecommendationCard(book)));
+    const reading=books.filter(book=>Number(book.progress)>0&&Number(book.progress)<100).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
+    homeReadingSection.hidden=!reading.length;
+    homeReadingGrid.innerHTML="";
+    reading.slice(0,4).forEach(book=>homeReadingGrid.appendChild(createBookCard(book)));
 }
 
 function createBookCard(book) {
@@ -1165,6 +1351,8 @@ function renderBooks(bookList = books) {
         bookGrid.appendChild(createBookCard(book));
         allBookGrid.appendChild(createBookCard(book));
     });
+    renderReadingLists();
+    renderHome();
 }
 
 function applyLibraryFilters() {
@@ -1460,6 +1648,7 @@ function openBook(bookId) {
                     ${readLabel}
                 </button>
 
+                <button class="add-button" id="detailListButton" type="button">📑 Danh sách đọc</button>
                 <button class="add-button" id="editBookButton" type="button">
                     ✏️ Chỉnh sửa
                 </button>
@@ -1487,6 +1676,7 @@ function openBook(bookId) {
         openReader(book.id);
     });
 
+    $("detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
     $("editBookButton")?.addEventListener("click", () => openEditBook(book.id));
     $("editEpubButton")?.addEventListener("click", () => openEpubEditor(book.id));
     $("updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
@@ -1509,6 +1699,7 @@ function openBook(bookId) {
             markBookDeleted(book.id, deletedAt, book.driveFileId || "");
             await deleteBookFromDatabase(book.id);
             books = books.filter((item) => item.id !== book.id);
+            removeBookFromReadingLists(book.id);
             removeLocalBookData(book.id);
             localStorage.removeItem("mylibra-epub-cfi-" + book.id);
 
@@ -2840,7 +3031,9 @@ function initializeMyLibra() {
 
             updateFilterOptions();
             renderBooks();
-            showLibrary();
+            renderReadingLists();
+            renderHome();
+            showHome();
             autoConnectGoogleDrive();
         })
         .catch((error) => {
@@ -2851,5 +3044,29 @@ function initializeMyLibra() {
             autoConnectGoogleDrive();
         });
 }
+
+homeTab?.addEventListener("click", showHome);
+libraryTab?.addEventListener("click", showLibrary);
+homeSeeLibrary?.addEventListener("click", showLibrary);
+homeAddBookButton?.addEventListener("click", openAddBookModal);
+
+createReadingListButton?.addEventListener("click", () => {
+    readingListName.value = "";
+    openModal(readingListModal);
+    setTimeout(() => readingListName?.focus(), 50);
+});
+closeReadingListModal?.addEventListener("click", () => closeModal(readingListModal));
+cancelReadingList?.addEventListener("click", () => closeModal(readingListModal));
+readingListModal?.addEventListener("click", (event) => { if (event.target === readingListModal) closeModal(readingListModal); });
+saveReadingList?.addEventListener("click", () => {
+    try {
+        const list=createReadingList(readingListName.value);
+        if(!list){alert("Hãy nhập tên danh sách.");return;}
+        closeModal(readingListModal); renderReadingLists();
+    } catch(error){alert(error.message||"Không thể tạo danh sách.");}
+});
+closeReadingListChooser?.addEventListener("click", () => closeModal(readingListChooserModal));
+cancelReadingListChooser?.addEventListener("click", () => closeModal(readingListChooserModal));
+readingListChooserModal?.addEventListener("click", (event) => { if (event.target === readingListChooserModal) closeModal(readingListChooserModal); });
 
 initializeMyLibra();
