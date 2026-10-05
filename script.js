@@ -1451,21 +1451,22 @@ searchInput?.addEventListener("input", applyLibraryFilters);
 clearFilters?.addEventListener("click", clearAllFilters);
 
 function applyTheme(theme, markChanged = true) {
-    const normalized = ["light", "dark", "sepia"].includes(theme) ? theme : "light";
+    const normalized = ["light", "dark", "sepia", "pink"].includes(theme) ? theme : "light";
     document.body.classList.toggle("dark-mode", normalized === "dark");
     document.body.classList.toggle("sepia-mode", normalized === "sepia");
+    document.body.classList.toggle("pink-mode", normalized === "pink");
     localStorage.setItem("mylibra-theme", normalized);
     if (markChanged) {
         markCloudSettingsChanged();
         scheduleDriveManifestSync();
     }
-    if (themeButton) themeButton.textContent = normalized === "dark" ? "☀️" : "🌙";
+    if (themeButton) themeButton.textContent = normalized === "dark" ? "☀️" : normalized === "pink" ? "🐾" : "🌙";
     document.querySelectorAll(".theme-option").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === normalized));
 }
 
 themeButton?.addEventListener("click", () => {
     const current = localStorage.getItem("mylibra-theme") || "light";
-    applyTheme(current === "dark" ? "light" : "dark");
+    applyTheme(current === "dark" ? "light" : current === "light" ? "dark" : "light");
 });
 
 homeButton?.addEventListener("click", () => {
