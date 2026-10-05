@@ -18,7 +18,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261005-8"
+        href="style.css?v=20261005-9"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -258,18 +258,11 @@
                 <input type="file" id="bookFile" accept=".epub,.pdf,.txt,application/epub+zip,application/pdf,text/plain">
             </label>
             <div class="selected-file" id="selectedFile" hidden></div>
-            <div class="book-image-upload-grid">
-                <label class="image-upload-field">
-                    <span>🖼️ Ảnh đại diện</span>
-                    <small>Ảnh nhỏ dùng trong Thư viện.</small>
-                    <input type="file" id="addAvatar" accept="image/*">
-                </label>
-                <label class="image-upload-field">
-                    <span>🎨 Ảnh bìa</span>
-                    <small>Ảnh dọc dài dùng cho Trang chủ & Đề cử.</small>
-                    <input type="file" id="addCover" accept="image/*">
-                </label>
-            </div>
+            <label class="image-upload-field single-cover-upload">
+                <span>🎨 Ảnh bìa</span>
+                <small>Ảnh dùng cho Trang chủ, Đề cử và Thư viện.</small>
+                <input type="file" id="addCover" accept="image/*">
+            </label>
             <div class="book-form add-book-meta">
                 <label>Thể loại
                     <div class="chip-picker" id="addGenrePicker">
@@ -328,18 +321,11 @@
                     </div>
                 </label>
                 <label>Mô tả<textarea id="editDescription" rows="5" placeholder="Mô tả truyện..."></textarea></label>
-                <div class="book-image-upload-grid">
-                    <label class="image-upload-field">
-                        <span>🖼️ Ảnh đại diện</span>
-                        <small>Ảnh nhỏ dùng trong Thư viện.</small>
-                        <input type="file" id="editAvatar" accept="image/*">
-                    </label>
-                    <label class="image-upload-field">
-                        <span>🎨 Ảnh bìa</span>
-                        <small>Ảnh dọc dài dùng cho Trang chủ & Đề cử.</small>
-                        <input type="file" id="editCover" accept="image/*">
-                    </label>
-                </div>
+                <label class="image-upload-field single-cover-upload">
+                    <span>🎨 Ảnh bìa</span>
+                    <small>Ảnh dùng cho Trang chủ, Đề cử và Thư viện.</small>
+                    <input type="file" id="editCover" accept="image/*">
+                </label>
                 <div class="modal-actions">
                     <button class="add-button" id="cancelEditBook" type="button">Hủy</button>
                     <button class="primary-button" id="saveEditBook" type="button">Lưu thay đổi</button>
@@ -453,7 +439,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261005-15"></script>
+    <script src="script.js?v=20261005-16"></script>
 </body>
 
 </html>
