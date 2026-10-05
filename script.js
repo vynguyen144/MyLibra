@@ -3479,3 +3479,320 @@ $("settingPetSpeech")?.addEventListener("change", (e) => localStorage.setItem("m
 
 applyVirtualPetSettings(true);
 
+/* =========================================================
+   SPOTIFY VINYL PLAYER — PKCE + Web Playback SDK
+========================================================= */
+const spotifyScopes = [
+    "streaming",
+    "user-read-email",
+    "user-read-private",
+    "user-read-playback-state",
+    "user-modify-playback-state"
+].join(" ");
+
+function spotifyRedirectUri() {
+    return window.location.origin + window.location.pathname;
+}
+function randomString(length = 64) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const values = new Uint8Array(length);
+    crypto.getRandomValues(values);
+    return Array.from(values, v => chars[v % chars.length]).join("");
+}
+async function sha256Base64Url(value) {
+    const data = new TextEncoder().encode(value);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return btoa(String.fromCharCode(...new Uint8Array(hash)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function spotifyClientId() {
+    return localStorage.getItem("mylibra-spotify-client-id")?.trim() || "";
+}
+function spotifyTokenData() {
+    try { return JSON.parse(localStorage.getItem("mylibra-spotify-token") || "null"); } catch (_) { return null; }
+}
+function setSpotifyStatus(text) {
+    const a = $("spotifyStatus"), b = $("spotifySettingsStatus");
+    if (a) a.textContent = text;
+    if (b) b.textContent = text;
+}
+function setSpotifyButtons(connected) {
+    const login = $("spotifyLoginButton"), small = $("spotifyLoginSmall"), logout = $("spotifyLogoutButton");
+    if (login) login.textContent = connected ? "Spotify đã kết nối" : "Đăng nhập Spotify";
+    if (small) small.textContent = connected ? "Đã kết nối" : "Kết nối Spotify";
+    if (logout) logout.disabled = !connected;
+}
+async function spotifyLogin() {
+    const clientId = spotifyClientId();
+    if (!clientId) {
+        setSpotifyStatus("Bà nhập Spotify Client ID trong Cài đặt → Spotify trước nha.");
+        return;
+    }
+    const verifier = randomString(96);
+    const challenge = await sha256Base64Url(verifier);
+    localStorage.setItem("mylibra-spotify-verifier", verifier);
+    const params = new URLSearchParams({
+        client_id: clientId,
+        response_type: "code",
+        redirect_uri: spotifyRedirectUri(),
+        scope: spotifyScopes,
+        code_challenge_method: "S256",
+        code_challenge: challenge
+    });
+    window.location.href = "https://accounts.spotify.com/authorize?" + params.toString();
+}
+async function spotifyExchangeCode(code) {
+    const verifier = localStorage.getItem("mylibra-spotify-verifier");
+    const clientId = spotifyClientId();
+    if (!verifier || !clientId) throw new Error("Thiếu PKCE verifier hoặc Client ID.");
+    const body = new URLSearchParams({
+        client_id: clientId,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: spotifyRedirectUri(),
+        code_verifier: verifier
+    });
+    const res = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+        body
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.error || "Không lấy được token Spotify.");
+    localStorage.setItem("mylibra-spotify-token", JSON.stringify({
+        access_token:data.access_token,
+        refresh_token:data.refresh_token,
+        expires_at:Date.now() + Number(data.expires_in || 3600) * 1000
+    }));
+    localStorage.removeItem("mylibra-spotify-verifier");
+    return data.access_token;
+}
+async function spotifyRefreshToken() {
+    const token = spotifyTokenData();
+    const clientId = spotifyClientId();
+    if (!token?.refresh_token || !clientId) throw new Error("Phiên Spotify không còn hợp lệ.");
+    const body = new URLSearchParams({
+        client_id: clientId,
+        grant_type: "refresh_token",
+        refresh_token: token.refresh_token
+    });
+    const res = await fetch("https://accounts.spotify.com/api/token", {
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || "Không thể làm mới Spotify.");
+    const next = {
+        ...token,
+        access_token:data.access_token,
+        expires_at:Date.now() + Number(data.expires_in || 3600) * 1000
+    };
+    if (data.refresh_token) next.refresh_token = data.refresh_token;
+    localStorage.setItem("mylibra-spotify-token", JSON.stringify(next));
+    return next.access_token;
+}
+async function spotifyAccessToken() {
+    const token = spotifyTokenData();
+    if (!token) throw new Error("Chưa đăng nhập Spotify.");
+    if (token.expires_at && Date.now() < token.expires_at - 60000) return token.access_token;
+    return spotifyRefreshToken();
+}
+async function spotifyApi(path, options = {}, retry = true) {
+    let token = await spotifyAccessToken();
+    const headers = {...(options.headers || {}), Authorization:"Bearer " + token};
+    const res = await fetch("https://api.spotify.com/v1" + path, {...options, headers});
+    if (res.status === 401 && retry) {
+        token = await spotifyRefreshToken();
+        return spotifyApi(path, options, false);
+    }
+    if (!res.ok) {
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        throw new Error(data?.error?.message || "Spotify API lỗi " + res.status);
+    }
+    return res.status === 204 ? null : res.json();
+}
+
+let spotifyPlayer = null;
+let spotifyDeviceId = null;
+let spotifySdkPromise = null;
+
+function loadSpotifySdk() {
+    if (window.Spotify) return Promise.resolve();
+    if (spotifySdkPromise) return spotifySdkPromise;
+    spotifySdkPromise = new Promise((resolve, reject) => {
+        const previous = window.onSpotifyWebPlaybackSDKReady;
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            previous?.();
+            resolve();
+        };
+        const script = document.createElement("script");
+        script.src = "https://sdk.scdn.co/spotify-player.js";
+        script.async = true;
+        script.onerror = () => reject(new Error("Không tải được Spotify Web Playback SDK."));
+        document.head.appendChild(script);
+    });
+    return spotifySdkPromise;
+}
+async function initSpotifyPlayer() {
+    if (spotifyPlayer) return spotifyPlayer;
+    await loadSpotifySdk();
+    spotifyPlayer = new Spotify.Player({
+        name:"MyLibra Vinyl Player",
+        volume:0.65,
+        getOAuthToken: async cb => {
+            try { cb(await spotifyAccessToken()); } catch (_) { cb(""); }
+        },
+        enableMediaSession:true
+    });
+    spotifyPlayer.addListener("ready", ({device_id}) => {
+        spotifyDeviceId = device_id;
+        setSpotifyStatus("Spotify đã kết nối — sẵn sàng phát nhạc.");
+    });
+    spotifyPlayer.addListener("not_ready", () => {
+        spotifyDeviceId = null;
+        setSpotifyStatus("Thiết bị MyLibra đang ngoại tuyến.");
+    });
+    spotifyPlayer.addListener("player_state_changed", state => {
+        const disc = $("vinylDisc"), play = $("spotifyPlayButton");
+        if (!state) return;
+        const track = state.track_window?.current_track;
+        if (track) {
+            $("spotifyTrackName").textContent = track.name || "Không rõ tên bài";
+            $("spotifyTrackArtist").textContent = (track.artists || []).map(a => a.name).join(", ");
+        }
+        const playing = !state.paused;
+        disc?.classList.toggle("spinning", playing);
+        if (play) play.textContent = playing ? "⏸" : "▶";
+    });
+    spotifyPlayer.addListener("initialization_error", ({message}) => setSpotifyStatus("Spotify: " + message));
+    spotifyPlayer.addListener("authentication_error", ({message}) => setSpotifyStatus("Spotify xác thực lỗi: " + message));
+    spotifyPlayer.addListener("account_error", () => setSpotifyStatus("Cần Spotify Premium để phát nhạc trong MyLibra."));
+    spotifyPlayer.addListener("playback_error", ({message}) => setSpotifyStatus("Không phát được bài này: " + message));
+    spotifyPlayer.addListener("autoplay_failed", () => setSpotifyStatus("Bà bấm Play lại một lần để trình duyệt cho phép phát nhạc."));
+    await spotifyPlayer.connect();
+    return spotifyPlayer;
+}
+async function ensureSpotifyReady() {
+    if (!spotifyTokenData()) {
+        await spotifyLogin();
+        return false;
+    }
+    await initSpotifyPlayer();
+    if (!spotifyDeviceId) await new Promise(resolve => setTimeout(resolve, 500));
+    return Boolean(spotifyDeviceId);
+}
+async function transferToMyLibra() {
+    if (!spotifyDeviceId) return;
+    await spotifyApi("/me/player", {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({device_ids:[spotifyDeviceId], play:false})
+    });
+}
+async function spotifyPlayUri(uri) {
+    const ready = await ensureSpotifyReady();
+    if (!ready) return;
+    await transferToMyLibra();
+    await spotifyApi("/me/player/play", {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({uris:[uri]})
+    });
+}
+async function spotifySearch() {
+    const input = $("spotifySearchInput");
+    const box = $("spotifySearchResults");
+    const q = input?.value.trim();
+    if (!q || !box) return;
+    box.innerHTML = '<div class="vinyl-status">Đang tìm...</div>';
+    try {
+        if (!spotifyTokenData()) { await spotifyLogin(); return; }
+        const data = await spotifyApi("/search?type=track&limit=8&q=" + encodeURIComponent(q));
+        box.innerHTML = "";
+        for (const track of data.tracks?.items || []) {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "vinyl-result";
+            row.innerHTML = '<img src="' + (track.album?.images?.[2]?.url || track.album?.images?.[0]?.url || "") + '" alt=""><span><strong></strong><small></small></span>';
+            row.querySelector("strong").textContent = track.name;
+            row.querySelector("small").textContent = (track.artists || []).map(a => a.name).join(", ");
+            row.addEventListener("click", () => spotifyPlayUri(track.uri).catch(e => setSpotifyStatus(e.message)));
+            box.appendChild(row);
+        }
+        if (!box.children.length) box.innerHTML = '<div class="vinyl-status">Không tìm thấy bài nào.</div>';
+    } catch (e) {
+        setSpotifyStatus(e.message);
+    }
+}
+async function spotifyTogglePlay() {
+    try {
+        const ready = await ensureSpotifyReady();
+        if (!ready) return;
+        const state = await spotifyPlayer.getCurrentState();
+        if (state?.paused) await spotifyPlayer.resume();
+        else await spotifyPlayer.pause();
+    } catch (e) { setSpotifyStatus(e.message); }
+}
+async function spotifyNext() {
+    try { await spotifyApi("/me/player/next",{method:"POST"}); } catch(e){setSpotifyStatus(e.message);}
+}
+async function spotifyPrev() {
+    try { await spotifyApi("/me/player/previous",{method:"POST"}); } catch(e){setSpotifyStatus(e.message);}
+}
+function spotifyLogout() {
+    spotifyPlayer?.disconnect();
+    spotifyPlayer = null;
+    spotifyDeviceId = null;
+    localStorage.removeItem("mylibra-spotify-token");
+    localStorage.removeItem("mylibra-spotify-verifier");
+    setSpotifyButtons(false);
+    setSpotifyStatus("Đã đăng xuất Spotify.");
+    $("spotifyTrackName").textContent = "Chưa kết nối Spotify";
+    $("spotifyTrackArtist").textContent = "Đăng nhập để phát nhạc";
+    $("vinylDisc")?.classList.remove("spinning");
+}
+async function handleSpotifyCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    if (error) {
+        setSpotifyStatus("Spotify: " + error);
+        window.history.replaceState({}, "", spotifyRedirectUri());
+        return;
+    }
+    if (!code) return;
+    try {
+        setSpotifyStatus("Đang hoàn tất đăng nhập Spotify...");
+        await spotifyExchangeCode(code);
+        window.history.replaceState({}, "", spotifyRedirectUri());
+        await initSpotifyPlayer();
+        setSpotifyButtons(true);
+    } catch (e) {
+        setSpotifyStatus(e.message);
+        window.history.replaceState({}, "", spotifyRedirectUri());
+    }
+}
+$("vinylToggle")?.addEventListener("click", () => $("vinylPlayer")?.classList.toggle("open"));
+$("spotifyLoginSmall")?.addEventListener("click", spotifyLogin);
+$("spotifyLoginButton")?.addEventListener("click", spotifyLogin);
+$("spotifyLogoutButton")?.addEventListener("click", spotifyLogout);
+$("spotifySearchButton")?.addEventListener("click", spotifySearch);
+$("spotifySearchInput")?.addEventListener("keydown", e => { if (e.key === "Enter") spotifySearch(); });
+$("spotifyPlayButton")?.addEventListener("click", spotifyTogglePlay);
+$("spotifyNextButton")?.addEventListener("click", spotifyNext);
+$("spotifyPrevButton")?.addEventListener("click", spotifyPrev);
+$("settingSpotifyClientId")?.addEventListener("change", e => {
+    localStorage.setItem("mylibra-spotify-client-id", e.target.value.trim());
+    setSpotifyStatus("Đã lưu Spotify Client ID.");
+});
+function loadSpotifySettings() {
+    const input = $("settingSpotifyClientId");
+    if (input) input.value = spotifyClientId();
+    const connected = Boolean(spotifyTokenData());
+    setSpotifyButtons(connected);
+}
+loadSpotifySettings();
+handleSpotifyCallback().catch(e => setSpotifyStatus(e.message));
+
