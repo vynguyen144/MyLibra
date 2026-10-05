@@ -519,6 +519,7 @@ function getCloudSettings() {
     return {
         theme: localStorage.getItem("mylibra-theme") || "light",
         featuredBookId: localStorage.getItem("mylibra-featured-book") || "",
+        featuredBookIds: getFeaturedBookIds(),
         showReading: localStorage.getItem("mylibra-show-reading") !== "false",
         sort: localStorage.getItem("mylibra-sort") || "added",
         confirmDelete: localStorage.getItem("mylibra-confirm-delete") !== "false",
@@ -560,7 +561,8 @@ function markCloudPositionsChanged() {
 function applyCloudSettings(settings) {
     if (!settings || typeof settings !== "object") return;
     if (settings.theme) applyTheme(settings.theme, false);
-    if (settings.featuredBookId) localStorage.setItem("mylibra-featured-book", settings.featuredBookId);
+    if (Array.isArray(settings.featuredBookIds)) saveFeaturedBookIds(settings.featuredBookIds);
+    else if (settings.featuredBookId) saveFeaturedBookIds([settings.featuredBookId]);
     if (settings.showReading !== undefined) localStorage.setItem("mylibra-show-reading", String(settings.showReading));
     if (settings.sort) localStorage.setItem("mylibra-sort", settings.sort);
     if (settings.confirmDelete !== undefined) localStorage.setItem("mylibra-confirm-delete", String(settings.confirmDelete));
@@ -1934,7 +1936,7 @@ function openBook(bookId) {
                 </button>
 
                 <button class="add-button" id="detailListButton" type="button">📑 Danh sách đọc</button>
-                <button class="add-button" id="detailFeaturedButton" type="button">⭐ Đặt nổi bật</button>
+                <button class="add-button" id="detailFeaturedButton" type="button">${getFeaturedBookIds().includes(book.id) ? "⭐ Bỏ nổi bật" : "⭐ Đặt nổi bật"}</button>
                 <button class="add-button" id="editBookButton" type="button">
                     ✏️ Chỉnh sửa
                 </button>
