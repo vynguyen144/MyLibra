@@ -1144,7 +1144,7 @@ function renderHome() {
     if(!hasBooks){homeFeatured.innerHTML="";homeRecommendations.innerHTML="";homeReadingGrid.innerHTML="";homeReadingSection.hidden=true;return;}
     const featured=getFeaturedBook();
     if(featured){
-        homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Tiếp tục đọc":"▶ Bắt đầu đọc"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true)+'</div>';
+        homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true)+'</div>';
         $("homeFeaturedRead")?.addEventListener("click",()=>featured.file?openReader(featured.id):openBook(featured.id));
         $("homeFeaturedList")?.addEventListener("click",()=>openReadingListChooser(featured.id));
     }
@@ -1722,6 +1722,7 @@ function openBook(bookId) {
     `;
 
     showBookDetail();
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     $("detailReadButton")?.addEventListener("click", () => {
         if (!book.file) {
@@ -2026,6 +2027,7 @@ async function openReader(bookId) {
     currentBookId = bookId;
     readerTitle.textContent = book.title;
     showReader();
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setReaderMode(readerMode, false);
 
     if (currentRendition) {
