@@ -3333,3 +3333,22 @@ cancelReadingListChooser?.addEventListener("click", () => closeModal(readingList
 readingListChooserModal?.addEventListener("click", (event) => { if (event.target === readingListChooserModal) closeModal(readingListChooserModal); });
 
 initializeMyLibra();
+
+/* =========================================================
+   PIXEL CAT INTERACTION
+========================================================= */
+const virtualPetCat = document.getElementById("virtualPetCat");
+const virtualPetBubble = document.getElementById("virtualPetBubble");
+
+virtualPetCat?.addEventListener("click", () => {
+    virtualPetCat.classList.remove("pet-jump");
+    void virtualPetCat.offsetWidth;
+    virtualPetCat.classList.add("pet-jump");
+    if (virtualPetBubble) {
+        const messages = ["meo~ 🐾", "nya~ ✨", "đi dạo nè!", "🐟 đâu rồi ta?", "ôm tui hong?"];
+        virtualPetBubble.textContent = messages[Math.floor(Math.random() * messages.length)];
+    }
+    virtualPetCat.classList.add("pet-show-bubble");
+    window.setTimeout(() => virtualPetCat.classList.remove("pet-show-bubble"), 1400);
+});
+
