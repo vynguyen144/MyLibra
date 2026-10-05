@@ -3413,10 +3413,23 @@ $("settingPetGhost")?.addEventListener("change", () => {
 });
 $("settingPetEnabled")?.addEventListener("change", (e) => {
     localStorage.setItem("mylibra-pet-enabled", String(e.target.checked));
-    applyVirtualPetSettings(e.target.checked);
+    if (e.target.checked) {
+        applyVirtualPetSettings(true);
+    } else if (virtualPetCat) {
+        const effects = localStorage.getItem("mylibra-pet-effects") !== "false";
+        if (effects && localStorage.getItem("mylibra-pet") === "ghost") {
+            virtualPetCat.classList.add("pet-dissolving");
+            window.setTimeout(() => {
+                virtualPetCat.hidden = true;
+                virtualPetCat.classList.remove("pet-dissolving");
+            }, 850);
+        } else {
+            virtualPetCat.hidden = true;
+        }
+    }
 });
 $("settingPetEffects")?.addEventListener("change", (e) => localStorage.setItem("mylibra-pet-effects", String(e.target.checked)));
 $("settingPetSpeech")?.addEventListener("change", (e) => localStorage.setItem("mylibra-pet-speech", String(e.target.checked)));
 
-applyVirtualPetSettings(false);
+applyVirtualPetSettings(true);
 
