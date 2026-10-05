@@ -2890,3 +2890,33 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 .recommendation-more{margin-top:7px;display:inline-block}
 @media(max-width:900px){.recommendation-info{width:160px}}
 @media(max-width:700px){.recommendation-info{width:140px}.recommendation-description{-webkit-line-clamp:3;line-clamp:3;max-height:4.35em}}
+
+
+/* Give the featured panel and recommendation cards enough contrast from the page background. */
+.home-hero{
+    border:1px solid rgba(112,86,170,.14)!important;
+    box-shadow:0 12px 34px rgba(52,38,82,.12),0 2px 8px rgba(52,38,82,.07)!important;
+}
+.recommendation-card{
+    background:var(--surface,#fff)!important;
+    border:1px solid rgba(112,86,170,.14)!important;
+    border-radius:16px!important;
+    padding:10px!important;
+    box-shadow:0 7px 20px rgba(52,38,82,.10),0 2px 6px rgba(52,38,82,.06)!important;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;
+}
+.recommendation-card:hover{
+    transform:translateY(-3px)!important;
+    border-color:rgba(112,86,170,.25)!important;
+    box-shadow:0 13px 28px rgba(52,38,82,.15),0 3px 8px rgba(52,38,82,.08)!important;
+}
+.recommendation-cover{
+    border:1px solid rgba(72,52,100,.18)!important;
+    box-shadow:0 3px 10px rgba(30,24,45,.12)!important;
+}
+.recommendation-info{
+    padding:3px 2px 5px!important;
+}
+@media(max-width:700px){
+    .recommendation-card{padding:8px!important;border-radius:14px!important}
+}
