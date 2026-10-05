@@ -3350,5 +3350,6 @@ virtualPetCat?.addEventListener("click", () => {
     }
     virtualPetCat.classList.add("pet-show-bubble");
     window.setTimeout(() => virtualPetCat.classList.remove("pet-show-bubble"), 1400);
+    window.setTimeout(() => virtualPetCat.classList.remove("pet-jump"), 750);
 });
 
