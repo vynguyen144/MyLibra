@@ -115,7 +115,9 @@ const editTitle = $("editTitle");
 const editAuthor = $("editAuthor");
 const editDescription = $("editDescription");
 const editCover = $("editCover");
+const editAvatar = $("editAvatar");
 const addCover = $("addCover");
+const addAvatar = $("addAvatar");
 
 const pdfToolbar = $("pdfToolbar");
 const pdfPrev = $("pdfPrev");
@@ -584,8 +586,9 @@ function getBookCloudMetadata(book) {
         icon: book.icon || "📖",
         fileName: book.fileName || "",
         fileType: book.fileType || "",
-        imageDataVersion: 2,
+        imageDataVersion: 4,
         coverDataUrl: book.coverDataUrl || "",
+        avatarDataUrl: book.avatarDataUrl || "",
         driveFileId: book.driveFileId || "",
         fileUpdatedAt: Number(book.fileUpdatedAt) || 0,
         driveFileUpdatedAt: Number(book.driveFileUpdatedAt) || 0,
@@ -1097,18 +1100,22 @@ function showReader() {
 
 function normalizeBookImages(book) {
     if (!book || typeof book !== "object") return book;
-    if (!book.coverDataUrl && book.avatarDataUrl) book.coverDataUrl = book.avatarDataUrl;
+
+    // Trước đây MyLibra chỉ có một ảnh và dùng nó cho mọi nơi.
+    // Giữ ảnh cũ cho Trang chủ và dùng làm avatar mặc định để không mất ảnh
+    // của các truyện đã lưu trước khi có hai loại ảnh riêng.
     book.coverDataUrl = book.coverDataUrl || "";
-    book.imageDataVersion = 3;
-    delete book.avatarDataUrl;
+    book.avatarDataUrl = book.avatarDataUrl || book.coverDataUrl || "";
+    book.imageDataVersion = 4;
     return book;
 }
 
-function createCoverMarkup(book, large = false) {
+function createCoverMarkup(book, large = false, imageType = "avatar") {
     normalizeBookImages(book);
     const cls = large ? "book-cover-image-large" : "book-cover-image";
-    if (book.coverDataUrl) {
-        return '<img class="' + cls + '" src="' + escapeHTML(book.coverDataUrl) + '" alt="">';
+    const imageData = imageType === "cover" ? book.coverDataUrl : book.avatarDataUrl;
+    if (imageData) {
+        return '<img class="' + cls + '" src="' + escapeHTML(imageData) + '" alt="">';
     }
     return '<span class="cover-fallback" aria-hidden="true">' + escapeHTML(book.icon || "📖") + '</span>';
 }
@@ -1128,7 +1135,7 @@ function getRecommendedBooks() {
 function createRecommendationCard(book) {
     const card=document.createElement("article");
     card.className="recommendation-card";
-    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book)+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem thêm →</button></div>';
+    card.innerHTML='<button class="recommendation-cover" type="button">'+createCoverMarkup(book, false, "cover")+'</button><div class="recommendation-info"><h3>'+escapeHTML(book.title)+'</h3><p class="recommendation-author">'+escapeHTML(book.author||"Không rõ tác giả")+'</p><div class="recommendation-description">'+escapeHTML(book.description||"Chưa có mô tả.")+'</div><button class="text-button recommendation-more" type="button">Xem thêm →</button></div>';
     card.querySelector(".recommendation-cover").addEventListener("click",()=>openBook(book.id));
     card.querySelector(".recommendation-more").addEventListener("click",()=>openBook(book.id));
     return card;
@@ -1139,7 +1146,7 @@ function renderHome() {
     if(!hasBooks){homeFeatured.innerHTML="";homeRecommendations.innerHTML="";homeReadingGrid.innerHTML="";homeReadingSection.hidden=true;return;}
     const featured=getFeaturedBook();
     if(featured){
-        homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true)+'</div>';
+        homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true,"cover")+'</div>';
         $("homeFeaturedRead")?.addEventListener("click", async () => {
             if (featured.file) {
                 await openReader(featured.id);
@@ -1154,15 +1161,15 @@ function renderHome() {
     const reading=books.filter(book=>Number(book.progress)>0&&Number(book.progress)<100).sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
     homeReadingSection.hidden=!reading.length;
     homeReadingGrid.innerHTML="";
-    reading.slice(0,4).forEach(book=>homeReadingGrid.appendChild(createBookCard(book)));
+    reading.slice(0,4).forEach(book=>homeReadingGrid.appendChild(createBookCard(book, "cover")));
 }
 
-function createBookCard(book) {
+function createBookCard(book, imageType = "avatar") {
     const card = document.createElement("div");
     card.className = "book-card";
     card.innerHTML = `
         <div class="book-cover">
-            ${createCoverMarkup(book)}
+            ${createCoverMarkup(book, false, imageType)}
         </div>
         <div class="book-info">
             <h3>${escapeHTML(book.title)}</h3>
@@ -1507,6 +1514,13 @@ function closeModal(modal) {
 
 function resetAddModal() {
     if (bookFileInput) bookFileInput.value = "";
+    if (addCover) addCover.value = "";
+    if (addAvatar) addAvatar.value = "";
+    addGenres = [];
+    addTags = [];
+    renderSelectedChips(addGenreChips, addGenres, "genre");
+    renderSelectedChips(addTagChips, addTags, "tag");
+    refreshAddPickerMenus();
     if (selectedFile) {
         selectedFile.hidden = true;
         selectedFile.textContent = "";
@@ -1619,12 +1633,14 @@ confirmAddBook?.addEventListener("click", async () => {
         fileType: type,
         file: file,
         fileUpdatedAt: Date.now(),
-        imageDataVersion: 2,
-        coverDataUrl: ""
+        imageDataVersion: 4,
+        coverDataUrl: "",
+        avatarDataUrl: ""
     };
 
     try {
         if (addCover?.files[0]) newBook.coverDataUrl = await readFileAsDataUrl(addCover.files[0]);
+        if (addAvatar?.files[0]) newBook.avatarDataUrl = await readFileAsDataUrl(addAvatar.files[0]);
         await saveBookToDatabase(newBook);
         books.push(newBook);
         if (googleDriveAccessToken) {
@@ -1667,7 +1683,7 @@ function openBook(bookId) {
     bookDetail.innerHTML = `
         <div class="book-detail-cover">
             <div class="book-cover-large">
-                ${createCoverMarkup(book, true)}
+                ${createCoverMarkup(book, true, "avatar")}
             </div>
         </div>
 
@@ -1835,9 +1851,10 @@ saveEditBook?.addEventListener("click", async () => {
     book.description = editDescription.value.trim();
 
     normalizeBookImages(book);
-    book.imageDataVersion = 2;
+    book.imageDataVersion = 4;
     try {
         if (editCover.files[0]) book.coverDataUrl = await readFileAsDataUrl(editCover.files[0]);
+        if (editAvatar.files[0]) book.avatarDataUrl = await readFileAsDataUrl(editAvatar.files[0]);
     } catch (error) {
         console.error(error);
         alert("Không thể đọc ảnh. Hãy thử lại với ảnh khác.");
