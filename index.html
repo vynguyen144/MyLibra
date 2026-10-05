@@ -19,7 +19,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261005-32"
+        href="style.css?v=20261005-33"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -91,6 +91,28 @@
             </button>
             <button type="button" id="settingsButton" aria-label="Cài đặt MyLibra" title="Cài đặt MyLibra">⚙️</button>
         </div>
+    
+    <div class="vinyl-player" id="vinylPlayer">
+        <button class="vinyl-toggle" id="vinylToggle" type="button" aria-label="Mở máy phát nhạc" title="Mở / đóng máy phát nhạc">◈</button>
+        <div class="vinyl-drawer" id="vinylDrawer">
+            <div class="vinyl-header"><strong>🎵 MyLibra Music</strong><button id="spotifyLoginSmall" type="button">Kết nối Spotify</button></div>
+            <div class="vinyl-disc-wrap">
+                <div class="vinyl-disc" id="vinylDisc"><div class="vinyl-label"></div><div class="vinyl-hole"></div></div>
+                <div class="tonearm"><span class="tonearm-base"></span><span class="tonearm-arm"></span><span class="tonearm-head"></span></div>
+            </div>
+            <div class="vinyl-track" id="spotifyTrackName">Chưa kết nối Spotify</div>
+            <div class="vinyl-artist" id="spotifyTrackArtist">Đăng nhập để phát nhạc</div>
+            <div class="vinyl-search"><input id="spotifySearchInput" type="text" placeholder="Tìm bài hát trên Spotify..."><button id="spotifySearchButton" type="button">🔎</button></div>
+            <div class="vinyl-results" id="spotifySearchResults"></div>
+            <div class="vinyl-controls">
+                <button id="spotifyPrevButton" type="button" title="Bài trước">⏮</button>
+                <button id="spotifyPlayButton" class="vinyl-play" type="button" title="Phát / dừng">▶</button>
+                <button id="spotifyNextButton" type="button" title="Bài sau">⏭</button>
+            </div>
+            <div class="vinyl-status" id="spotifyStatus">Chưa kết nối</div>
+        </div>
+    </div>
+
     </header>
 
     <main class="container home-page" id="homePage">
@@ -417,6 +439,7 @@
                 <button class="settings-tab" data-settings-tab="reader" type="button">📖 Chế độ đọc</button>
                 <button class="settings-tab" data-settings-tab="theme" type="button">🎨 Theme</button>
                 <button class="settings-tab" data-settings-tab="pet" type="button">🐾 Pet</button>
+                <button class="settings-tab" data-settings-tab="spotify" type="button">🎵 Spotify</button>
                 <button class="settings-tab" data-settings-tab="account" type="button">👤 Tài khoản</button>
             </div>
             <section class="settings-panel active" data-settings-panel="library">
@@ -440,7 +463,15 @@
                     <button class="theme-option" data-theme-choice="pink" type="button">🐾<strong>Hồng phấn mèo</strong><small>Pastel cute, chủ đề mèo</small></button>
                 </div>
             </section>
-            <section class="settings-panel" data-settings-panel="pet">
+            <section class="settings-panel" data-settings-panel="spotify">
+    <h3>🎵 Spotify</h3>
+    <p class="settings-note">Kết nối Spotify để phát nhạc trực tiếp trong MyLibra. Không cần Client Secret.</p>
+    <label class="settings-field"><span>Spotify Client ID</span><input id="settingSpotifyClientId" type="text" placeholder="Dán Client ID của Spotify Developer App"></label>
+    <div class="settings-actions-inline"><button class="primary-button" id="spotifyLoginButton" type="button">Đăng nhập Spotify</button><button class="secondary-button" id="spotifyLogoutButton" type="button">Đăng xuất</button></div>
+    <p class="settings-note" id="spotifySettingsStatus">Chưa kết nối.</p>
+    <p class="settings-note">MyLibra lưu phiên đăng nhập trên trình duyệt và tự làm mới access token khi cần. Refresh token của Spotify hiện có vòng đời 6 tháng, sau đó cần cấp quyền lại. citeturn0search0</p>
+</section>
+<section class="settings-panel" data-settings-panel="pet">
     <h3>🐾 Thú cưng đồng hành</h3>
     <p class="settings-note">Chọn một bé để lang thang ở cuối trang. Mỗi bé có hoạt ảnh riêng.</p>
     <div class="pet-choice-grid">
@@ -512,7 +543,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261005-32"></script>
+    <script src="script.js?v=20261005-33"></script>
 </body>
 
 </html>
