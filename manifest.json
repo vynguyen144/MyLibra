@@ -1,0 +1,14 @@
+{
+  "name": "MyLibra",
+  "short_name": "MyLibra",
+  "description": "Thư viện truyện cá nhân và trình đọc EPUB, PDF, TXT.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#0b5c62",
+  "icons": [
+    {"src": "icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"},
+    {"src": "icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
