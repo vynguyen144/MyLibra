@@ -500,10 +500,10 @@ async function findDriveManifest(folderId) {
 
 async function syncFromGoogleDrive() {
     if (!googleDriveAccessToken) return;
-    const folderId = await ensureDriveFolder();
-    let manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
 
     try {
+        const folderId = await ensureDriveFolder();
+        let manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
         if (!manifestId) {
             const found = await findDriveManifest(folderId);
             if (found) {
@@ -578,8 +578,9 @@ function connectGoogleDrive() {
                 try {
                     await syncFromGoogleDrive();
                 } catch (error) {
-                    console.error(error);
-                    alert("Không thể kết nối Google Drive. Hãy kiểm tra quyền Drive rồi thử lại.");
+                    console.error("MyLibra Google Drive:", error);
+                    const message = error?.message || String(error);
+                    alert("Google Drive gặp lỗi:\n\n" + message + "\n\nNếu lỗi vẫn còn, gửi mình đúng nội dung này để mình xử lý tiếp.");
                 }
             }
         });
