@@ -151,16 +151,20 @@ const DB_VERSION = 1;
 const STORE_NAME = "books";
 
 // ========================================
-// GOOGLE ACCOUNT - BƯỚC 1
+// GOOGLE ACCOUNT + GOOGLE DRIVE SYNC
 // ========================================
 const GOOGLE_CLIENT_ID = "1038644762549-s4dt1lvr26bg9murlf6ne3k6oui7iedp.apps.googleusercontent.com";
 const GOOGLE_PROFILE_KEY = "mylibra-google-profile";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER_KEY = "mylibra-drive-folder-id";
 const DRIVE_MANIFEST_KEY = "mylibra-drive-manifest-id";
+const DRIVE_DELETED_KEY = "mylibra-drive-deleted-books";
+const DRIVE_SETTINGS_UPDATED_KEY = "mylibra-drive-settings-updated";
+const DRIVE_POSITIONS_UPDATED_KEY = "mylibra-drive-positions-updated";
 let googleDriveAccessToken = null;
 let googleDriveTokenClient = null;
 let googleDriveSyncTimer = null;
+let googleDriveSyncInProgress = false;
 
 function decodeGoogleJwt(token) {
     try {
@@ -212,11 +216,8 @@ function renderGoogleAccount(profile = getGoogleProfile()) {
 
     const initial = (profile.name || profile.email || "G").trim().charAt(0).toUpperCase();
     if (googleAccountIcon) {
-        if (profile.picture) {
-            googleAccountIcon.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
-        } else {
-            googleAccountIcon.textContent = initial;
-        }
+        if (profile.picture) googleAccountIcon.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
+        else googleAccountIcon.textContent = initial;
     }
     if (googleAccountText) googleAccountText.textContent = profile.picture ? "" : "Đã đăng nhập";
     if (googleLoginButton) {
@@ -225,11 +226,8 @@ function renderGoogleAccount(profile = getGoogleProfile()) {
         googleLoginButton.setAttribute("aria-label", profile.name ? "Tài khoản Google: " + profile.name : "Tài khoản Google");
     }
     if (googleSettingsAvatar) {
-        if (profile.picture) {
-            googleSettingsAvatar.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
-        } else {
-            googleSettingsAvatar.textContent = initial;
-        }
+        if (profile.picture) googleSettingsAvatar.innerHTML = '<img src="' + escapeHTML(profile.picture) + '" alt="">';
+        else googleSettingsAvatar.textContent = initial;
     }
     if (googleSettingsName) googleSettingsName.textContent = profile.name || "Tài khoản Google";
     if (googleSettingsEmail) googleSettingsEmail.textContent = profile.email || "";
@@ -244,15 +242,14 @@ function handleGoogleCredentialResponse(response) {
     }
     saveGoogleProfile(profile);
     closeModal(settingsModal);
-    alert("Đăng nhập Google thành công! Bước tiếp theo sẽ kết nối Google Drive.");
+    alert("Đăng nhập Google thành công! Bấm “Đồng bộ Google Drive” để đồng bộ thư viện.");
 }
 
 function startGoogleSignIn() {
     if (GOOGLE_CLIENT_ID.startsWith("YOUR_")) {
-        alert("MyLibra chưa được cấu hình Google Client ID. Hãy tạo OAuth Client ID cho MyLibra trước; mình sẽ hướng dẫn bạn bước này.");
+        alert("MyLibra chưa được cấu hình Google Client ID.");
         return;
     }
-
     if (!window.google?.accounts?.id) {
         alert("Google Sign-In chưa tải xong. Hãy thử tải lại trang.");
         return;
@@ -279,19 +276,19 @@ function startGoogleSignIn() {
     window.google.accounts.id.prompt();
 }
 
-
 function setGoogleDriveStatus(message, connected = false) {
     if (!googleDriveStatus) return;
     googleDriveStatus.textContent = message;
     googleDriveStatus.classList.toggle("drive-connected", connected);
-    if (googleDriveButton) googleDriveButton.textContent = connected ? "☁️ Đồng bộ Google Drive" : "☁️ Kết nối Google Drive";
+    if (googleDriveButton) {
+        googleDriveButton.textContent = connected ? "☁️ Đồng bộ Google Drive" : "☁️ Kết nối Google Drive";
+    }
 }
 
 async function driveRequest(url, options = {}) {
     if (!googleDriveAccessToken) throw new Error("Chưa có quyền truy cập Google Drive.");
 
     const { rawResponse = false, ...fetchOptions } = options;
-
     const response = await fetch(url, {
         ...fetchOptions,
         headers: {
@@ -299,13 +296,13 @@ async function driveRequest(url, options = {}) {
             Authorization: "Bearer " + googleDriveAccessToken
         }
     });
+
     if (!response.ok) {
         const text = await response.text().catch(() => "");
         throw new Error("Google Drive API " + response.status + ": " + (text || response.statusText));
     }
 
     if (rawResponse) return response;
-
     const type = response.headers.get("content-type") || "";
     return type.includes("application/json") ? response.json() : response;
 }
@@ -337,6 +334,98 @@ async function ensureDriveFolder() {
     return created.id;
 }
 
+function readJsonLocalStorage(key, fallback = {}) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key) || "null");
+        return value && typeof value === "object" ? value : fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+function getDeletedBooks() {
+    return readJsonLocalStorage(DRIVE_DELETED_KEY, {});
+}
+
+function saveDeletedBooks(value) {
+    localStorage.setItem(DRIVE_DELETED_KEY, JSON.stringify(value || {}));
+}
+
+function markBookDeleted(id, deletedAt = Date.now(), driveFileId = "") {
+    const deleted = getDeletedBooks();
+    deleted[id] = {deletedAt, driveFileId: driveFileId || ""};
+    saveDeletedBooks(deleted);
+}
+
+function clearBookDeleted(id) {
+    const deleted = getDeletedBooks();
+    if (deleted[id]) {
+        delete deleted[id];
+        saveDeletedBooks(deleted);
+    }
+}
+
+function getCloudSettings() {
+    return {
+        theme: localStorage.getItem("mylibra-theme") || "light",
+        showReading: localStorage.getItem("mylibra-show-reading") !== "false",
+        sort: localStorage.getItem("mylibra-sort") || "added",
+        confirmDelete: localStorage.getItem("mylibra-confirm-delete") !== "false",
+        readerMode: localStorage.getItem("mylibra-reader-mode") || "scroll",
+        fontSize: localStorage.getItem("mylibra-font-size") || "18",
+        lineHeight: localStorage.getItem("mylibra-line-height") || "1.9"
+    };
+}
+
+function markCloudSettingsChanged() {
+    localStorage.setItem(DRIVE_SETTINGS_UPDATED_KEY, String(Date.now()));
+}
+
+function getCloudReadingPositions() {
+    const positions = {};
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (
+            key.startsWith("mylibra-position-") ||
+            key.startsWith("mylibra-epub-cfi-") ||
+            key.startsWith("mylibra-pdf-page-") ||
+            key.startsWith("mylibra-pdf-scale-")
+        ) {
+            positions[key] = localStorage.getItem(key);
+        }
+    }
+    return positions;
+}
+
+function markCloudPositionsChanged() {
+    localStorage.setItem(DRIVE_POSITIONS_UPDATED_KEY, String(Date.now()));
+}
+
+function applyCloudSettings(settings) {
+    if (!settings || typeof settings !== "object") return;
+    if (settings.theme) applyTheme(settings.theme, false);
+    if (settings.showReading !== undefined) localStorage.setItem("mylibra-show-reading", String(settings.showReading));
+    if (settings.sort) localStorage.setItem("mylibra-sort", settings.sort);
+    if (settings.confirmDelete !== undefined) localStorage.setItem("mylibra-confirm-delete", String(settings.confirmDelete));
+    if (settings.readerMode) localStorage.setItem("mylibra-reader-mode", settings.readerMode);
+    if (settings.fontSize) localStorage.setItem("mylibra-font-size", String(settings.fontSize));
+    if (settings.lineHeight) localStorage.setItem("mylibra-line-height", String(settings.lineHeight));
+
+    readerMode = settings.readerMode === "page" ? "page" : "scroll";
+    loadSettingsUI();
+    loadFontSize();
+    applyReaderLineHeight();
+}
+
+function applyCloudReadingPositions(positions) {
+    if (!positions || typeof positions !== "object") return;
+    Object.entries(positions).forEach(([key, value]) => {
+        if (!key.startsWith("mylibra-")) return;
+        localStorage.setItem(key, String(value));
+    });
+}
+
 function getBookCloudMetadata(book) {
     return {
         id: book.id,
@@ -351,7 +440,9 @@ function getBookCloudMetadata(book) {
         fileType: book.fileType || "",
         coverDataUrl: book.coverDataUrl || "",
         driveFileId: book.driveFileId || "",
-        updatedAt: book.updatedAt || Date.now()
+        fileUpdatedAt: Number(book.fileUpdatedAt) || 0,
+        driveFileUpdatedAt: Number(book.driveFileUpdatedAt) || 0,
+        updatedAt: Number(book.updatedAt) || Date.now()
     };
 }
 
@@ -379,9 +470,7 @@ async function uploadDriveFile(file, existingId = null) {
 
     const uploadResponse = await fetch(sessionUrl, {
         method:"PUT",
-        headers: {
-            "Content-Type": mimeType
-        },
+        headers: {"Content-Type": mimeType},
         body:file
     });
     if (!uploadResponse.ok) throw new Error("Tải file lên Google Drive thất bại: " + uploadResponse.status);
@@ -390,10 +479,12 @@ async function uploadDriveFile(file, existingId = null) {
 
 async function uploadBookToDrive(book) {
     if (!googleDriveAccessToken || !book?.file) return;
+    const now = Date.now();
     const result = await uploadDriveFile(book.file, book.driveFileId || null);
     book.driveFileId = result.id;
-    book.updatedAt = Date.now();
-    await saveBookToDatabase(book);
+    book.fileUpdatedAt = Number(book.fileUpdatedAt) || now;
+    book.driveFileUpdatedAt = now;
+    await saveBookToDatabase(book, {touch:false});
 }
 
 async function downloadBookFromDrive(book) {
@@ -408,9 +499,7 @@ async function downloadBookFromDrive(book) {
 
 async function requestGoogleDriveAccess(prompt = "") {
     if (googleDriveAccessToken) return googleDriveAccessToken;
-    if (!window.google?.accounts?.oauth2) {
-        throw new Error("Google Identity Services chưa tải xong.");
-    }
+    if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services chưa tải xong.");
 
     return new Promise((resolve, reject) => {
         const tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -427,9 +516,7 @@ async function requestGoogleDriveAccess(prompt = "") {
                 resolve(googleDriveAccessToken);
             }
         });
-
         googleDriveTokenClient = tokenClient;
-
         try {
             tokenClient.requestAccessToken({prompt});
         } catch (error) {
@@ -437,28 +524,36 @@ async function requestGoogleDriveAccess(prompt = "") {
         }
     });
 }
+
 async function deleteDriveFile(fileId) {
-    if (!fileId) return;
-
-    if (!googleDriveAccessToken) {
-        await requestGoogleDriveAccess("");
-    }
-
+    if (!fileId || !googleDriveAccessToken) return;
     const response = await fetch("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(fileId), {
         method:"DELETE",
         headers:{Authorization:"Bearer " + googleDriveAccessToken}
     });
-
     if (!response.ok && response.status !== 404) {
         throw new Error("Không thể xóa file khỏi Google Drive (HTTP " + response.status + ").");
     }
 }
 
 async function saveDriveManifest() {
-    if (!googleDriveAccessToken) return;
+    if (!googleDriveAccessToken || googleDriveSyncInProgress) return;
     const folderId = await ensureDriveFolder();
-    const manifest = {version:1, updatedAt:Date.now(), books:books.map(getBookCloudMetadata)};
-    const blob = new Blob([JSON.stringify(manifest)], {type:"application/json"});
+    const settingsUpdatedAt = Number(localStorage.getItem(DRIVE_SETTINGS_UPDATED_KEY)) || 0;
+    const positionsUpdatedAt = Number(localStorage.getItem(DRIVE_POSITIONS_UPDATED_KEY)) || 0;
+    const deletedBooks = getDeletedBooks();
+
+    const manifest = {
+        version: 2,
+        updatedAt: Date.now(),
+        settings: getCloudSettings(),
+        settingsUpdatedAt,
+        positions: getCloudReadingPositions(),
+        positionsUpdatedAt,
+        deletedBooks,
+        books: books.map(getBookCloudMetadata)
+    };
+
     const existingId = localStorage.getItem(DRIVE_MANIFEST_KEY);
     const metadata = {name:"mylibra-library.json", mimeType:"application/json"};
     if (!existingId) metadata.parents = [folderId];
@@ -473,12 +568,16 @@ async function saveDriveManifest() {
         JSON.stringify(metadata),
         "\r\n--" + boundary + "\r\n",
         "Content-Type: application/json\r\n\r\n",
-        blob,
+        JSON.stringify(manifest),
         "\r\n--" + boundary + "--"
     ]);
+
     const response = await fetch(url, {
         method:existingId ? "PATCH" : "POST",
-        headers:{Authorization:"Bearer " + googleDriveAccessToken, "Content-Type":"multipart/related; boundary=" + boundary},
+        headers:{
+            Authorization:"Bearer " + googleDriveAccessToken,
+            "Content-Type":"multipart/related; boundary=" + boundary
+        },
         body
     });
     if (!response.ok) throw new Error("Không thể cập nhật thư viện MyLibra trên Google Drive.");
@@ -487,9 +586,16 @@ async function saveDriveManifest() {
 }
 
 function scheduleDriveManifestSync() {
-    if (!googleDriveAccessToken) return;
+    if (!googleDriveAccessToken || googleDriveSyncInProgress) return;
     clearTimeout(googleDriveSyncTimer);
-    googleDriveSyncTimer = setTimeout(() => saveDriveManifest().catch((error) => console.error("Drive manifest:", error)), 1200);
+    googleDriveSyncTimer = setTimeout(async () => {
+        try {
+            await syncToGoogleDrive();
+        } catch (error) {
+            console.error("Drive background sync:", error);
+            setGoogleDriveStatus("Đã kết nối nhưng chưa đồng bộ xong. Hãy bấm đồng bộ lại.", true);
+        }
+    }, 1200);
 }
 
 async function findDriveManifest(folderId) {
@@ -498,9 +604,16 @@ async function findDriveManifest(folderId) {
     return result.files?.[0] || null;
 }
 
-async function syncFromGoogleDrive() {
-    if (!googleDriveAccessToken) return;
+function removeLocalBookData(bookId) {
+    localStorage.removeItem("mylibra-position-" + bookId);
+    localStorage.removeItem("mylibra-epub-cfi-" + bookId);
+    localStorage.removeItem("mylibra-pdf-page-" + bookId);
+    localStorage.removeItem("mylibra-pdf-scale-" + bookId);
+}
 
+async function syncToGoogleDrive() {
+    if (!googleDriveAccessToken || googleDriveSyncInProgress) return;
+    googleDriveSyncInProgress = true;
     try {
         const folderId = await ensureDriveFolder();
         let manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
@@ -512,45 +625,123 @@ async function syncFromGoogleDrive() {
             }
         }
 
-        if (!manifestId) {
-            setGoogleDriveStatus("Đã kết nối. Đang đưa thư viện hiện tại lên Drive…", true);
-            for (const book of books) if (book.file && !book.driveFileId) await uploadBookToDrive(book);
-            await saveDriveManifest();
-            setGoogleDriveStatus("Đã kết nối và đồng bộ Google Drive.", true);
-            return;
-        }
-
-        const manifest = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
-        const remoteBooks = Array.isArray(manifest.books) ? manifest.books : [];
-
-        for (const remoteBook of remoteBooks) {
-            const local = books.find((item) => item.id === remoteBook.id);
-            if (local) {
-                const localFile = local.file;
-                Object.assign(local, remoteBook);
-                if (localFile) local.file = localFile;
-                await saveBookToDatabase(local);
-            } else {
-                const cloudBook = {...remoteBook, file:null};
-                books.push(cloudBook);
-                await saveBookToDatabase(cloudBook);
+        let remoteManifest = null;
+        if (manifestId) {
+            try {
+                remoteManifest = await driveRequest(
+                    "https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media"
+                );
+            } catch (_) {
+                localStorage.removeItem(DRIVE_MANIFEST_KEY);
+                manifestId = null;
             }
         }
 
-        for (const book of books) if (book.file && !book.driveFileId) await uploadBookToDrive(book);
+        if (!remoteManifest) {
+            setGoogleDriveStatus("Đang tạo thư viện Google Drive…", true);
+            for (const book of books) {
+                if (book.file && (!book.driveFileId || Number(book.fileUpdatedAt) > Number(book.driveFileUpdatedAt || 0))) {
+                    await uploadBookToDrive(book);
+                }
+            }
+            await saveDriveManifest();
+            setGoogleDriveStatus("Đã đồng bộ Google Drive.", true);
+            return;
+        }
 
+        const remoteBooks = Array.isArray(remoteManifest.books) ? remoteManifest.books : [];
+        const remoteById = new Map(remoteBooks.map((book) => [book.id, book]));
+        const remoteDeleted = remoteManifest.deletedBooks && typeof remoteManifest.deletedBooks === "object"
+            ? remoteManifest.deletedBooks : {};
+        const localDeleted = getDeletedBooks();
+
+        // 1) Apply remote deletions only when they are newer than the local book.
+        for (const [id, tombstone] of Object.entries(remoteDeleted)) {
+            const local = books.find((book) => book.id === id);
+            const deletedAt = Number(tombstone?.deletedAt) || 0;
+            if (local && deletedAt > Number(local.updatedAt || 0)) {
+                await deleteBookFromDatabase(id);
+                books = books.filter((book) => book.id !== id);
+                removeLocalBookData(id);
+                localDeleted[id] = tombstone;
+            }
+        }
+
+        // 2) Merge books by last modification time. Newer side wins.
+        for (const remoteBook of remoteBooks) {
+            const local = books.find((item) => item.id === remoteBook.id);
+            const localDeletedAt = Number(localDeleted[remoteBook.id]?.deletedAt) || 0;
+            const remoteUpdatedAt = Number(remoteBook.updatedAt) || 0;
+
+            if (localDeletedAt > remoteUpdatedAt && !local) continue;
+
+            if (!local) {
+                if (localDeletedAt > remoteUpdatedAt) continue;
+                const cloudBook = {...remoteBook, file:null};
+                books.push(cloudBook);
+                clearBookDeleted(cloudBook.id);
+                await saveBookToDatabase(cloudBook, {touch:false});
+                continue;
+            }
+
+            const localUpdatedAt = Number(local.updatedAt) || 0;
+            if (remoteUpdatedAt > localUpdatedAt) {
+                const localFile = local.file;
+                const sameDriveFile = Boolean(local.driveFileId && local.driveFileId === remoteBook.driveFileId);
+                const localFileIsCurrent = sameDriveFile &&
+                    Number(local.fileUpdatedAt || 0) >= Number(remoteBook.fileUpdatedAt || 0);
+
+                Object.assign(local, remoteBook);
+                local.file = localFileIsCurrent ? localFile : null;
+                await saveBookToDatabase(local, {touch:false});
+            }
+        }
+
+        // 3) Upload local-only/newer books and resolve local tombstones.
+        for (const book of books) {
+            const remoteBook = remoteById.get(book.id);
+            const remoteUpdatedAt = Number(remoteBook?.updatedAt) || 0;
+            const localUpdatedAt = Number(book.updatedAt) || 0;
+            const deletedAt = Number(localDeleted[book.id]?.deletedAt) || 0;
+
+            if (deletedAt > remoteUpdatedAt && !remoteBook) {
+                continue;
+            }
+
+            if (deletedAt > remoteUpdatedAt && remoteBook) {
+                if (remoteBook.driveFileId) await deleteDriveFile(remoteBook.driveFileId);
+                continue;
+            }
+
+            const localIsNewer = !remoteBook || localUpdatedAt > remoteUpdatedAt;
+            const fileIsNewer = Boolean(
+                book.file &&
+                (!remoteBook?.driveFileId || Number(book.fileUpdatedAt || 0) > Number(remoteBook.fileUpdatedAt || 0))
+            );
+
+            if (book.file && (localIsNewer || fileIsNewer || !book.driveFileId)) {
+                await uploadBookToDrive(book);
+            }
+            clearBookDeleted(book.id);
+        }
+
+        // 4) Rebuild the local tombstone set and upload the merged manifest.
+        saveDeletedBooks(localDeleted);
         updateFilterOptions();
         renderBooks(getFilteredBooks());
+
         await saveDriveManifest();
-        setGoogleDriveStatus("Đã kết nối và đồng bộ Google Drive.", true);
-    } catch (error) {
-        console.error("Google Drive sync:", error);
-        setGoogleDriveStatus("Đã kết nối nhưng đồng bộ gặp lỗi. Hãy thử lại.", true);
-        throw error;
+        setGoogleDriveStatus("Đã đồng bộ Google Drive.", true);
+    } finally {
+        googleDriveSyncInProgress = false;
     }
 }
 
-function connectGoogleDrive() {
+async function syncFromGoogleDrive() {
+    return syncToGoogleDrive();
+}
+
+async function connectGoogleDrive() {
     if (!getGoogleProfile()) {
         alert("Hãy đăng nhập Google trước rồi kết nối Google Drive.");
         return;
@@ -560,38 +751,18 @@ function connectGoogleDrive() {
         return;
     }
 
-    if (!googleDriveTokenClient) {
-        googleDriveTokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id:GOOGLE_CLIENT_ID,
-            scope:GOOGLE_DRIVE_SCOPE,
-            callback:async (tokenResponse) => {
-                if (tokenResponse.error) {
-                    console.error(tokenResponse);
-                    localStorage.removeItem("mylibra-drive-authorized");
-                    setGoogleDriveStatus("Không cấp được quyền Google Drive.");
-                    return;
-                }
-                googleDriveAccessToken = tokenResponse.access_token;
-                localStorage.setItem("mylibra-drive-authorized","true");
-                setGoogleDriveStatus("Đang kết nối Google Drive…");
-                try {
-                    await syncFromGoogleDrive();
-                } catch (error) {
-                    console.error("MyLibra Google Drive:", error);
-                    const message = error?.message || String(error);
-                    alert("Google Drive gặp lỗi:\n\n" + message + "\n\nNếu lỗi vẫn còn, gửi mình đúng nội dung này để mình xử lý tiếp.");
-                }
-            }
-        });
+    try {
+        setGoogleDriveStatus("Đang kết nối Google Drive…", true);
+        await requestGoogleDriveAccess(localStorage.getItem("mylibra-drive-authorized") ? "" : "consent");
+        await syncToGoogleDrive();
+    } catch (error) {
+        console.error("MyLibra Google Drive:", error);
+        setGoogleDriveStatus("Đã kết nối nhưng đồng bộ gặp lỗi. Hãy thử lại.", true);
+        alert("Google Drive gặp lỗi:\n\n" + (error?.message || String(error)));
     }
-
-    googleDriveTokenClient.requestAccessToken({
-        prompt:localStorage.getItem("mylibra-drive-authorized") ? "" : "consent"
-    });
 }
 
 googleDriveButton?.addEventListener("click", connectGoogleDrive);
-
 
 function logoutGoogle() {
     const profile = getGoogleProfile();
@@ -600,11 +771,28 @@ function logoutGoogle() {
     }
     localStorage.removeItem(GOOGLE_PROFILE_KEY);
     googleDriveAccessToken = null;
+    googleDriveTokenClient = null;
+    clearTimeout(googleDriveSyncTimer);
     setGoogleDriveStatus("Chưa kết nối Google Drive.");
     renderGoogleAccount(null);
     if (googleSigninArea) googleSigninArea.innerHTML = "";
 }
 
+async function autoConnectGoogleDrive() {
+    if (!getGoogleProfile() || localStorage.getItem("mylibra-drive-authorized") !== "true") return;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+        if (window.google?.accounts?.oauth2) {
+            try {
+                await requestGoogleDriveAccess("");
+                await syncToGoogleDrive();
+            } catch (error) {
+                console.warn("Auto Drive sync:", error);
+            }
+            return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+}
 
 
 function openDatabase() {
@@ -623,8 +811,8 @@ function openDatabase() {
     });
 }
 
-async function saveBookToDatabase(book) {
-    if (book) book.updatedAt = Date.now();
+async function saveBookToDatabase(book, options = {}) {
+    if (book && options.touch !== false) book.updatedAt = Date.now();
     const db = await openDatabase();
 
     return new Promise((resolve, reject) => {
@@ -987,11 +1175,15 @@ function clearAllFilters() {
 searchInput?.addEventListener("input", applyLibraryFilters);
 clearFilters?.addEventListener("click", clearAllFilters);
 
-function applyTheme(theme) {
+function applyTheme(theme, markChanged = true) {
     const normalized = ["light", "dark", "sepia"].includes(theme) ? theme : "light";
     document.body.classList.toggle("dark-mode", normalized === "dark");
     document.body.classList.toggle("sepia-mode", normalized === "sepia");
     localStorage.setItem("mylibra-theme", normalized);
+    if (markChanged) {
+        markCloudSettingsChanged();
+        scheduleDriveManifestSync();
+    }
     if (themeButton) themeButton.textContent = normalized === "dark" ? "☀️" : "🌙";
     document.querySelectorAll(".theme-option").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === normalized));
 }
@@ -1022,6 +1214,8 @@ function saveSettingsValues() {
     localStorage.setItem("mylibra-reader-mode", settingReaderMode?.value || "scroll");
     localStorage.setItem("mylibra-font-size", settingFontSize?.value || "18");
     localStorage.setItem("mylibra-line-height", settingLineHeight?.value || "1.9");
+    markCloudSettingsChanged();
+    scheduleDriveManifestSync();
     readerMode = settingReaderMode?.value === "page" ? "page" : "scroll";
     applyReaderFontSize();
     applyReaderLineHeight();
@@ -1033,7 +1227,7 @@ closeSettings?.addEventListener("click", () => closeModal(settingsModal));
 saveSettings?.addEventListener("click", () => { saveSettingsValues(); closeModal(settingsModal); });
 resetSettings?.addEventListener("click", () => {
     localStorage.removeItem("mylibra-show-reading"); localStorage.removeItem("mylibra-sort"); localStorage.removeItem("mylibra-confirm-delete"); localStorage.removeItem("mylibra-reader-mode"); localStorage.removeItem("mylibra-font-size"); localStorage.removeItem("mylibra-line-height");
-    loadSettingsUI(); applyTheme("light"); renderBooks();
+    loadSettingsUI(); applyTheme("light"); markCloudSettingsChanged(); scheduleDriveManifestSync(); renderBooks();
 });
 document.querySelectorAll(".settings-tab").forEach((tab) => tab.addEventListener("click", () => {
     document.querySelectorAll(".settings-tab").forEach((item) => item.classList.toggle("active", item === tab));
@@ -1163,6 +1357,7 @@ confirmAddBook?.addEventListener("click", async () => {
         fileName: file.name,
         fileType: type,
         file: file,
+        fileUpdatedAt: Date.now(),
         coverDataUrl: ""
     };
 
@@ -1290,9 +1485,11 @@ function openBook(bookId) {
                 await deleteDriveFile(book.driveFileId);
             }
 
+            const deletedAt = Date.now();
+            markBookDeleted(book.id, deletedAt, book.driveFileId || "");
             await deleteBookFromDatabase(book.id);
             books = books.filter((item) => item.id !== book.id);
-            localStorage.removeItem("mylibra-position-" + book.id);
+            removeLocalBookData(book.id);
             localStorage.removeItem("mylibra-epub-cfi-" + book.id);
 
             if (googleDriveAccessToken) {
@@ -1434,6 +1631,8 @@ saveUpdatedFile?.addEventListener("click", async () => {
     book.file = file;
     book.fileName = file.name;
     book.fileType = type;
+    book.fileUpdatedAt = Date.now();
+    book.driveFileId = book.driveFileId || "";
 
     try {
         await saveBookToDatabase(book);
@@ -1461,7 +1660,11 @@ updateFileModal?.addEventListener("click", (event) => {
 
 async function setReaderMode(mode, persist = true) {
     readerMode = mode === "page" ? "page" : "scroll";
-    if (persist) localStorage.setItem("mylibra-reader-mode", readerMode);
+    if (persist) {
+        localStorage.setItem("mylibra-reader-mode", readerMode);
+        markCloudSettingsChanged();
+        scheduleDriveManifestSync();
+    }
 
     document.body.classList.toggle("reader-page-mode", readerMode === "page");
     readerModeScroll?.classList.toggle("active", readerMode === "scroll");
@@ -1490,7 +1693,10 @@ async function setReaderMode(mode, persist = true) {
 function handleEpubRelocated(location) {
     const book = books.find((item) => item.id === currentBookId);
     if (!book) return;
-    if (location?.start?.cfi) localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
+    if (location?.start?.cfi) {
+        localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
+        markCloudPositionsChanged();
+    }
     if (location?.start?.href) updateEpubChapterSelect(location.start.href);
     if (location?.start?.percentage !== undefined) {
         book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
@@ -1795,6 +2001,7 @@ async function renderPdfPage(pageNumber) {
 
     localStorage.setItem("mylibra-pdf-page-" + currentPdfBookId, String(pageNumber));
     localStorage.setItem("mylibra-pdf-scale-" + currentPdfBookId, String(currentPdfScale));
+    markCloudPositionsChanged();
 }
 
 async function changePdfPage(delta) {
@@ -1911,6 +2118,7 @@ async function saveEditedPdf() {
     book.file = new File([blob], fileName, { type: "application/pdf" });
     book.fileName = fileName;
     book.fileType = "PDF";
+    book.fileUpdatedAt = Date.now();
 
     try {
         await saveBookToDatabase(book);
@@ -2419,6 +2627,7 @@ async function saveEpubEditorChanges() {
         book.file = new File([blob], fileName, {type:"application/epub+zip"});
         book.fileName = fileName;
         book.fileType = "EPUB";
+        book.fileUpdatedAt = Date.now();
         book.title = title;
         book.author = author;
 
@@ -2478,6 +2687,8 @@ decreaseFont?.addEventListener("click", () => {
     const current = Number(localStorage.getItem("mylibra-font-size")) || 18;
     const next = Math.max(12, current - 1);
     localStorage.setItem("mylibra-font-size", next);
+    markCloudSettingsChanged();
+    scheduleDriveManifestSync();
     applyReaderFontSize();
 });
 
@@ -2485,6 +2696,8 @@ increaseFont?.addEventListener("click", () => {
     const current = Number(localStorage.getItem("mylibra-font-size")) || 18;
     const next = Math.min(40, current + 1);
     localStorage.setItem("mylibra-font-size", next);
+    markCloudSettingsChanged();
+    scheduleDriveManifestSync();
     applyReaderFontSize();
 });
 
@@ -2549,7 +2762,10 @@ function updateReaderProgress() {
             "mylibra-position-" + book.id,
             String(window.scrollY)
         );
-        saveBookToDatabase(book).catch(console.error);
+        saveBookToDatabase(book).then(() => {
+            markCloudPositionsChanged();
+            scheduleDriveManifestSync();
+        }).catch(console.error);
     }
 }
 
@@ -2605,12 +2821,14 @@ function initializeMyLibra() {
             updateFilterOptions();
             renderBooks();
             showLibrary();
+            autoConnectGoogleDrive();
         })
         .catch((error) => {
             console.error("Database error:", error);
             updateFilterOptions();
             renderBooks();
             showLibrary();
+            autoConnectGoogleDrive();
         });
 }
 
