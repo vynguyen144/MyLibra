@@ -3617,6 +3617,7 @@ async function spotifyApi(path, options = {}, retry = true) {
 let spotifyPlayer = null;
 let spotifyDeviceId = null;
 let spotifySdkPromise = null;
+let spotifyReadyPromise = null;
 
 function loadSpotifySdk() {
     if (window.Spotify) return Promise.resolve();
@@ -3636,42 +3637,68 @@ function loadSpotifySdk() {
     return spotifySdkPromise;
 }
 async function initSpotifyPlayer() {
-    if (spotifyPlayer) return spotifyPlayer;
+    if (spotifyPlayer && spotifyDeviceId) return spotifyPlayer;
+    if (spotifyReadyPromise) {
+        await spotifyReadyPromise;
+        return spotifyPlayer;
+    }
     await loadSpotifySdk();
-    spotifyPlayer = new Spotify.Player({
-        name:"MyLibra Vinyl Player",
-        volume:0.65,
-        getOAuthToken: async cb => {
-            try { cb(await spotifyAccessToken()); } catch (_) { cb(""); }
-        },
-        enableMediaSession:true
-    });
-    spotifyPlayer.addListener("ready", ({device_id}) => {
-        spotifyDeviceId = device_id;
-        setSpotifyStatus("Spotify đã kết nối — sẵn sàng phát nhạc.");
-    });
-    spotifyPlayer.addListener("not_ready", () => {
-        spotifyDeviceId = null;
-        setSpotifyStatus("Thiết bị MyLibra đang ngoại tuyến.");
-    });
-    spotifyPlayer.addListener("player_state_changed", state => {
-        const disc = $("vinylDisc"), play = $("spotifyPlayButton");
-        if (!state) return;
-        const track = state.track_window?.current_track;
-        if (track) {
-            $("spotifyTrackName").textContent = track.name || "Không rõ tên bài";
-            $("spotifyTrackArtist").textContent = (track.artists || []).map(a => a.name).join(", ");
+    spotifyReadyPromise = new Promise(async (resolve, reject) => {
+        try {
+            spotifyPlayer = new Spotify.Player({
+                name:"MyLibra Vinyl Player",
+                volume:0.65,
+                getOAuthToken: async cb => {
+                    try { cb(await spotifyAccessToken()); } catch (_) { cb(""); }
+                },
+                enableMediaSession:true
+            });
+            spotifyPlayer.addListener("ready", ({device_id}) => {
+                spotifyDeviceId = device_id;
+                setSpotifyStatus("Spotify đã kết nối — sẵn sàng phát nhạc.");
+                resolve();
+            });
+            spotifyPlayer.addListener("not_ready", () => {
+                spotifyDeviceId = null;
+                setSpotifyStatus("Thiết bị MyLibra đang ngoại tuyến.");
+            });
+            spotifyPlayer.addListener("player_state_changed", state => {
+                const disc = $("vinylDisc"), play = $("spotifyPlayButton");
+                if (!state) return;
+                const track = state.track_window?.current_track;
+                if (track) {
+                    $("spotifyTrackName").textContent = track.name || "Không rõ tên bài";
+                    $("spotifyTrackArtist").textContent = (track.artists || []).map(a => a.name).join(", ");
+                }
+                const playing = !state.paused;
+                disc?.classList.toggle("spinning", playing);
+                if (play) play.textContent = playing ? "⏸" : "▶";
+            });
+            spotifyPlayer.addListener("initialization_error", ({message}) => {
+                setSpotifyStatus("Spotify: " + message);
+                reject(new Error(message));
+            });
+            spotifyPlayer.addListener("authentication_error", ({message}) => {
+                setSpotifyStatus("Spotify xác thực lỗi: " + message);
+                reject(new Error(message));
+            });
+            spotifyPlayer.addListener("account_error", () => {
+                const message = "Cần Spotify Premium để phát nhạc trong MyLibra.";
+                setSpotifyStatus(message);
+                reject(new Error(message));
+            });
+            spotifyPlayer.addListener("playback_error", ({message}) => setSpotifyStatus("Không phát được bài này: " + message));
+            spotifyPlayer.addListener("autoplay_failed", () => setSpotifyStatus("Bà bấm Play lại một lần để trình duyệt cho phép phát nhạc."));
+            const connected = await spotifyPlayer.connect();
+            if (!connected) reject(new Error("Không kết nối được thiết bị MyLibra với Spotify."));
+        } catch (error) {
+            reject(error);
         }
-        const playing = !state.paused;
-        disc?.classList.toggle("spinning", playing);
-        if (play) play.textContent = playing ? "⏸" : "▶";
+    }).catch(error => {
+        spotifyReadyPromise = null;
+        throw error;
     });
-    spotifyPlayer.addListener("initialization_error", ({message}) => setSpotifyStatus("Spotify: " + message));
-    spotifyPlayer.addListener("authentication_error", ({message}) => setSpotifyStatus("Spotify xác thực lỗi: " + message));
-    spotifyPlayer.addListener("account_error", () => setSpotifyStatus("Cần Spotify Premium để phát nhạc trong MyLibra."));
-    spotifyPlayer.addListener("playback_error", ({message}) => setSpotifyStatus("Không phát được bài này: " + message));
-    spotifyPlayer.addListener("autoplay_failed", () => setSpotifyStatus("Bà bấm Play lại một lần để trình duyệt cho phép phát nhạc."));
-    await spotifyPlayer.connect();
+    await spotifyReadyPromise;
     return spotifyPlayer;
 }
 async function ensureSpotifyReady() {
@@ -3680,7 +3707,6 @@ async function ensureSpotifyReady() {
         return false;
     }
     await initSpotifyPlayer();
-    if (!spotifyDeviceId) await new Promise(resolve => setTimeout(resolve, 500));
     return Boolean(spotifyDeviceId);
 }
 async function transferToMyLibra() {
@@ -3692,14 +3718,19 @@ async function transferToMyLibra() {
     });
 }
 async function spotifyPlayUri(uri) {
-    const ready = await ensureSpotifyReady();
-    if (!ready) return;
-    await transferToMyLibra();
-    await spotifyApi("/me/player/play", {
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({uris:[uri]})
-    });
+    try {
+        const ready = await ensureSpotifyReady();
+        if (!ready) return;
+        await transferToMyLibra();
+        await new Promise(resolve => setTimeout(resolve, 250));
+        await spotifyApi("/me/player/play", {
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({uris:[uri]})
+        });
+    } catch (e) {
+        setSpotifyStatus(e.message);
+    }
 }
 async function spotifySearch() {
     const input = $("spotifySearchInput");
