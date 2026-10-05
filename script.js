@@ -1131,10 +1131,15 @@ function getFeaturedBook() {
 }
 function getRecommendedBooks() {
     const featured = getFeaturedBook();
-    return [...books].filter((book) => !featured || book.id !== featured.id).sort((a,b) => {
-        const score = (book) => (Number(book.progress)>0 ? 4 : 0) + getBookGenres(book).length*2 + getBookTags(book).length + Number(book.updatedAt||0)/1e13;
-        return score(b)-score(a);
-    });
+    // Ưu tiên truyện mới thêm vào thư viện, thay vì chấm điểm theo tiến độ/tag.
+    // addedAt là thời điểm thêm truyện; updatedAt chỉ dùng làm fallback cho dữ liệu cũ.
+    return [...books]
+        .filter((book) => !featured || book.id !== featured.id)
+        .sort((a, b) => {
+            const addedA = Number(a.addedAt || a.updatedAt || 0);
+            const addedB = Number(b.addedAt || b.updatedAt || 0);
+            return addedB - addedA;
+        });
 }
 function createRecommendationCard(book) {
     const card=document.createElement("article");
