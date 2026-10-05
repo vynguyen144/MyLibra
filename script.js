@@ -1139,7 +1139,9 @@ function getFeaturedBookIds() {
     return legacy && books.some(book => book.id === legacy) ? [legacy] : [];
 }
 function saveFeaturedBookIds(ids) {
-    const valid = [...new Set(ids)].filter(id => books.some(book => book.id === id));
+    const valid = [...new Set(ids)]
+        .filter(id => books.some(book => book.id === id))
+        .slice(0, 10);
     localStorage.setItem("mylibra-featured-books", JSON.stringify(valid));
     if (valid[0]) localStorage.setItem("mylibra-featured-book", valid[0]);
     else localStorage.removeItem("mylibra-featured-book");
@@ -1968,6 +1970,10 @@ function openBook(bookId) {
     bookDetail.querySelector("#detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
     bookDetail.querySelector("#detailFeaturedButton")?.addEventListener("click", () => {
         const ids=getFeaturedBookIds();
+        if (!ids.includes(book.id) && ids.length >= 10) {
+            alert("Bà chỉ có thể đánh dấu tối đa 10 truyện nổi bật nha :))");
+            return;
+        }
         const next=ids.includes(book.id) ? ids.filter(id=>id!==book.id) : [...ids,book.id];
         saveFeaturedBookIds(next);
         localStorage.setItem("mylibra-featured-index", "0");
