@@ -1378,6 +1378,8 @@ function renderBooks(bookList = books) {
         $("emptyAddBookButtonInline")?.addEventListener("click", openAddBookModal);
         const section = $("readingSection");
         if (section) section.hidden = true;
+        renderReadingLists();
+        renderHome();
         return;
     }
 
