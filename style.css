@@ -2807,3 +2807,33 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 .recommendation-card{flex-basis:145px;width:145px}
 .recommendation-cover{width:145px;height:205px}
 }
+
+/* Featured title sits directly on top of the cover image */
+.home-featured-cover{
+    position:relative!important;
+}
+.home-featured-title-overlay{
+    position:absolute!important;
+    z-index:3!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    padding:70px 28px 24px!important;
+    pointer-events:none!important;
+    background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.08) 20%,rgba(0,0,0,.78) 100%)!important;
+}
+.home-featured-title-overlay h1{
+    margin:0!important;
+    color:#fff!important;
+    font-size:clamp(24px,3vw,40px)!important;
+    line-height:1.12!important;
+    text-shadow:0 2px 8px rgba(0,0,0,.55)!important;
+}
+@media(max-width:700px){
+    .home-featured-title-overlay{
+        padding:58px 16px 16px!important;
+    }
+    .home-featured-title-overlay h1{
+        font-size:23px!important;
+    }
+}
