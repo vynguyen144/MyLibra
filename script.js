@@ -1086,18 +1086,13 @@ function showBookDetail() {
 }
 
 function showReader() {
-    homePage.hidden = true; libraryPage.hidden = true; bookDetailPage.hidden = true; readerPage.hidden = false;
-    homeTab?.classList.remove("active"); libraryTab?.classList.remove("active");
-} {
-    libraryPage.hidden = true;
-    bookDetailPage.hidden = false;
-    readerPage.hidden = true;
-}
-
-function showReader() {
+    homePage.hidden = true;
     libraryPage.hidden = true;
     bookDetailPage.hidden = true;
     readerPage.hidden = false;
+    homeTab?.classList.remove("active");
+    libraryTab?.classList.remove("active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function normalizeBookImages(book) {
@@ -1145,7 +1140,13 @@ function renderHome() {
     const featured=getFeaturedBook();
     if(featured){
         homeFeatured.innerHTML='<div class="home-featured-content"><span class="home-eyebrow">✨ TRUYỆN NỔI BẬT</span><p class="home-featured-author">'+escapeHTML(featured.author||"Không rõ tác giả")+'</p><div class="home-featured-meta">'+getBookGenres(featured).slice(0,3).map(v=>chipHTML(v,false,"genre")).join("")+'</div><div class="home-featured-actions"><button class="primary-button" id="homeFeaturedRead" type="button">'+(featured.file?(featured.progress>0?"▶ Đọc tiếp":"▶ Đọc ngay"):"Xem truyện")+'</button><button class="add-button" id="homeFeaturedList" type="button">📑 Danh sách đọc</button></div></div><div class="home-featured-cover"><div class="home-featured-title-overlay"><h1>'+escapeHTML(featured.title)+'</h1></div>'+createCoverMarkup(featured,true)+'</div>';
-        $("homeFeaturedRead")?.addEventListener("click",()=>featured.file?openReader(featured.id):openBook(featured.id));
+        $("homeFeaturedRead")?.addEventListener("click", async () => {
+            if (featured.file) {
+                await openReader(featured.id);
+            } else {
+                openBook(featured.id);
+            }
+        });
         $("homeFeaturedList")?.addEventListener("click",()=>openReadingListChooser(featured.id));
     }
     homeRecommendations.innerHTML="";
@@ -1724,7 +1725,7 @@ function openBook(bookId) {
     showBookDetail();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    $("detailReadButton")?.addEventListener("click", () => {
+    bookDetail.querySelector("#detailReadButton")?.addEventListener("click", () => {
         if (!book.file) {
             alert("Truyện này chưa có file để đọc.");
             return;
@@ -1732,18 +1733,22 @@ function openBook(bookId) {
         openReader(book.id);
     });
 
-    $("detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
-    $("detailFeaturedButton")?.addEventListener("click", () => {
+    bookDetail.querySelector("#detailListButton")?.addEventListener("click", () => openReadingListChooser(book.id));
+    bookDetail.querySelector("#detailFeaturedButton")?.addEventListener("click", () => {
         localStorage.setItem("mylibra-featured-book", book.id);
         markCloudSettingsChanged();
         renderHome();
         alert('Đã đặt "' + book.title + '" làm truyện nổi bật trên Trang chủ.');
     });
-    $("editBookButton")?.addEventListener("click", () => openEditBook(book.id));
-    $("editEpubButton")?.addEventListener("click", () => openEpubEditor(book.id));
-    $("updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
+    bookDetail.querySelector("#editBookButton")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openEditBook(book.id);
+    });
+    bookDetail.querySelector("#editEpubButton")?.addEventListener("click", () => openEpubEditor(book.id));
+    bookDetail.querySelector("#updateBookButton")?.addEventListener("click", () => openUpdateFile(book.id));
 
-    $("deleteBookButton")?.addEventListener("click", async () => {
+    bookDetail.querySelector("#deleteBookButton")?.addEventListener("click", async () => {
         const ok = confirm(
             'Xóa "' + book.title + '" khỏi MyLibra?\n\nThao tác này sẽ xóa file truyện đã lưu trên trình duyệt.'
         );
