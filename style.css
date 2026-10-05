@@ -2809,3 +2809,69 @@ body.sepia-mode .book-cover-large {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================================
+   BOOK IMAGE UPLOADS
+========================================= */
+.book-image-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 4px 0 18px;
+}
+.image-upload-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 13px;
+    border: 1px dashed var(--border);
+    border-radius: 13px;
+    background: var(--surface-soft);
+}
+.image-upload-field span {
+    color: var(--text);
+    font-weight: 750;
+}
+.image-upload-field small {
+    color: var(--text-soft);
+    line-height: 1.4;
+}
+.image-upload-field input[type="file"] {
+    width: 100%;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+/* Long poster covers for streaming-style recommendations. */
+.recommendation-card {
+    flex-basis: 190px;
+}
+.recommendation-cover {
+    width: 190px;
+    aspect-ratio: 2 / 3;
+    height: auto;
+}
+.recommendation-cover .book-cover-image,
+.recommendation-cover .book-cover-image-large {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.recommendation-cover .cover-fallback {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    background: linear-gradient(145deg, var(--surface-soft), var(--primary-soft));
+}
+@media (max-width: 900px) {
+    .recommendation-card { flex-basis: 160px; }
+    .recommendation-cover { width: 160px; }
+}
+@media (max-width: 700px) {
+    .book-image-upload-grid { grid-template-columns: 1fr; }
+    .recommendation-card { flex-basis: 140px; }
+    .recommendation-cover { width: 140px; }
+}
