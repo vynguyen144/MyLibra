@@ -655,6 +655,23 @@ async function syncToGoogleDrive() {
             ? remoteManifest.deletedBooks : {};
         const localDeleted = getDeletedBooks();
 
+        // Settings and reading positions are synced as their own small state bundles.
+        const remoteSettingsUpdatedAt = Number(remoteManifest.settingsUpdatedAt) || 0;
+        const localSettingsUpdatedAt = Number(localStorage.getItem(DRIVE_SETTINGS_UPDATED_KEY)) || 0;
+        if (remoteSettingsUpdatedAt > localSettingsUpdatedAt && remoteManifest.settings) {
+            applyCloudSettings(remoteManifest.settings);
+            localStorage.setItem(DRIVE_SETTINGS_UPDATED_KEY, String(remoteSettingsUpdatedAt));
+        } else if (localSettingsUpdatedAt > remoteSettingsUpdatedAt) {
+            // The final manifest write below will publish the newer local settings.
+        }
+
+        const remotePositionsUpdatedAt = Number(remoteManifest.positionsUpdatedAt) || 0;
+        const localPositionsUpdatedAt = Number(localStorage.getItem(DRIVE_POSITIONS_UPDATED_KEY)) || 0;
+        if (remotePositionsUpdatedAt > localPositionsUpdatedAt && remoteManifest.positions) {
+            applyCloudReadingPositions(remoteManifest.positions);
+            localStorage.setItem(DRIVE_POSITIONS_UPDATED_KEY, String(remotePositionsUpdatedAt));
+        }
+
         // 1) Apply remote deletions only when they are newer than the local book.
         for (const [id, tombstone] of Object.entries(remoteDeleted)) {
             const local = books.find((book) => book.id === id);
@@ -770,6 +787,9 @@ function logoutGoogle() {
         try { window.google.accounts.id.revoke(profile.email || "", () => {}); } catch (_) {}
     }
     localStorage.removeItem(GOOGLE_PROFILE_KEY);
+    localStorage.removeItem("mylibra-drive-authorized");
+    localStorage.removeItem(DRIVE_FOLDER_KEY);
+    localStorage.removeItem(DRIVE_MANIFEST_KEY);
     googleDriveAccessToken = null;
     googleDriveTokenClient = null;
     clearTimeout(googleDriveSyncTimer);
@@ -1735,7 +1755,7 @@ async function openReader(bookId) {
             }
             setGoogleDriveStatus("Đang tải file truyện từ Google Drive…", true);
             book.file = await downloadBookFromDrive(book);
-            await saveBookToDatabase(book);
+            await saveBookToDatabase(book, {touch:false});
             setGoogleDriveStatus("Đã tải file truyện từ Google Drive.", true);
         } catch (error) {
             console.error("Drive download:", error);
