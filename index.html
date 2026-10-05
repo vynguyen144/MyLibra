@@ -19,7 +19,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261005-33"
+        href="style.css?v=20261005-34"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -104,6 +104,20 @@
             <div class="vinyl-artist" id="spotifyTrackArtist">Đăng nhập để phát nhạc</div>
             <div class="vinyl-search"><input id="spotifySearchInput" type="text" placeholder="Tìm bài hát trên Spotify..."><button id="spotifySearchButton" type="button">🔎</button></div>
             <div class="vinyl-results" id="spotifySearchResults"></div>
+            <div class="spotify-music-hub" id="spotifyMusicHub" hidden>
+                <div class="spotify-music-section">
+                    <div class="spotify-music-title"><strong>📻 Playlist của bà</strong><button type="button" id="spotifyRefreshButton" title="Làm mới">↻</button></div>
+                    <div class="spotify-playlists" id="spotifyPlaylists"></div>
+                </div>
+                <div class="spotify-music-section">
+                    <div class="spotify-music-title"><strong>🕐 Nghe gần đây</strong></div>
+                    <div class="spotify-track-row-list" id="spotifyRecentTracks"></div>
+                </div>
+                <div class="spotify-music-section">
+                    <div class="spotify-music-title"><strong>✨ Gợi ý cho bà</strong><small>Top bài bà hay nghe</small></div>
+                    <div class="spotify-track-row-list" id="spotifyTopTracks"></div>
+                </div>
+            </div>
             <div class="vinyl-controls">
                 <button id="spotifyPrevButton" type="button" title="Bài trước">⏮</button>
                 <button id="spotifyPlayButton" class="vinyl-play" type="button" title="Phát / dừng">▶</button>
@@ -543,7 +557,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261005-33"></script>
+    <script src="script.js?v=20261005-34"></script>
 </body>
 
 </html>
