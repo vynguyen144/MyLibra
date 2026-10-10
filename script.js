@@ -3694,7 +3694,12 @@ function petPointerUp(event) {
         petMotion.suppressClick = true;
         window.setTimeout(() => { petMotion.suppressClick = false; }, 100);
         petMotion.vy = 0;
-        virtualPetCat.classList.add("pet-falling");
+        if (petMotion.y >= petFloorY() - 1) {
+            petMotion.y = petFloorY();
+            virtualPetCat.classList.remove("pet-falling");
+        } else {
+            virtualPetCat.classList.add("pet-falling");
+        }
     } else {
         virtualPetCat.classList.remove("pet-falling");
     }
