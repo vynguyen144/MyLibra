@@ -3596,6 +3596,121 @@ const virtualPetCat = document.getElementById("virtualPetCat");
 const virtualPetBubble = document.getElementById("virtualPetBubble");
 const virtualPetSprite = document.getElementById("virtualPetSprite");
 
+// Pet motion runs through requestAnimationFrame (target: 60 FPS).
+const PET_WALK_SPEED = 30;
+const PET_GRAVITY = 1750;
+const PET_FLOOR_GAP = 8;
+const petMotion = {
+    x: -100, y: 0, vx: 0, vy: 0, lastTime: 0,
+    dragging: false, moved: false, pointerId: null,
+    pointerStartX: 0, pointerStartY: 0, startX: 0, startY: 0,
+    initialized: false, suppressClick: false
+};
+function petFloorY() {
+    return Math.max(0, window.innerHeight - virtualPetCat.offsetHeight - PET_FLOOR_GAP);
+}
+function setPetPosition() {
+    if (!virtualPetCat) return;
+    virtualPetCat.style.left = petMotion.x + "px";
+    virtualPetCat.style.top = petMotion.y + "px";
+    virtualPetCat.style.bottom = "auto";
+}
+function initializePetMotion() {
+    if (!virtualPetCat || petMotion.initialized) return;
+    petMotion.initialized = true;
+    petMotion.x = Math.max(-100, Number.parseFloat(getComputedStyle(virtualPetCat).left) || -100);
+    petMotion.y = petFloorY();
+    setPetPosition();
+}
+function petMotionFrame(now) {
+    if (!virtualPetCat) return;
+    if (!petMotion.lastTime) petMotion.lastTime = now;
+    const dt = Math.min((now - petMotion.lastTime) / 1000, 0.035);
+    petMotion.lastTime = now;
+    if (!virtualPetCat.hidden) {
+        initializePetMotion();
+        if (!petMotion.dragging) {
+            if (petMotion.vy !== 0 || petMotion.y < petFloorY() - 1) {
+                petMotion.vy += PET_GRAVITY * dt;
+                petMotion.y += petMotion.vy * dt;
+                const floor = petFloorY();
+                if (petMotion.y >= floor) {
+                    petMotion.y = floor;
+                    petMotion.vy = 0;
+                    virtualPetCat.classList.remove("pet-falling");
+                } else {
+                    virtualPetCat.classList.add("pet-falling");
+                }
+            } else if (!virtualPetCat.classList.contains("pet-jump")) {
+                petMotion.x += (virtualPetCat.classList.contains("pet-facing-left") ? -1 : 1) * PET_WALK_SPEED * dt;
+                const maxX = Math.max(0, window.innerWidth - virtualPetCat.offsetWidth);
+                if (petMotion.x >= maxX) {
+                    petMotion.x = maxX;
+                    virtualPetCat.classList.add("pet-facing-left");
+                } else if (petMotion.x <= 0) {
+                    petMotion.x = 0;
+                    virtualPetCat.classList.remove("pet-facing-left");
+                }
+            }
+            setPetPosition();
+        }
+    }
+    window.requestAnimationFrame(petMotionFrame);
+}
+function petPointerDown(event) {
+    if (!virtualPetCat || virtualPetCat.hidden || event.button !== 0 || event.target.closest("button")) return;
+    initializePetMotion();
+    petMotion.dragging = true;
+    petMotion.moved = false;
+    petMotion.pointerId = event.pointerId;
+    petMotion.pointerStartX = event.clientX;
+    petMotion.pointerStartY = event.clientY;
+    petMotion.startX = petMotion.x;
+    petMotion.startY = petMotion.y;
+    petMotion.vx = 0;
+    petMotion.vy = 0;
+    virtualPetCat.classList.remove("pet-falling", "pet-jump");
+    virtualPetCat.classList.add("pet-grabbed");
+    virtualPetCat.style.animation = "none";
+    virtualPetCat.style.cursor = "grabbing";
+    event.preventDefault();
+}
+function petPointerMove(event) {
+    if (!petMotion.dragging || event.pointerId !== petMotion.pointerId) return;
+    const dx = event.clientX - petMotion.pointerStartX;
+    const dy = event.clientY - petMotion.pointerStartY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) petMotion.moved = true;
+    petMotion.x = Math.max(0, Math.min(window.innerWidth - virtualPetCat.offsetWidth, petMotion.startX + dx));
+    petMotion.y = Math.max(0, Math.min(window.innerHeight - virtualPetCat.offsetHeight, petMotion.startY + dy));
+    setPetPosition();
+}
+function petPointerUp(event) {
+    if (!petMotion.dragging || (event && event.pointerId !== petMotion.pointerId)) return;
+    petMotion.dragging = false;
+    petMotion.pointerId = null;
+    virtualPetCat.classList.remove("pet-grabbed");
+    virtualPetCat.style.cursor = "grab";
+    if (petMotion.moved) {
+        petMotion.suppressClick = true;
+        window.setTimeout(() => { petMotion.suppressClick = false; }, 100);
+        petMotion.vy = 0;
+        virtualPetCat.classList.add("pet-falling");
+    } else {
+        virtualPetCat.classList.remove("pet-falling");
+    }
+}
+virtualPetCat?.addEventListener("pointerdown", petPointerDown);
+window.addEventListener("pointermove", petPointerMove, {passive:false});
+window.addEventListener("pointerup", petPointerUp);
+window.addEventListener("pointercancel", petPointerUp);
+window.addEventListener("resize", () => {
+    if (!petMotion.initialized || petMotion.dragging) return;
+    petMotion.x = Math.max(0, Math.min(window.innerWidth - (virtualPetCat?.offsetWidth || 80), petMotion.x));
+    if (petMotion.y > petFloorY()) petMotion.y = petFloorY();
+    setPetPosition();
+});
+window.requestAnimationFrame(petMotionFrame);
+
 function applyVirtualPetSettings(reveal = false) {
     if (!virtualPetCat) return;
     const pet = localStorage.getItem("mylibra-pet") || "cat";
@@ -3662,6 +3777,7 @@ function petSay(messages) {
     window.setTimeout(() => virtualPetCat?.classList.remove("pet-show-bubble"), 1500);
 }
 virtualPetCat?.addEventListener("click", () => {
+    if (petMotion.suppressClick) return;
     virtualPetCat.classList.remove("pet-jump");
     void virtualPetCat.offsetWidth;
     virtualPetCat.classList.add("pet-jump");
@@ -3675,11 +3791,7 @@ virtualPetCat?.addEventListener("click", () => {
     window.setTimeout(() => virtualPetCat.classList.remove("pet-jump"), 750);
 });
 
-// Đổi hướng mà không lật bong bóng / chữ.
-window.setInterval(() => {
-    if (!virtualPetCat || virtualPetCat.hidden) return;
-    virtualPetCat.classList.toggle("pet-facing-left");
-}, 9900);
+// Hướng Pet đổi tại hai mép màn hình trong vòng lặp chuyển động 60 FPS.
 
 $("settingPetCat")?.addEventListener("change", () => {
     if (!$("settingPetCat").checked) return;
