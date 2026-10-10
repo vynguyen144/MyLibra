@@ -3721,8 +3721,7 @@ function applyVirtualPetSettings(reveal = false) {
     const pet = localStorage.getItem("mylibra-pet") || "cat";
     const enabled = localStorage.getItem("mylibra-pet-enabled") !== "false";
     const effects = localStorage.getItem("mylibra-pet-effects") !== "false";
-    virtualPetCat.classList.toggle("pet-cat", pet === "cat");
-    virtualPetCat.classList.toggle("pet-ghost", pet === "ghost");
+    ["cat","ghost","croc","wizard","frog"].forEach(name => virtualPetCat.classList.toggle("pet-" + name, pet === name));
     virtualPetCat.hidden = !enabled;
     if (!enabled) return;
     virtualPetCat.classList.remove("pet-entering","pet-dissolving","pet-spawn");
@@ -3787,12 +3786,11 @@ virtualPetCat?.addEventListener("click", () => {
     void virtualPetCat.offsetWidth;
     virtualPetCat.classList.add("pet-jump");
     const pet = localStorage.getItem("mylibra-pet") || "cat";
-    if (pet === "ghost") {
-        petSay(["Bùuuuu~ 👻", "Hùùù bà nè...", "Uuuuuuu~", "Tui đang lang thang..."]);
-        playGhostMoan();
-    } else {
-        petSay(["Meow~ 🐾", "Có ai gọi tui hả?", "Đi dạo nè!", "Cho tui cá với~"]);
-    }
+    if (pet === "ghost") { petSay(["Bùuuuu~ 👻", "Hùùù bà nè...", "Uuuuuuu~"]); playGhostMoan(); }
+    else if (pet === "croc") { virtualPetCat.classList.add("pet-attack"); petSay(["Phùuuu! 🔥", "Nóng chưa nè?!"]); window.setTimeout(() => virtualPetCat.classList.remove("pet-attack"), 1200); }
+    else if (pet === "wizard") { virtualPetCat.classList.add("pet-attack"); petSay(["Cầu phép tới đây!", "Phép thuật! ✨"]); window.setTimeout(() => virtualPetCat.classList.remove("pet-attack"), 1200); }
+    else if (pet === "frog") { virtualPetCat.classList.add("pet-sparkle"); petSay(["Blink blink ✨", "Ếch phép thuật!"]); window.setTimeout(() => virtualPetCat.classList.remove("pet-sparkle"), 1400); }
+    else petSay(["Meow~ 🐾", "Có ai gọi tui hả?", "Đi dạo nè!"]);
     window.setTimeout(() => virtualPetCat.classList.remove("pet-jump"), 750);
 });
 
@@ -3803,10 +3801,11 @@ $("settingPetCat")?.addEventListener("change", () => {
     localStorage.setItem("mylibra-pet","cat");
     applyVirtualPetSettings(true);
 });
-$("settingPetGhost")?.addEventListener("change", () => {
-    if (!$("settingPetGhost").checked) return;
-    localStorage.setItem("mylibra-pet","ghost");
-    applyVirtualPetSettings(true);
+["Ghost","Croc","Wizard","Frog"].forEach(suffix => {
+    $("settingPet" + suffix)?.addEventListener("change", () => {
+        const input = $("settingPet" + suffix); if (!input.checked) return;
+        localStorage.setItem("mylibra-pet", input.value); applyVirtualPetSettings(true);
+    });
 });
 $("settingPetEnabled")?.addEventListener("change", (e) => {
     localStorage.setItem("mylibra-pet-enabled", String(e.target.checked));
