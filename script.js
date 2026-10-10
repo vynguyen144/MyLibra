@@ -431,7 +431,7 @@ function setGoogleDriveStatus(message, connected = false) {
     googleDriveStatus.textContent = message;
     googleDriveStatus.classList.toggle("drive-connected", connected);
     if (googleDriveButton) {
-        googleDriveButton.textContent = connected ? "☁️ Đồng bộ Google Drive" : "☁️ Kết nối Google Drive";
+        googleDriveButton.textContent = connected ? "☁️ Chọn truyện để đồng bộ" : "☁️ Kết nối Google Drive";
     }
 }
 
@@ -748,16 +748,10 @@ async function saveDriveManifest() {
 }
 
 function scheduleDriveManifestSync() {
-    if (!googleDriveAccessToken || googleDriveSyncInProgress) return;
+    // Không tự tải toàn bộ truyện từ Drive khi có thay đổi cục bộ.
+    // Người dùng chủ động chọn truyện cần tải trong menu Đồng bộ.
+    if (!googleDriveAccessToken) return;
     clearTimeout(googleDriveSyncTimer);
-    googleDriveSyncTimer = setTimeout(async () => {
-        try {
-            await syncToGoogleDrive();
-        } catch (error) {
-            console.error("Drive background sync:", error);
-            setGoogleDriveStatus("Đã kết nối nhưng chưa đồng bộ xong. Hãy bấm đồng bộ lại.", true);
-        }
-    }, 1200);
 }
 
 async function findDriveManifest(folderId) {
@@ -966,6 +960,190 @@ async function syncFromGoogleDrive() {
     return syncToGoogleDrive();
 }
 
+let driveSelectionBooks = [];
+
+function ensureDriveSelectionModal() {
+    let modal = document.getElementById("driveSelectionModal");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.className = "modal-overlay drive-selection-overlay";
+    modal.id = "driveSelectionModal";
+    modal.hidden = true;
+    modal.innerHTML = `
+        <section class="modal drive-selection-modal" role="dialog" aria-modal="true" aria-labelledby="driveSelectionTitle">
+            <button class="modal-close" id="closeDriveSelection" type="button" aria-label="Đóng">×</button>
+            <h2 id="driveSelectionTitle">☁️ Chọn truyện từ Google Drive</h2>
+            <p class="modal-description">Tích chọn những truyện bà muốn tải về thiết bị này. Truyện đã có file trên máy sẽ được đánh dấu và không tải trùng.</p>
+            <div class="drive-selection-toolbar">
+                <span id="driveSelectionCount">Đang tải danh sách…</span>
+                <div><button class="add-button" id="driveSelectAll" type="button">Chọn tất cả</button><button class="add-button" id="driveSelectNone" type="button">Bỏ chọn</button></div>
+            </div>
+            <div class="drive-selection-list" id="driveSelectionList" aria-live="polite"></div>
+            <p class="settings-note drive-selection-status" id="driveSelectionStatus"></p>
+            <div class="modal-actions">
+                <button class="add-button" id="cancelDriveSelection" type="button">Đóng</button>
+                <button class="primary-button" id="syncSelectedDriveBooks" type="button" disabled>⬇️ Đồng bộ truyện đã chọn</button>
+            </div>
+        </section>`;
+    document.body.appendChild(modal);
+    const close = () => { modal.hidden = true; };
+    modal.querySelector("#closeDriveSelection").addEventListener("click", close);
+    modal.querySelector("#cancelDriveSelection").addEventListener("click", close);
+    modal.addEventListener("click", event => { if (event.target === modal) close(); });
+    modal.querySelector("#driveSelectAll").addEventListener("click", () => {
+        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => { input.checked = true; });
+        updateDriveSelectionCount();
+    });
+    modal.querySelector("#driveSelectNone").addEventListener("click", () => {
+        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => { input.checked = false; });
+        updateDriveSelectionCount();
+    });
+    modal.querySelector("#syncSelectedDriveBooks").addEventListener("click", syncSelectedDriveBooks);
+    modal.querySelector("#driveSelectionList").addEventListener("change", event => {
+        if (event.target.matches(".drive-selection-check")) updateDriveSelectionCount();
+    });
+    return modal;
+}
+
+function updateDriveSelectionCount() {
+    const modal = document.getElementById("driveSelectionModal");
+    if (!modal) return;
+    const checks = [...modal.querySelectorAll(".drive-selection-check:not(:disabled)")];
+    const selected = checks.filter(input => input.checked).length;
+    const count = modal.querySelector("#driveSelectionCount");
+    const button = modal.querySelector("#syncSelectedDriveBooks");
+    if (count) count.textContent = selected + " truyện được chọn · " + checks.length + " truyện có thể tải";
+    if (button) {
+        button.disabled = selected === 0;
+        button.textContent = selected ? "⬇️ Đồng bộ " + selected + " truyện đã chọn" : "⬇️ Đồng bộ truyện đã chọn";
+    }
+}
+
+function renderDriveSelectionList(remoteBooks) {
+    const modal = ensureDriveSelectionModal();
+    const list = modal.querySelector("#driveSelectionList");
+    const status = modal.querySelector("#driveSelectionStatus");
+    driveSelectionBooks = remoteBooks;
+    if (!remoteBooks.length) {
+        list.innerHTML = '<div class="drive-selection-empty"><span>📚</span><strong>Chưa có truyện nào trên Google Drive</strong><p>Khi thư viện Drive có truyện, bà có thể quay lại đây để chọn tải về.</p></div>';
+        status.textContent = "";
+        updateDriveSelectionCount();
+        return;
+    }
+    list.innerHTML = remoteBooks.map(book => {
+        const local = books.find(item => item.id === book.id);
+        const alreadyPresent = Boolean(local && local.file);
+        const image = book.avatarDataUrl || book.coverDataUrl || "";
+        const cover = image ? '<img src="' + escapeHTML(image) + '" alt="">' : '<span>' + escapeHTML(book.icon || "📖") + '</span>';
+        const type = escapeHTML(book.fileType || (book.fileName || "").split(".").pop()?.toUpperCase() || "TRUYỆN");
+        const statusText = alreadyPresent ? "✓ Đã có trên thiết bị" : (book.driveFileId ? "Sẵn sàng tải về" : "Không tìm thấy file truyện trên Drive");
+        const disabled = alreadyPresent || !book.driveFileId;
+        return '<label class="drive-selection-item' + (disabled ? ' is-unavailable' : '') + '">' +
+            '<input class="drive-selection-check" type="checkbox" data-book-id="' + escapeHTML(book.id) + '" ' + (disabled ? 'disabled' : 'checked') + '>' +
+            '<span class="drive-selection-cover">' + cover + '</span>' +
+            '<span class="drive-selection-info"><strong>' + escapeHTML(book.title || book.fileName || "Truyện chưa đặt tên") + '</strong>' +
+            '<small>' + escapeHTML(book.author || "Không rõ tác giả") + ' · ' + type + '</small><small class="drive-selection-item-status">' + statusText + '</small></span></label>';
+    }).join("");
+    status.textContent = "";
+    updateDriveSelectionCount();
+}
+
+async function loadDriveSelection() {
+    const modal = ensureDriveSelectionModal();
+    modal.hidden = false;
+    const list = modal.querySelector("#driveSelectionList");
+    const status = modal.querySelector("#driveSelectionStatus");
+    const count = modal.querySelector("#driveSelectionCount");
+    const syncButton = modal.querySelector("#syncSelectedDriveBooks");
+    list.innerHTML = '<div class="drive-selection-empty"><span>⏳</span><strong>Đang đọc danh sách Google Drive…</strong></div>';
+    status.textContent = "";
+    count.textContent = "Đang tải danh sách…";
+    syncButton.disabled = true;
+    try {
+        const folderId = await ensureDriveFolder();
+        let manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
+        if (!manifestId) {
+            const found = await findDriveManifest(folderId);
+            if (found) {
+                manifestId = found.id;
+                localStorage.setItem(DRIVE_MANIFEST_KEY, manifestId);
+            }
+        }
+        let remoteManifest = null;
+        if (manifestId) {
+            remoteManifest = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
+        } else {
+            // Lần đầu kết nối: tạo thư viện Drive từ truyện đang có trên thiết bị.
+            setGoogleDriveStatus("Đang chuẩn bị thư viện Google Drive…", true);
+            for (const book of books) {
+                if (book.file && (!book.driveFileId || Number(book.fileUpdatedAt || 0) > Number(book.driveFileUpdatedAt || 0))) {
+                    await uploadBookToDrive(book);
+                }
+            }
+            await saveDriveManifest();
+            manifestId = localStorage.getItem(DRIVE_MANIFEST_KEY);
+            if (manifestId) remoteManifest = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(manifestId) + "?alt=media");
+        }
+        const remoteBooks = Array.isArray(remoteManifest?.books) ? remoteManifest.books : [];
+        const deleted = remoteManifest?.deletedBooks && typeof remoteManifest.deletedBooks === "object" ? remoteManifest.deletedBooks : {};
+        const visibleBooks = remoteBooks.filter(book => book && book.id &&
+            (Number(deleted[book.id]?.deletedAt) || 0) <= (Number(book.updatedAt) || 0))
+            .sort((a, b) => (a.title || "").localeCompare(b.title || "", "vi"));
+        renderDriveSelectionList(visibleBooks);
+        setGoogleDriveStatus("Đã kết nối Google Drive. Bà có thể chọn truyện muốn tải.", true);
+    } catch (error) {
+        console.error("MyLibra Drive selection:", error);
+        list.innerHTML = '<div class="drive-selection-empty"><span>⚠️</span><strong>Không đọc được danh sách Google Drive</strong><p>' + escapeHTML(error?.message || String(error)) + '</p></div>';
+        count.textContent = "Không tải được danh sách";
+        status.textContent = "Kiểm tra quyền Google Drive rồi thử lại.";
+        setGoogleDriveStatus("Đã kết nối nhưng không tải được danh sách Drive.", true);
+    }
+}
+
+async function syncSelectedDriveBooks() {
+    const modal = ensureDriveSelectionModal();
+    const selectedIds = [...modal.querySelectorAll(".drive-selection-check:checked")].map(input => input.dataset.bookId);
+    const selected = driveSelectionBooks.filter(book => selectedIds.includes(book.id));
+    const button = modal.querySelector("#syncSelectedDriveBooks");
+    const status = modal.querySelector("#driveSelectionStatus");
+    if (!selected.length) return;
+    button.disabled = true;
+    modal.querySelectorAll(".drive-selection-check").forEach(input => { input.disabled = true; });
+    let completed = 0;
+    const errors = [];
+    for (const remoteBook of selected) {
+        try {
+            let local = books.find(book => book.id === remoteBook.id);
+            if (local?.file) { completed++; continue; }
+            const file = await downloadBookFromDrive(remoteBook);
+            if (!file) throw new Error("Không tải được file truyện.");
+            if (local) {
+                Object.assign(local, normalizeBookImages({...remoteBook}));
+                local.file = file;
+                local.fileUpdatedAt = Number(remoteBook.fileUpdatedAt) || Number(remoteBook.driveFileUpdatedAt) || Date.now();
+                local.driveFileUpdatedAt = Number(remoteBook.driveFileUpdatedAt) || local.fileUpdatedAt;
+            } else {
+                local = normalizeBookImages({...remoteBook, file});
+                local.fileUpdatedAt = Number(remoteBook.fileUpdatedAt) || Number(remoteBook.driveFileUpdatedAt) || Date.now();
+                books.push(local);
+            }
+            await saveBookToDatabase(local, {touch:false});
+            clearBookDeleted(local.id);
+            completed++;
+        } catch (error) {
+            errors.push((remoteBook.title || remoteBook.fileName || "Truyện") + ": " + (error?.message || String(error)));
+        }
+    }
+    updateFilterOptions();
+    renderBooks(getFilteredBooks());
+    renderReadingLists();
+    renderHome();
+    status.textContent = "Đã tải " + completed + "/" + selected.length + " truyện." + (errors.length ? " Lỗi: " + errors.join(" · ") : "");
+    setGoogleDriveStatus(errors.length ? "Đã tải một phần truyện từ Google Drive." : "Đồng bộ xong " + completed + " truyện đã chọn.", true);
+    renderDriveSelectionList(driveSelectionBooks);
+    if (errors.length) status.textContent = "Đã tải " + completed + "/" + selected.length + " truyện. " + errors.join(" · ");
+}
+
 async function connectGoogleDrive() {
     if (!getGoogleProfile()) {
         alert("Hãy đăng nhập Google trước rồi kết nối Google Drive.");
@@ -975,18 +1153,16 @@ async function connectGoogleDrive() {
         alert("Google Identity Services chưa tải xong. Hãy tải lại trang.");
         return;
     }
-
     try {
         setGoogleDriveStatus("Đang kết nối Google Drive…", true);
         await requestGoogleDriveAccess(localStorage.getItem("mylibra-drive-authorized") ? "" : "consent");
-        await syncToGoogleDrive();
+        await loadDriveSelection();
     } catch (error) {
         console.error("MyLibra Google Drive:", error);
-        setGoogleDriveStatus("Đã kết nối nhưng đồng bộ gặp lỗi. Hãy thử lại.", true);
+        setGoogleDriveStatus("Đã kết nối nhưng không mở được danh sách truyện.", true);
         alert("Google Drive gặp lỗi:\n\n" + (error?.message || String(error)));
     }
 }
-
 googleDriveButton?.addEventListener("click", connectGoogleDrive);
 
 function logoutGoogle() {
@@ -1012,9 +1188,9 @@ async function autoConnectGoogleDrive() {
         if (window.google?.accounts?.oauth2) {
             try {
                 await requestGoogleDriveAccess("");
-                await syncToGoogleDrive();
+                setGoogleDriveStatus("Đã kết nối Google Drive. Bấm Đồng bộ để chọn truyện.", true);
             } catch (error) {
-                console.warn("Auto Drive sync:", error);
+                console.warn("Auto Drive token:", error);
             }
             return;
         }
