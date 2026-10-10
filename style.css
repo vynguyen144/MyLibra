@@ -3449,3 +3449,34 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
         right: 10px;
     }
 }
+
+
+/* GOOGLE DRIVE SELECTIVE SYNC */
+.drive-selection-overlay { z-index: 1200; }
+.drive-selection-modal { width: min(720px, 100%); max-height: min(84vh, 900px); display: flex; flex-direction: column; overflow: hidden; padding: 28px; }
+.drive-selection-modal h2 { margin: 0 42px 8px 0; }
+.drive-selection-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 14px 0 12px; color: var(--text-soft); font-size: 13px; }
+.drive-selection-toolbar > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.drive-selection-toolbar button { padding: 7px 10px; font-size: 12px; }
+.drive-selection-list { display: flex; flex-direction: column; gap: 9px; min-height: 120px; max-height: min(44vh, 480px); overflow-y: auto; padding: 2px 4px 2px 0; }
+.drive-selection-item { display: flex; align-items: center; gap: 12px; padding: 11px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface-soft); cursor: pointer; }
+.drive-selection-item:has(input:checked) { border-color: var(--primary); }
+.drive-selection-item.is-unavailable { opacity: .72; cursor: default; }
+.drive-selection-check { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--primary); }
+.drive-selection-cover { display: flex; align-items: center; justify-content: center; width: 48px; height: 66px; flex-shrink: 0; overflow: hidden; border-radius: 7px; background: var(--surface); font-size: 25px; }
+.drive-selection-cover img { width: 100%; height: 100%; object-fit: cover; }
+.drive-selection-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.drive-selection-info strong { overflow-wrap: anywhere; }
+.drive-selection-info small { color: var(--text-soft); font-size: 12px; }
+.drive-selection-item-status { color: var(--primary) !important; }
+.drive-selection-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 150px; padding: 24px; text-align: center; border: 1px dashed var(--border); border-radius: 13px; }
+.drive-selection-empty > span { font-size: 30px; }
+.drive-selection-empty p { margin: 0; color: var(--text-soft); }
+.drive-selection-status { overflow-wrap: anywhere; max-height: 90px; overflow-y: auto; }
+@media (max-width: 600px) {
+    .drive-selection-modal { padding: 24px 16px 18px; }
+    .drive-selection-toolbar { align-items: flex-start; }
+    .drive-selection-list { max-height: 42vh; }
+    .drive-selection-item { gap: 8px; padding: 8px; }
+    .drive-selection-cover { width: 42px; height: 58px; }
+}
