@@ -3512,7 +3512,7 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 }
 .virtual-pet-cat.pet-facing-left .virtual-pet-sprite { transform: scaleX(-1); }
 .virtual-pet-cat .pet-tail { animation: petTailSmooth .7s ease-in-out infinite alternate; }
-.virtual-pet-cat.pet-ghost .virtual-pet-sprite { animation: ghostFloatSmooth 1.4s ease-in-out infinite; }
+.virtual-pet-cat.pet-ghost:not(.pet-jump):not(.pet-grabbed):not(.pet-falling) .virtual-pet-sprite { animation: ghostFloatSmooth 1.4s ease-in-out infinite; }
 @keyframes petHeldSway {
     from { rotate: -5deg; translate: -1px 0; }
     to { rotate: 5deg; translate: 1px 2px; }
