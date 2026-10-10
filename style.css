@@ -3529,3 +3529,22 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     .virtual-pet-cat { transform: none !important; }
     .virtual-pet-cat.pet-grabbed .virtual-pet-sprite { transform-origin: 50% 0%; }
 }
+
+/* High-contrast pixel pets and effects */
+.pixel-pet.pixel-croc,.pixel-pet.pixel-wizard,.pixel-pet.pixel-frog{display:none}
+.virtual-pet-cat.pet-croc .pixel-croc,.virtual-pet-cat.pet-wizard .pixel-wizard,.virtual-pet-cat.pet-frog .pixel-frog{display:block}
+.croc-fire{animation:crocFire .18s steps(2,end) infinite alternate;transform-origin:86px 43px}
+.croc-tail{animation:crocTail .55s ease-in-out infinite alternate}
+.wizard-orb{animation:wizardOrb .6s steps(3,end) infinite alternate;transform-origin:80px 32px}
+.frog-sparkles{animation:frogBlink .75s steps(2,end) infinite}
+.virtual-pet-cat.pet-attack.pet-croc .croc-fire{animation:crocFire .12s steps(2,end) infinite}
+.virtual-pet-cat.pet-attack.pet-wizard .wizard-orb{animation:wizardCast .22s steps(2,end) infinite}
+.virtual-pet-cat.pet-sparkle.pet-frog .frog-sparkles{animation:frogMagic .18s steps(2,end) infinite}
+@keyframes crocFire{from{transform:scale(.7);opacity:.7}to{transform:scale(1.3);opacity:1}}
+@keyframes crocTail{from{transform:translateY(-1px)}to{transform:translateY(2px)}}
+@keyframes wizardOrb{from{transform:scale(.85) rotate(-8deg);filter:drop-shadow(0 0 1px #38bdf8)}to{transform:scale(1.12) rotate(8deg);filter:drop-shadow(0 0 5px #22d3ee)}}
+@keyframes wizardCast{0%{transform:translateX(0) scale(.7)}100%{transform:translateX(9px) scale(1.35)}}
+@keyframes frogBlink{0%,65%,100%{opacity:1}70%,82%{opacity:.15}}
+@keyframes frogMagic{0%{opacity:.25;transform:scale(.8)}100%{opacity:1;transform:scale(1.2)}}
+.pet-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:600px){.pet-choice-grid{grid-template-columns:1fr}}
