@@ -19,7 +19,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261010-3"
+        href="style.css?v=20261010-4"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -499,6 +499,9 @@
             <span class="pet-choice-preview pet-preview-ghost">👻</span>
             <span><strong>Ma nhỏ</strong><small>Bụp xuất hiện, lơ lửng rồi tan rã.</small></span>
         </label>
+        <label class="pet-choice"><input type="radio" name="petChoice" value="croc" id="settingPetCroc"><span class="pet-choice-preview">🐊</span><span><strong>Cá sấu phun lửa</strong><small>Đi dạo và phun lửa cam đỏ.</small></span></label>
+        <label class="pet-choice"><input type="radio" name="petChoice" value="wizard" id="settingPetWizard"><span class="pet-choice-preview">🧙</span><span><strong>Phù thủy</strong><small>Niệm phép và phóng cầu năng lượng.</small></span></label>
+        <label class="pet-choice"><input type="radio" name="petChoice" value="frog" id="settingPetFrog"><span class="pet-choice-preview">🐸</span><span><strong>Ếch phù thủy</strong><small>Nhấp nháy cùng đốm sáng ma thuật.</small></span></label>
     </div>
     <div class="pet-settings-list">
         <label class="settings-row"><span><strong>Hiển thị thú cưng</strong><small>Tắt nếu bà muốn cuối trang trống.</small></span><input type="checkbox" id="settingPetEnabled" checked></label>
@@ -554,10 +557,13 @@
                 <rect x="33" y="41" width="6" height="3" fill="#e9b1d0"/>
                 <rect x="18" y="20" width="6" height="6" fill="#d9c5f4"/><rect x="50" y="20" width="6" height="6" fill="#d9c5f4"/>
             </svg>
+            <svg class="pixel-pet pixel-croc" viewBox="0 0 96 72" shape-rendering="crispEdges"><g class="croc-tail"><rect x="4" y="36" width="14" height="8" fill="#14532d"/><rect x="0" y="42" width="12" height="7" fill="#16a34a"/></g><rect x="16" y="28" width="44" height="27" fill="#16a34a"/><rect x="25" y="21" width="28" height="14" fill="#22c55e"/><rect x="48" y="20" width="34" height="13" fill="#22c55e"/><rect x="64" y="26" width="25" height="9" fill="#4ade80"/><rect x="72" y="28" width="5" height="5" fill="#fef08a"/><rect x="73" y="29" width="3" height="3" fill="#111827"/><rect x="76" y="36" width="17" height="5" fill="#14532d"/><rect x="81" y="35" width="4" height="4" fill="#fff"/><rect x="20" y="53" width="10" height="13" fill="#15803d"/><rect x="46" y="53" width="10" height="13" fill="#15803d"/><rect x="25" y="34" width="5" height="5" fill="#bef264"/><rect x="37" y="42" width="5" height="5" fill="#bef264"/><rect x="49" y="34" width="5" height="5" fill="#bef264"/><g class="croc-fire"><rect x="86" y="42" width="6" height="8" fill="#ef4444"/><rect x="91" y="38" width="5" height="12" fill="#f97316"/><rect x="87" y="45" width="5" height="7" fill="#fde047"/></g></svg>
+<svg class="pixel-pet pixel-wizard" viewBox="0 0 96 72" shape-rendering="crispEdges"><rect x="20" y="24" width="52" height="37" fill="#1d4ed8"/><rect x="14" y="42" width="64" height="22" fill="#1e3a8a"/><rect x="26" y="14" width="40" height="16" fill="#7c3aed"/><rect x="33" y="2" width="18" height="15" fill="#6d28d9"/><rect x="28" y="16" width="39" height="5" fill="#c084fc"/><rect x="29" y="34" width="7" height="7" fill="#fef08a"/><rect x="54" y="34" width="7" height="7" fill="#fef08a"/><rect x="39" y="46" width="16" height="5" fill="#0f172a"/><rect x="31" y="54" width="10" height="8" fill="#facc15"/><rect x="52" y="54" width="10" height="8" fill="#facc15"/><g class="wizard-orb"><rect x="77" y="20" width="8" height="8" fill="#67e8f9"/><rect x="72" y="25" width="18" height="18" fill="#2563eb"/><rect x="77" y="30" width="8" height="8" fill="#a5f3fc"/><rect x="68" y="18" width="4" height="4" fill="#fef08a"/></g></svg>
+<svg class="pixel-pet pixel-frog" viewBox="0 0 96 72" shape-rendering="crispEdges"><rect x="20" y="26" width="54" height="34" fill="#16a34a"/><rect x="18" y="19" width="19" height="18" fill="#22c55e"/><rect x="56" y="19" width="19" height="18" fill="#22c55e"/><rect x="23" y="20" width="11" height="11" fill="#dcfce7"/><rect x="59" y="20" width="11" height="11" fill="#dcfce7"/><rect x="27" y="24" width="5" height="5" fill="#111827"/><rect x="62" y="24" width="5" height="5" fill="#111827"/><rect x="31" y="37" width="30" height="15" fill="#a3e635"/><rect x="39" y="45" width="14" height="3" fill="#14532d"/><rect x="23" y="55" width="15" height="10" fill="#15803d"/><rect x="57" y="55" width="15" height="10" fill="#15803d"/><rect x="26" y="4" width="42" height="7" fill="#6d28d9"/><rect x="31" y="11" width="31" height="8" fill="#7c3aed"/><rect x="43" y="0" width="9" height="8" fill="#a855f7"/><g class="frog-sparkles"><rect x="7" y="30" width="5" height="5" fill="#fef08a"/><rect x="79" y="16" width="5" height="5" fill="#fff"/><rect x="80" y="47" width="6" height="6" fill="#c4b5fd"/><rect x="10" y="51" width="5" height="5" fill="#67e8f9"/></g></svg>
         </div>
     </div>
 
-    <script src="script.js?v=20261010-3"></script>
+    <script src="script.js?v=20261010-4"></script>
 </body>
 
 </html>
