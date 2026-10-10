@@ -879,6 +879,18 @@ async function syncToGoogleDrive() {
             if (!local) {
                 if (localDeletedAt > remoteUpdatedAt) continue;
                 const cloudBook = normalizeBookImages({...remoteBook, file:null});
+                // Manifest chỉ chứa metadata và ảnh; tải file truyện riêng từ Drive
+                // để truyện mới đồng bộ sang thiết bị này có thể mở đọc ngay.
+                if (cloudBook.driveFileId) {
+                    try {
+                        cloudBook.file = await downloadBookFromDrive(cloudBook);
+                        if (cloudBook.file) {
+                            cloudBook.driveFileUpdatedAt = Number(cloudBook.driveFileUpdatedAt) || Date.now();
+                        }
+                    } catch (downloadError) {
+                        console.warn("Chưa tải được file truyện từ Drive:", cloudBook.fileName, downloadError);
+                    }
+                }
                 books.push(cloudBook);
                 clearBookDeleted(cloudBook.id);
                 await saveBookToDatabase(cloudBook, {touch:false});
@@ -889,11 +901,23 @@ async function syncToGoogleDrive() {
             if (remoteUpdatedAt > localUpdatedAt) {
                 const localFile = local.file;
                 const sameDriveFile = Boolean(local.driveFileId && local.driveFileId === remoteBook.driveFileId);
-                const localFileIsCurrent = sameDriveFile &&
+                const localFileIsCurrent = Boolean(localFile) && sameDriveFile &&
                     Number(local.fileUpdatedAt || 0) >= Number(remoteBook.fileUpdatedAt || 0);
 
                 Object.assign(local, normalizeBookImages({...remoteBook}));
                 local.file = localFileIsCurrent ? localFile : null;
+                // Nếu metadata mới hơn nhưng thiết bị chưa có file (hoặc file đã đổi),
+                // khôi phục file thực từ Drive thay vì chỉ đồng bộ tên và ảnh bìa.
+                if (!local.file && local.driveFileId) {
+                    try {
+                        local.file = await downloadBookFromDrive(local);
+                        if (local.file) {
+                            local.fileUpdatedAt = Number(local.fileUpdatedAt) || Number(local.driveFileUpdatedAt) || Date.now();
+                        }
+                    } catch (downloadError) {
+                        console.warn("Chưa tải được file truyện từ Drive:", local.fileName, downloadError);
+                    }
+                }
                 await saveBookToDatabase(local, {touch:false});
             }
         }
