@@ -3480,3 +3480,52 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
     .drive-selection-item { gap: 8px; padding: 8px; }
     .drive-selection-cover { width: 42px; height: 58px; }
 }
+
+
+/* PET MOTION UPDATE — slow walk, drag-and-drop, gravity, smooth motion */
+.virtual-pet-cat {
+    left: -100px; top: auto; bottom: 8px;
+    animation: none !important; cursor: grab; touch-action: none;
+    will-change: left, top, transform;
+}
+.virtual-pet-cat.pet-grabbed {
+    z-index: 1005; cursor: grabbing !important; animation: none !important;
+    filter: drop-shadow(0 8px 5px rgba(95,55,75,.24));
+}
+.virtual-pet-cat.pet-grabbed .virtual-pet-sprite {
+    transform: rotate(8deg) translateY(7px) scale(.96);
+    transform-origin: 50% 0%;
+    animation: petHeldSway .55s ease-in-out infinite alternate !important;
+}
+.virtual-pet-cat.pet-grabbed.pet-facing-left .virtual-pet-sprite {
+    transform: scaleX(-1) rotate(8deg) translateY(7px) scale(.96);
+}
+.virtual-pet-cat.pet-grabbed .pet-tail {
+    animation: petTailSmooth .42s ease-in-out infinite alternate;
+}
+.virtual-pet-cat.pet-falling .virtual-pet-sprite {
+    animation: petFallWobble .22s ease-in-out infinite alternate !important;
+}
+.virtual-pet-cat.pet-jump { animation: none !important; }
+.virtual-pet-cat.pet-jump .virtual-pet-sprite {
+    animation: petJump60 .7s cubic-bezier(.35,.05,.65,1) !important;
+}
+.virtual-pet-cat.pet-facing-left .virtual-pet-sprite { transform: scaleX(-1); }
+.virtual-pet-cat .pet-tail { animation: petTailSmooth .7s ease-in-out infinite alternate; }
+.virtual-pet-cat.pet-ghost .virtual-pet-sprite { animation: ghostFloatSmooth 1.4s ease-in-out infinite; }
+@keyframes petHeldSway {
+    from { rotate: -5deg; translate: -1px 0; }
+    to { rotate: 5deg; translate: 1px 2px; }
+}
+@keyframes petFallWobble { from { rotate: -4deg; } to { rotate: 4deg; } }
+@keyframes petTailSmooth { from { transform: rotate(-8deg); } to { transform: rotate(14deg); } }
+@keyframes ghostFloatSmooth { 0%,100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+@keyframes petJump60 {
+    0%,100% { translate: 0 0; }
+    35% { translate: 0 -26px; }
+    65% { translate: 0 -12px; }
+}
+@media (max-width: 600px) {
+    .virtual-pet-cat { transform: none !important; }
+    .virtual-pet-cat.pet-grabbed .virtual-pet-sprite { transform-origin: 50% 0%; }
+}
