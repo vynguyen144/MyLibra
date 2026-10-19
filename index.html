@@ -19,7 +19,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261019-2"
+        href="style.css?v=20261019-3"
     >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -467,6 +467,11 @@
                 <label class="settings-row"><span><strong>Kiểu đọc EPUB</strong><small>Cuộn dọc hoặc chuyển từng trang.</small></span><select id="settingReaderMode"><option value="scroll">📜 Cuộn dọc</option><option value="page">📖 Chuyển trang</option></select></label>
                 <label class="settings-row"><span><strong>Cỡ chữ mặc định</strong><small>Áp dụng cho nội dung văn bản.</small></span><select id="settingFontSize"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="22">22 px</option><option value="24">24 px</option></select></label>
                 <label class="settings-row"><span><strong>Khoảng dòng</strong><small>Điều chỉnh độ thoáng khi đọc.</small></span><select id="settingLineHeight"><option value="1.6">1.6</option><option value="1.8">1.8</option><option value="1.9">1.9</option><option value="2.1">2.1</option></select></label>
+                <div class="reader-color-tools"><h4>🎨 Màu riêng cho trang đọc</h4>
+                <label class="settings-row"><span><strong>Bộ màu nhanh</strong><small>Áp dụng cho TXT và EPUB.</small></span><select id="readerColorPreset"><option value="paper">Giấy trắng – chữ đen</option><option value="night">Đen dịu – chữ trắng</option><option value="sepia">Giấy sepia – chữ nâu</option><option value="mint">Xanh bạc hà</option><option value="lavender">Tím lavender</option><option value="pink">Hồng dịu</option><option value="custom">Màu tự chọn</option></select></label>
+                <div class="reader-color-pickers"><label>Nền trang <input type="color" id="readerBackgroundColor" value="#ffffff"></label><label>Màu chữ <input type="color" id="readerTextColor" value="#292533"></label></div>
+                <button class="secondary-button" id="resetReaderColors" type="button">↩ Khôi phục màu theo theme</button>
+                <p class="settings-note">Màu riêng tác động TXT/EPUB; PDF giữ nguyên màu gốc của trang.</p></div>
             </section>
             <section class="settings-panel" data-settings-panel="theme">
                 <h3>Theme giao diện</h3>
@@ -507,6 +512,16 @@
         <label class="settings-row"><span><strong>Hiển thị thú cưng</strong><small>Tắt nếu bà muốn cuối trang trống.</small></span><input type="checkbox" id="settingPetEnabled" checked></label>
         <label class="settings-row"><span><strong>Hiệu ứng xuất hiện / biến mất</strong><small>Mèo mở cửa đi vào; ma bụp ra rồi tan rã.</small></span><input type="checkbox" id="settingPetEffects" checked></label>
         <label class="settings-row"><span><strong>Bong bóng lời nói</strong><small>Bấm vào pet để xem câu nói ngẫu nhiên.</small></span><input type="checkbox" id="settingPetSpeech" checked></label>
+    </div>
+    <div class="pet-customizer">
+        <h4>🖼️ Tự thay hình và chuyển động pet</h4>
+        <p class="settings-note">Tải GIF, video ngắn MP4/WebM hoặc chọn nhiều ảnh để chạy lần lượt thành hoạt ảnh. Tệp lưu trong trình duyệt này.</p>
+        <label class="pet-upload-label">Chọn GIF / video / nhiều khung hình<input type="file" id="petMediaUpload" accept="image/*,video/mp4,video/webm" multiple></label>
+        <div class="settings-actions-inline"><button class="secondary-button" id="clearPetMedia" type="button">Dùng lại pet mặc định</button></div>
+        <p class="settings-note" id="petMediaStatus">Chưa có hình tùy chỉnh.</p>
+        <label class="pet-dialogue-label"><strong>💬 Lời thoại của pet</strong><small>Mỗi dòng là một câu; bấm vào pet sẽ chọn ngẫu nhiên. Để trống thì dùng lời thoại mặc định.</small>
+        <textarea id="petDialogueText" rows="6" placeholder="Meow~ 🐾&#10;Có ai gọi tui hả?&#10;Đi dạo nè!"></textarea></label>
+        <button class="secondary-button" id="savePetDialogue" type="button">Lưu lời thoại</button>
     </div>
 </section>
             <section class="settings-panel" data-settings-panel="account">
@@ -563,7 +578,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261019-6"></script>
+    <script src="script.js?v=20261019-7"></script>
 </body>
 
 </html>
