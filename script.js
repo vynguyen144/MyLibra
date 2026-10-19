@@ -3331,7 +3331,7 @@ window.addEventListener("pagehide", () => {
     if (currentBookId) void commitCurrentReaderProgress();
 });
 
-function closeReaderAndReturn() {
+async function closeReaderAndReturn() {
     await commitCurrentReaderProgress();
     if (epubKeyHandler) {
         document.removeEventListener("keyup", epubKeyHandler);
