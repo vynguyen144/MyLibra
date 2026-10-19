@@ -295,6 +295,9 @@ let epubKeyHandler = null;
 let epubChapterOptions = [];
 let epubEditorState = null;
 let readerMode = localStorage.getItem("mylibra-reader-mode") || "scroll";
+let readerProgressSaveTimer = null;
+let readerScrollFramePending = false;
+let lastReaderProgressSavedAt = 0;
 
 const DB_NAME = "MyLibraDB";
 const DB_VERSION = 1;
@@ -2296,8 +2299,11 @@ function handleEpubRelocated(location) {
     if (location?.start?.href) updateEpubChapterSelect(location.start.href);
     if (location?.start?.percentage !== undefined) {
         book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
-        saveBookToDatabase(book).then(() => scheduleDriveManifestSync()).catch(console.error);
-        renderBooks();
+        // Chỉ lưu tiến độ; không render lại toàn bộ thư viện trong lúc đang cuộn đọc.
+        if (readerProgressSaveTimer) clearTimeout(readerProgressSaveTimer);
+        readerProgressSaveTimer = setTimeout(() => {
+            saveBookToDatabase(book).then(() => scheduleDriveManifestSync()).catch(console.error);
+        }, 900);
     }
 }
 
@@ -2900,10 +2906,6 @@ async function openEpubReader(book) {
 
         renderEpubChapterOptions();
 
-        if (currentEpub.locations) {
-            currentEpub.locations.generate(1600).catch(() => {});
-        }
-
         if (savedCfi) {
             await currentRendition.display(savedCfi);
         } else {
@@ -3341,36 +3343,35 @@ backFromReader?.addEventListener("click", closeReaderAndReturn);
 // Khi cuộn TXT gần cuối, tự chuyển sang chương kế không áp dụng vì TXT không có cấu trúc chương đáng tin cậy.
 function updateReaderProgress() {
     if (readerPage.hidden || !currentBookId) return;
-
-    const totalHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
-
-    const progress = totalHeight <= 0
-        ? 0
-        : Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
-
+    const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = totalHeight <= 0 ? 0 : Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
     readerProgressBar.style.width = progress + "%";
-
     const book = books.find((item) => item.id === currentBookId);
+    if (!book || book.fileType !== "TXT") return;
 
-    if (book && book.fileType === "TXT") {
-        book.progress = Math.round(progress);
-        localStorage.setItem(
-            "mylibra-position-" + book.id,
-            String(window.scrollY)
-        );
+    book.progress = Math.round(progress);
+    localStorage.setItem("mylibra-position-" + book.id, String(window.scrollY));
+
+    // Không ghi IndexedDB/Drive ở mọi sự kiện cuộn. Chờ người đọc ngừng cuộn 900 ms.
+    if (readerProgressSaveTimer) clearTimeout(readerProgressSaveTimer);
+    readerProgressSaveTimer = setTimeout(() => {
         saveBookToDatabase(book).then(() => {
             markCloudPositionsChanged();
             scheduleDriveManifestSync();
         }).catch(console.error);
-    }
+    }, 900);
 }
 
 window.addEventListener("scroll", () => {
-    if (!readerPage.hidden && books.find((book) => book.id === currentBookId)?.fileType === "TXT") {
-        updateReaderProgress();
-    }
-});
+    if (readerScrollFramePending) return;
+    readerScrollFramePending = true;
+    requestAnimationFrame(() => {
+        readerScrollFramePending = false;
+        if (!readerPage.hidden && books.find((book) => book.id === currentBookId)?.fileType === "TXT") {
+            updateReaderProgress();
+        }
+    });
+}, { passive: true });
 
 function switchSettingsTab(tabName) {
     document.querySelectorAll(".settings-tab").forEach((button) => {
