@@ -1617,12 +1617,37 @@ function clearAllFilters() {
 searchInput?.addEventListener("input", applyLibraryFilters);
 clearFilters?.addEventListener("click", clearAllFilters);
 
+const READER_COLOR_PRESETS = {
+ paper:{bg:"#ffffff",text:"#292533"}, night:{bg:"#17171c",text:"#f2f0f7"},
+ sepia:{bg:"#f3e8d0",text:"#493727"}, mint:{bg:"#e8f5ee",text:"#203d32"},
+ lavender:{bg:"#eee9fa",text:"#35294d"}, pink:{bg:"#fff0f6",text:"#542c40"}
+};
+function applyReaderColorSettings(save = true) {
+ const saved=(()=>{try{return JSON.parse(localStorage.getItem("mylibra-reader-colors")||"{}")}catch(_){return {}}})();
+ const theme=localStorage.getItem("mylibra-theme")||"light";
+ const bg=saved.bg||({dark:"#211e2b",sepia:"#f4ecd8",pink:"#fff4f9"}[theme]||"#ffffff");
+ const color=saved.text||({dark:"#f1eef8",sepia:"#493f31",pink:"#543448"}[theme]||"#292533");
+ document.body.style.setProperty("--reader-bg",bg); document.body.style.setProperty("--reader-text",color);
+ if($("readerBackgroundColor"))$("readerBackgroundColor").value=bg;
+ if($("readerTextColor"))$("readerTextColor").value=color;
+ const match=Object.entries(READER_COLOR_PRESETS).find(([,p])=>p.bg.toLowerCase()===bg.toLowerCase()&&p.text.toLowerCase()===color.toLowerCase());
+ if($("readerColorPreset"))$("readerColorPreset").value=match?match[0]:"custom";
+ if(save)localStorage.setItem("mylibra-reader-colors",JSON.stringify({bg,text:color}));
+ if(typeof applyEpubTheme==="function")applyEpubTheme();
+}
+function setReaderColorPreset(name) {
+ const p=READER_COLOR_PRESETS[name]; if(!p)return;
+ document.body.style.setProperty("--reader-bg",p.bg);document.body.style.setProperty("--reader-text",p.text);
+ localStorage.setItem("mylibra-reader-colors",JSON.stringify({bg:p.bg,text:p.text}));
+ applyReaderColorSettings(false);
+}
 function applyTheme(theme, markChanged = true) {
     const normalized = ["light", "dark", "sepia", "pink"].includes(theme) ? theme : "light";
     document.body.classList.toggle("dark-mode", normalized === "dark");
     document.body.classList.toggle("sepia-mode", normalized === "sepia");
     document.body.classList.toggle("pink-mode", normalized === "pink");
     localStorage.setItem("mylibra-theme", normalized);
+    applyReaderColorSettings(false);
     applyEpubTheme();
     if (markChanged) {
         markCloudSettingsChanged();
@@ -1632,6 +1657,10 @@ function applyTheme(theme, markChanged = true) {
     document.querySelectorAll(".theme-option").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === normalized));
 }
 
+$("readerColorPreset")?.addEventListener("change", e => setReaderColorPreset(e.target.value));
+$("readerBackgroundColor")?.addEventListener("input", e => { document.body.style.setProperty("--reader-bg",e.target.value); localStorage.setItem("mylibra-reader-colors",JSON.stringify({bg:e.target.value,text:$("readerTextColor")?.value||"#292533"})); if($("readerColorPreset"))$("readerColorPreset").value="custom"; applyEpubTheme(); });
+$("readerTextColor")?.addEventListener("input", e => { document.body.style.setProperty("--reader-text",e.target.value); localStorage.setItem("mylibra-reader-colors",JSON.stringify({bg:$("readerBackgroundColor")?.value||"#ffffff",text:e.target.value})); if($("readerColorPreset"))$("readerColorPreset").value="custom"; applyEpubTheme(); });
+$("resetReaderColors")?.addEventListener("click",()=>{localStorage.removeItem("mylibra-reader-colors");applyReaderColorSettings(false);applyEpubTheme();});
 themeButton?.addEventListener("click", () => {
     const current = localStorage.getItem("mylibra-theme") || "light";
     applyTheme(current === "dark" ? "light" : current === "light" ? "dark" : "light");
@@ -1643,6 +1672,8 @@ homeButton?.addEventListener("click", () => {
 });
 
 function loadSettingsUI() {
+    applyReaderColorSettings(false);
+    if ($("petDialogueText")) $("petDialogueText").value = localStorage.getItem("mylibra-pet-dialogue") || "";
     if (settingShowReading) settingShowReading.checked = localStorage.getItem("mylibra-show-reading") !== "false";
     if (settingSort) settingSort.value = localStorage.getItem("mylibra-sort") || "added";
     if (settingConfirmDelete) settingConfirmDelete.checked = localStorage.getItem("mylibra-confirm-delete") !== "false";
@@ -2294,8 +2325,8 @@ updateFileModal?.addEventListener("click", (event) => {
 async function applyEpubTheme(rendition = currentRendition) {
     if (!rendition?.themes) return;
     const styles = getComputedStyle(document.body);
-    const textColor = styles.getPropertyValue("--text").trim() || (document.body.classList.contains("dark-mode") ? "#f1eef8" : "#292533");
-    const surfaceColor = styles.getPropertyValue("--surface").trim() || (document.body.classList.contains("dark-mode") ? "#211e2b" : "#ffffff");
+    const textColor = styles.getPropertyValue("--reader-text").trim() || styles.getPropertyValue("--text").trim() || (document.body.classList.contains("dark-mode") ? "#f1eef8" : "#292533");
+    const surfaceColor = styles.getPropertyValue("--reader-bg").trim() || styles.getPropertyValue("--surface").trim() || (document.body.classList.contains("dark-mode") ? "#211e2b" : "#ffffff");
     const linkColor = styles.getPropertyValue("--primary").trim() || textColor;
     const force = value => value + " !important";
     rendition.themes.default({
@@ -3319,6 +3350,8 @@ function applyReaderFontSize() {
         currentRendition.themes.fontSize(size + "px");
     }
     if (readerContent.classList.contains("reader-content")) {
+        readerContent.style.backgroundColor = "var(--reader-bg)";
+        readerContent.style.color = "var(--reader-text)";
         readerContent.style.fontSize = size + "px";
     }
 }
@@ -3667,6 +3700,33 @@ window.addEventListener("resize", () => {
 });
 window.requestAnimationFrame(petMotionFrame);
 
+const PET_DB_NAME="MyLibraPetMediaDB", PET_STORE="assets";
+function openPetDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(PET_DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(PET_STORE))r.result.createObjectStore(PET_STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function petDbPut(value){const db=await openPetDb();return new Promise((resolve,reject)=>{const tx=db.transaction(PET_STORE,"readwrite");tx.objectStore(PET_STORE).put(value,"active");tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
+async function petDbGet(){const db=await openPetDb();return new Promise((resolve,reject)=>{const r=db.transaction(PET_STORE).objectStore(PET_STORE).get("active");r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
+async function petDbClear(){const db=await openPetDb();return new Promise((resolve,reject)=>{const tx=db.transaction(PET_STORE,"readwrite");tx.objectStore(PET_STORE).delete("active");tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
+let petFrameTimer=null;
+function clearCustomPetVisual(){if(petFrameTimer)clearInterval(petFrameTimer);petFrameTimer=null;const sprite=$("virtualPetSprite");sprite?.querySelector(".pet-custom-media")?.remove();sprite?.querySelectorAll(".pixel-pet").forEach(el=>el.style.display="");}
+function renderCustomPetMedia(record){
+ clearCustomPetVisual();if(!record?.frames?.length){if($("petMediaStatus"))$("petMediaStatus").textContent="Chưa có hình tùy chỉnh.";return}
+ const sprite=$("virtualPetSprite");if(!sprite)return;sprite.querySelectorAll(".pixel-pet").forEach(el=>el.style.display="none");
+ const first=record.frames[0];let el;
+ if(first.type==="video"){el=document.createElement("video");el.autoplay=true;el.loop=true;el.muted=true;el.playsInline=true;el.src=first.src}
+ else{el=document.createElement("img");el.alt="Pet tùy chỉnh";el.src=first.src}
+ el.className="pet-custom-media";sprite.appendChild(el);
+ if(first.type!=="video"&&record.frames.length>1){let i=0;petFrameTimer=setInterval(()=>{i=(i+1)%record.frames.length;el.src=record.frames[i].src},Math.max(60,Number(record.frameMs)||160))}
+ if($("petMediaStatus"))$("petMediaStatus").textContent=record.frames.length>1?"Đang chạy "+record.frames.length+" khung hình.":"Đang dùng GIF/hình/video tùy chỉnh.";
+}
+async function loadCustomPetMedia(){try{renderCustomPetMedia(await petDbGet())}catch(_){if($("petMediaStatus"))$("petMediaStatus").textContent="Không đọc được dữ liệu pet trên trình duyệt này."}}
+$("petMediaUpload")?.addEventListener("change",async e=>{const files=Array.from(e.target.files||[]).slice(0,60);if(!files.length)return;try{
+ const frames=[];for(const f of files){if(f.size>25*1024*1024)throw Error("Mỗi tệp tối đa 25 MB nha.");const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>reject(r.error);r.readAsDataURL(f)});frames.push({src,type:f.type.startsWith("video/")?"video":"image",name:f.name})}
+ if(frames.some(f=>f.type==="video")&&frames.length>1)throw Error("Video chọn riêng; chọn nhiều ảnh để tạo chuỗi khung hình.");
+ await petDbPut({frames,frameMs:160,updatedAt:Date.now()});renderCustomPetMedia({frames,frameMs:160});if($("petMediaStatus"))$("petMediaStatus").textContent="Đã lưu "+frames.length+" tệp trên trình duyệt này.";
+ }catch(err){if($("petMediaStatus"))$("petMediaStatus").textContent=err.message||"Không lưu được tệp."}e.target.value=""});
+$("clearPetMedia")?.addEventListener("click",async()=>{try{await petDbClear();clearCustomPetVisual();if($("petMediaStatus"))$("petMediaStatus").textContent="Đã trở về pet mặc định."}catch(_){}});
+$("savePetDialogue")?.addEventListener("click",()=>{localStorage.setItem("mylibra-pet-dialogue",$("petDialogueText")?.value||"");if($("petMediaStatus"))$("petMediaStatus").textContent="Đã lưu lời thoại pet."});
+loadCustomPetMedia();
+
 function applyVirtualPetSettings(reveal = false) {
     if (!virtualPetCat) return;
     const pet = localStorage.getItem("mylibra-pet") || "cat";
@@ -3727,7 +3787,9 @@ function playGhostMoan() {
 
 function petSay(messages) {
     if (localStorage.getItem("mylibra-pet-speech") === "false" || !virtualPetBubble) return;
-    virtualPetBubble.textContent = messages[Math.floor(Math.random() * messages.length)];
+    const customMessages=(localStorage.getItem("mylibra-pet-dialogue")||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const pool=customMessages.length?customMessages:messages;
+    virtualPetBubble.textContent = pool[Math.floor(Math.random() * pool.length)];
     virtualPetCat?.classList.add("pet-show-bubble");
     window.setTimeout(() => virtualPetCat?.classList.remove("pet-show-bubble"), 1500);
 }
