@@ -3299,7 +3299,7 @@ increaseFont?.addEventListener("click", () => {
     applyReaderFontSize();
 });
 
-async async function commitCurrentReaderProgress() {
+async function commitCurrentReaderProgress() {
     const bookId = currentBookId;
     const book = books.find((item) => item.id === bookId);
     if (!book) return;
@@ -3328,9 +3328,6 @@ async async function commitCurrentReaderProgress() {
 // Đóng tab/trình duyệt: thử chốt tiến độ vào IndexedDB. Nếu bị mất điện/văng đột ngột,
 // vị trí vẫn được lưu liên tục ở localStorage để lần sau khôi phục.
 window.addEventListener("pagehide", () => {
-    if (currentBookId) void commitCurrentReaderProgress();
-});
-window.addEventListener("beforeunload", () => {
     if (currentBookId) void commitCurrentReaderProgress();
 });
 
