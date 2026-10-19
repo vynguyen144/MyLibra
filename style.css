@@ -1002,6 +1002,8 @@ button {
 
 .reader-content {
 
+    color: var(--text);
+
     width:
         min(
             760px,
