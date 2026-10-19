@@ -612,11 +612,23 @@ function getBookCloudMetadata(book) {
 
 async function uploadDriveFile(file, existingId = null) {
     const folderId = await ensureDriveFolder();
+    const fileName = file.name || "MyLibra file";
+
+    // Nếu chưa có Drive ID, tìm file trùng tên trong thư mục MyLibra để ghi đè
+    // thay vì tạo thêm một bản sao mới.
+    if (!existingId) {
+        const escapedName = fileName.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const q = encodeURIComponent("'" + folderId + "' in parents and name = '" + escapedName + "' and trashed = false");
+        const matches = await driveRequest("https://www.googleapis.com/drive/v3/files?q=" + q +
+            "&spaces=drive&orderBy=modifiedTime desc&fields=files(id,name)&pageSize=10");
+        existingId = matches.files?.[0]?.id || null;
+    }
+
     const mimeType = file.type || "application/octet-stream";
     const endpoint = existingId
         ? "https://www.googleapis.com/upload/drive/v3/files/" + encodeURIComponent(existingId) + "?uploadType=resumable"
         : "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
-    const metadata = {name:file.name || "MyLibra file", mimeType};
+    const metadata = {name:fileName, mimeType};
     if (!existingId) metadata.parents = [folderId];
 
     const init = await driveRequest(endpoint, {
@@ -1611,6 +1623,7 @@ function applyTheme(theme, markChanged = true) {
     document.body.classList.toggle("sepia-mode", normalized === "sepia");
     document.body.classList.toggle("pink-mode", normalized === "pink");
     localStorage.setItem("mylibra-theme", normalized);
+    applyEpubTheme();
     if (markChanged) {
         markCloudSettingsChanged();
         scheduleDriveManifestSync();
@@ -2278,7 +2291,31 @@ updateFileModal?.addEventListener("click", (event) => {
     if (event.target === updateFileModal) closeModal(updateFileModal);
 });
 
-async function setReaderMode(mode, persist = true) {
+async function applyEpubTheme(rendition = currentRendition) {
+    if (!rendition?.themes) return;
+    const styles = getComputedStyle(document.body);
+    const textColor = styles.getPropertyValue("--text").trim() || (document.body.classList.contains("dark-mode") ? "#f1eef8" : "#292533");
+    const surfaceColor = styles.getPropertyValue("--surface").trim() || (document.body.classList.contains("dark-mode") ? "#211e2b" : "#ffffff");
+    const linkColor = styles.getPropertyValue("--primary").trim() || textColor;
+    const force = value => value + " !important";
+    rendition.themes.default({
+        body: { color: force(textColor), background: force(surfaceColor) },
+        p: { color: force(textColor) },
+        span: { color: force(textColor) },
+        div: { color: force(textColor) },
+        li: { color: force(textColor) },
+        h1: { color: force(textColor) },
+        h2: { color: force(textColor) },
+        h3: { color: force(textColor) },
+        h4: { color: force(textColor) },
+        h5: { color: force(textColor) },
+        h6: { color: force(textColor) },
+        blockquote: { color: force(textColor) },
+        a: { color: force(linkColor) }
+    });
+}
+
+function setReaderMode(mode, persist = true) {
     readerMode = mode === "page" ? "page" : "scroll";
     if (persist) {
         localStorage.setItem("mylibra-reader-mode", readerMode);
@@ -2303,7 +2340,7 @@ async function setReaderMode(mode, persist = true) {
                 flow: readerMode === "page" ? "paginated" : "scrolled-doc",
                 spread: "none"
             });
-            currentRendition.themes.default({ body: { color: "var(--text)", background: "var(--surface)" } });
+            applyEpubTheme(currentRendition);
             currentRendition.on("relocated", handleEpubRelocated);
             currentRendition.display(currentCfi || undefined).then(() => applyReaderFontSize()).catch(console.error);
         }
@@ -2899,12 +2936,7 @@ async function openEpubReader(book) {
             spread: "none"
         });
 
-        currentRendition.themes.default({
-            body: {
-                color: "var(--text)",
-                background: "var(--surface)"
-            }
-        });
+        applyEpubTheme(currentRendition);
 
         const savedCfi = localStorage.getItem("mylibra-epub-cfi-" + book.id);
 
