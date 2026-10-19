@@ -774,6 +774,9 @@ async function syncToGoogleDrive() {
 async function syncFromGoogleDrive() { return syncToGoogleDrive(); }
 
 let driveSelectionBooks = [];
+let driveModalMode = "upload";
+let driveImportFiles = [];
+let selectedDriveImportFile = null;
 
 function ensureDriveSelectionModal() {
     let modal = document.getElementById("driveSelectionModal");
@@ -782,53 +785,85 @@ function ensureDriveSelectionModal() {
     modal.className = "modal-overlay drive-selection-overlay";
     modal.id = "driveSelectionModal";
     modal.hidden = true;
-    modal.innerHTML = `
-        <section class="modal drive-selection-modal" role="dialog" aria-modal="true" aria-labelledby="driveSelectionTitle">
-            <button class="modal-close" id="closeDriveSelection" type="button" aria-label="Đóng">×</button>
-            <h2 id="driveSelectionTitle">☁️ Tải file lên Google Drive</h2>
-            <p class="modal-description">Chọn các file truyện đang có trên thiết bị để tải thủ công vào thư mục MyLibra trên Google Drive. Thao tác này không đồng bộ hoặc xóa truyện tự động.</p>
-            <div class="drive-selection-toolbar">
-                <span id="driveSelectionCount">Đang tải danh sách…</span>
-                <div><button class="add-button" id="driveSelectAll" type="button">Chọn tất cả</button><button class="add-button" id="driveSelectNone" type="button">Bỏ chọn</button></div>
-            </div>
-            <div class="drive-selection-list" id="driveSelectionList" aria-live="polite"></div>
-            <p class="settings-note drive-selection-status" id="driveSelectionStatus"></p>
-            <div class="modal-actions">
-                <button class="add-button" id="cancelDriveSelection" type="button">Đóng</button>
-                <button class="primary-button" id="syncSelectedDriveBooks" type="button" disabled>⬆️ Tải file đã chọn lên Drive</button>
-            </div>
-        </section>`;
+    modal.innerHTML = '<section class="modal drive-selection-modal" role="dialog" aria-modal="true" aria-labelledby="driveSelectionTitle">' +
+        '<button class="modal-close" id="closeDriveSelection" type="button" aria-label="Đóng">×</button>' +
+        '<h2 id="driveSelectionTitle">☁️ Google Drive</h2><p class="modal-description" id="driveSelectionDescription">Chọn thao tác muốn thực hiện.</p>' +
+        '<div class="drive-mode-tabs"><button class="add-button active" id="driveModeUpload" type="button">⬆️ Tải lên Drive</button> ' +
+        '<button class="add-button" id="driveModeImport" type="button">⬇️ Cập nhật từ Drive</button></div>' +
+        '<div class="drive-selection-toolbar"><span id="driveSelectionCount">Đang tải danh sách…</span>' +
+        '<div id="driveUploadSelectionTools"><button class="add-button" id="driveSelectAll" type="button">Chọn tất cả</button> ' +
+        '<button class="add-button" id="driveSelectNone" type="button">Bỏ chọn</button></div></div>' +
+        '<div class="drive-selection-list" id="driveSelectionList" aria-live="polite"></div>' +
+        '<p class="settings-note drive-selection-status" id="driveSelectionStatus"></p>' +
+        '<div class="modal-actions"><button class="add-button" id="cancelDriveSelection" type="button">Đóng</button> ' +
+        '<button class="primary-button" id="syncSelectedDriveBooks" type="button" disabled>⬆️ Tải file đã chọn lên Drive</button></div></section>';
     document.body.appendChild(modal);
     const close = () => { modal.hidden = true; };
     modal.querySelector("#closeDriveSelection").addEventListener("click", close);
     modal.querySelector("#cancelDriveSelection").addEventListener("click", close);
     modal.addEventListener("click", event => { if (event.target === modal) close(); });
     modal.querySelector("#driveSelectAll").addEventListener("click", () => {
-        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => { input.checked = true; });
+        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => input.checked = true);
         updateDriveSelectionCount();
     });
     modal.querySelector("#driveSelectNone").addEventListener("click", () => {
-        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => { input.checked = false; });
+        modal.querySelectorAll(".drive-selection-check:not(:disabled)").forEach(input => input.checked = false);
         updateDriveSelectionCount();
     });
-    modal.querySelector("#syncSelectedDriveBooks").addEventListener("click", syncSelectedDriveBooks);
+    modal.querySelector("#syncSelectedDriveBooks").addEventListener("click", handleDriveSelectionAction);
     modal.querySelector("#driveSelectionList").addEventListener("change", event => {
         if (event.target.matches(".drive-selection-check")) updateDriveSelectionCount();
+        if (event.target.matches(".drive-import-file-radio")) {
+            selectedDriveImportFile = driveImportFiles.find(file => file.id === event.target.value) || null;
+            updateDriveSelectionCount();
+        }
+        if (event.target.matches(".drive-target-book-radio")) updateDriveSelectionCount();
     });
+    modal.querySelector("#driveModeUpload").addEventListener("click", () => switchDriveModalMode("upload"));
+    modal.querySelector("#driveModeImport").addEventListener("click", () => switchDriveModalMode("import"));
     return modal;
+}
+
+function switchDriveModalMode(mode) {
+    driveModalMode = mode === "import" ? "import" : "upload";
+    const modal = ensureDriveSelectionModal();
+    modal.querySelector("#driveModeUpload").classList.toggle("active", driveModalMode === "upload");
+    modal.querySelector("#driveModeImport").classList.toggle("active", driveModalMode === "import");
+    modal.querySelector("#driveUploadSelectionTools").hidden = driveModalMode !== "upload";
+    modal.querySelector("#driveSelectionTitle").textContent = driveModalMode === "upload" ? "⬆️ Tải truyện lên Google Drive" : "⬇️ Cập nhật file từ Google Drive";
+    modal.querySelector("#driveSelectionDescription").textContent = driveModalMode === "upload"
+        ? "Chọn truyện đang có trên thiết bị để tải lên thư mục MyLibra. Chỉ tải khi bà bấm nút xác nhận."
+        : "Chọn file trong thư mục MyLibra trên Drive, bấm Tiếp theo, rồi chọn truyện trên web cần thay file. Chỉ cập nhật sau khi xác nhận lần cuối.";
+    selectedDriveImportFile = null;
+    if (driveModalMode === "upload") renderDriveSelectionList(books.filter(book => book && book.file));
+    else loadDriveImportFiles().catch(error => {
+        modal.querySelector("#driveSelectionStatus").textContent = "Không đọc được danh sách Drive: " + (error?.message || String(error));
+    });
 }
 
 function updateDriveSelectionCount() {
     const modal = document.getElementById("driveSelectionModal");
     if (!modal) return;
-    const checks = [...modal.querySelectorAll(".drive-selection-check:not(:disabled)")];
-    const selected = checks.filter(input => input.checked).length;
     const count = modal.querySelector("#driveSelectionCount");
     const button = modal.querySelector("#syncSelectedDriveBooks");
-    if (count) count.textContent = selected + " file được chọn · " + checks.length + " file trên thiết bị";
+    if (driveModalMode === "upload") {
+        const checks = [...modal.querySelectorAll(".drive-selection-check:not(:disabled)")];
+        const selected = checks.filter(input => input.checked).length;
+        if (count) count.textContent = selected + " file được chọn · " + checks.length + " file trên thiết bị";
+        if (button) {
+            button.disabled = selected === 0;
+            button.textContent = selected ? "⬆️ Tải " + selected + " file lên Drive" : "⬆️ Tải file đã chọn lên Drive";
+        }
+        return;
+    }
+    const targetStep = modal.dataset.driveImportStep === "target";
+    const selected = targetStep ? modal.querySelector(".drive-target-book-radio:checked") : modal.querySelector(".drive-import-file-radio:checked");
+    if (count) count.textContent = targetStep
+        ? (selected ? "Truyện đích: " + (selected.dataset.bookTitle || "đã chọn") : "Chọn truyện trên web cần cập nhật")
+        : (selected ? "Đã chọn: " + (selected.dataset.fileName || "file Drive") : driveImportFiles.length + " file trong thư mục MyLibra");
     if (button) {
-        button.disabled = selected === 0;
-        button.textContent = selected ? "⬆️ Tải " + selected + " file lên Drive" : "⬆️ Tải file đã chọn lên Drive";
+        button.disabled = !selected;
+        button.textContent = targetStep ? "⚠️ Xác nhận thay file truyện" : "Tiếp theo: chọn truyện trên web →";
     }
 }
 
@@ -836,9 +871,10 @@ function renderDriveSelectionList(localBooks) {
     const modal = ensureDriveSelectionModal();
     const list = modal.querySelector("#driveSelectionList");
     const status = modal.querySelector("#driveSelectionStatus");
+    modal.dataset.driveImportStep = "file";
     driveSelectionBooks = localBooks;
     if (!localBooks.length) {
-        list.innerHTML = '<div class="drive-selection-empty"><span>📚</span><strong>Chưa có file truyện trên thiết bị</strong><p>Thêm EPUB, PDF hoặc TXT vào thư viện trước, sau đó chọn file muốn tải lên Drive.</p></div>';
+        list.innerHTML = '<div class="drive-selection-empty"><span>📚</span><strong>Chưa có file truyện trên thiết bị</strong><p>Thêm EPUB, PDF hoặc TXT vào thư viện trước.</p></div>';
         status.textContent = "";
         updateDriveSelectionCount();
         return;
@@ -851,21 +887,122 @@ function renderDriveSelectionList(localBooks) {
             '<span class="drive-selection-cover">' + cover + '</span><span class="drive-selection-info"><strong>' + escapeHTML(book.title || book.fileName || "Truyện chưa đặt tên") + '</strong>' +
             '<small>' + escapeHTML(book.author || "Không rõ tác giả") + ' · ' + type + '</small><small class="drive-selection-item-status">Có file trên thiết bị · ' + escapeHTML(book.fileName || "") + '</small></span></label>';
     }).join("");
-    status.textContent = "Chỉ tải file khi bà bấm nút bên dưới. MyLibra không tự đồng bộ hoặc tự xóa file trên Drive.";
+    status.textContent = "MyLibra không tự đồng bộ hoặc tự xóa file trên Drive.";
     updateDriveSelectionCount();
 }
 
 async function loadDriveSelection() {
     const modal = ensureDriveSelectionModal();
     modal.hidden = false;
+    switchDriveModalMode("upload");
+    setGoogleDriveStatus("Đã kết nối Google Drive. Chọn tải lên hoặc cập nhật file từ Drive.", true);
+}
+
+async function loadDriveImportFiles() {
+    const modal = ensureDriveSelectionModal();
     const list = modal.querySelector("#driveSelectionList");
-    const count = modal.querySelector("#driveSelectionCount");
-    const uploadButton = modal.querySelector("#syncSelectedDriveBooks");
-    list.innerHTML = '<div class="drive-selection-empty"><span>⏳</span><strong>Đang đọc thư viện trên thiết bị…</strong></div>';
-    count.textContent = "Đang tải danh sách…";
-    uploadButton.disabled = true;
-    renderDriveSelectionList(books.filter(book => book && book.file));
-    setGoogleDriveStatus("Đã kết nối Google Drive. Chọn file rồi bấm tải lên khi bà muốn.", true);
+    const status = modal.querySelector("#driveSelectionStatus");
+    modal.dataset.driveImportStep = "file";
+    selectedDriveImportFile = null;
+    list.innerHTML = '<div class="drive-selection-empty"><span>⏳</span><strong>Đang đọc file trong thư mục MyLibra trên Drive…</strong></div>';
+    modal.querySelector("#driveSelectionCount").textContent = "Đang tải danh sách Drive…";
+    modal.querySelector("#syncSelectedDriveBooks").disabled = true;
+    status.textContent = "";
+    const folderId = await ensureDriveFolder();
+    const q = encodeURIComponent("'" + folderId + "' in parents and trashed = false");
+    const result = await driveRequest("https://www.googleapis.com/drive/v3/files?q=" + q +
+        "&spaces=drive&orderBy=modifiedTime desc&pageSize=100&fields=files(id,name,mimeType,size,modifiedTime,webViewLink)");
+    driveImportFiles = (result.files || []).filter(file => ["EPUB", "PDF", "TXT"].includes(getFileType(file.name || "")) && file.mimeType !== "application/vnd.google-apps.folder");
+    if (!driveImportFiles.length) {
+        list.innerHTML = '<div class="drive-selection-empty"><span>📂</span><strong>Chưa tìm thấy file EPUB, PDF hoặc TXT</strong><p>Kiểm tra file nằm trong thư mục MyLibra trên Google Drive.</p></div>';
+        status.textContent = "Chỉ hiển thị file truyện tương thích trong thư mục MyLibra.";
+    } else {
+        list.innerHTML = driveImportFiles.map(file => {
+            const type = getFileType(file.name);
+            const size = file.size ? (Number(file.size) / 1024 / 1024).toFixed(2) + " MB" : "Dung lượng không rõ";
+            const date = file.modifiedTime ? new Date(file.modifiedTime).toLocaleString("vi-VN") : "";
+            return '<label class="drive-selection-item"><input class="drive-import-file-radio" type="radio" name="driveImportFile" value="' + escapeHTML(file.id) + '" data-file-name="' + escapeHTML(file.name) + '">' +
+                '<span class="drive-selection-cover"><span>' + escapeHTML(getBookIcon(type)) + '</span></span><span class="drive-selection-info"><strong>' + escapeHTML(file.name) + '</strong>' +
+                '<small>' + type + ' · ' + escapeHTML(size) + '</small><small class="drive-selection-item-status">Sửa đổi: ' + escapeHTML(date) + '</small></span></label>';
+        }).join("");
+        status.textContent = "Bước 1/2: chọn file Drive. Chưa có truyện nào trên web bị thay đổi.";
+    }
+    updateDriveSelectionCount();
+}
+
+function renderDriveTargetBooks() {
+    const modal = ensureDriveSelectionModal();
+    const list = modal.querySelector("#driveSelectionList");
+    const status = modal.querySelector("#driveSelectionStatus");
+    modal.dataset.driveImportStep = "target";
+    const targetBooks = books.filter(book => book && book.id);
+    if (!targetBooks.length) {
+        list.innerHTML = '<div class="drive-selection-empty"><span>📚</span><strong>Thư viện web chưa có truyện để cập nhật</strong></div>';
+        status.textContent = "Hãy thêm truyện vào MyLibra trước.";
+        updateDriveSelectionCount();
+        return;
+    }
+    list.innerHTML = '<p class="modal-description">File Drive đã chọn: <strong>' + escapeHTML(selectedDriveImportFile?.name || "") + '</strong></p>' +
+        targetBooks.map(book => {
+            const image = book.avatarDataUrl || book.coverDataUrl || "";
+            const cover = image ? '<img src="' + escapeHTML(image) + '" alt="">' : '<span>' + escapeHTML(book.icon || "📖") + '</span>';
+            return '<label class="drive-selection-item"><input class="drive-target-book-radio" type="radio" name="driveTargetBook" value="' + escapeHTML(book.id) + '" data-book-title="' + escapeHTML(book.title || book.fileName || "Truyện") + '">' +
+                '<span class="drive-selection-cover">' + cover + '</span><span class="drive-selection-info"><strong>' + escapeHTML(book.title || book.fileName || "Truyện chưa đặt tên") + '</strong>' +
+                '<small>' + escapeHTML(book.author || "Không rõ tác giả") + ' · ' + escapeHTML(book.fileType || "") + '</small><small class="drive-selection-item-status">File hiện tại: ' + escapeHTML(book.fileName || "Chưa có tên file") + '</small></span></label>';
+        }).join("");
+    status.textContent = "Bước 2/2: chọn truyện web nhận file. Tên truyện, mô tả, ảnh bìa và tiến độ đọc sẽ được giữ nguyên.";
+    updateDriveSelectionCount();
+}
+
+async function handleDriveSelectionAction() {
+    if (driveModalMode === "upload") return syncSelectedDriveBooks();
+    const modal = ensureDriveSelectionModal();
+    if (modal.dataset.driveImportStep !== "target") {
+        const selected = modal.querySelector(".drive-import-file-radio:checked");
+        if (!selected) return;
+        selectedDriveImportFile = driveImportFiles.find(file => file.id === selected.value) || null;
+        if (!selectedDriveImportFile) return;
+        renderDriveTargetBooks();
+        return;
+    }
+    const targetInput = modal.querySelector(".drive-target-book-radio:checked");
+    if (!targetInput || !selectedDriveImportFile) return;
+    const targetBook = books.find(book => book.id === targetInput.value);
+    if (!targetBook) return alert("Không tìm thấy truyện đích trong thư viện web.");
+    const fileType = getFileType(selectedDriveImportFile.name || "");
+    const confirmed = confirm('Thay file hiện tại của truyện "' + (targetBook.title || targetBook.fileName) +
+        '" bằng file "' + selectedDriveImportFile.name + '" từ Google Drive?\n\nTên truyện, mô tả, ảnh bìa và tiến độ đọc được giữ nguyên. Chỉ file nội dung thay đổi.');
+    if (!confirmed) return;
+    const button = modal.querySelector("#syncSelectedDriveBooks");
+    const status = modal.querySelector("#driveSelectionStatus");
+    button.disabled = true;
+    try {
+        status.textContent = "Đang tải file từ Google Drive…";
+        const response = await driveRequest("https://www.googleapis.com/drive/v3/files/" + encodeURIComponent(selectedDriveImportFile.id) + "?alt=media", {rawResponse:true});
+        const blob = await response.blob();
+        const mime = fileType === "EPUB" ? "application/epub+zip" : fileType === "PDF" ? "application/pdf" : "text/plain";
+        const file = new File([blob], selectedDriveImportFile.name, {type: mime});
+        targetBook.file = file;
+        targetBook.fileName = selectedDriveImportFile.name;
+        targetBook.fileType = fileType;
+        targetBook.fileUpdatedAt = Date.now();
+        targetBook.driveFileId = selectedDriveImportFile.id;
+        targetBook.driveFileUpdatedAt = selectedDriveImportFile.modifiedTime ? new Date(selectedDriveImportFile.modifiedTime).getTime() : Date.now();
+        await saveBookToDatabase(targetBook);
+        modal.hidden = true;
+        updateFilterOptions();
+        renderBooks(getFilteredBooks());
+        openBook(targetBook.id);
+        setGoogleDriveStatus("Đã cập nhật file từ Google Drive vào truyện trên web.", true);
+        alert("Đã cập nhật file từ Google Drive vào truyện trên web. Thông tin truyện và tiến độ đọc vẫn được giữ lại.");
+    } catch (error) {
+        console.error("Import Drive file:", error);
+        status.textContent = "Không cập nhật được file: " + (error?.message || String(error));
+        alert("Không thể tải file từ Google Drive.\n\n" + (error?.message || String(error)));
+    } finally {
+        button.disabled = false;
+        updateDriveSelectionCount();
+    }
 }
 
 async function syncSelectedDriveBooks() {
@@ -876,7 +1013,7 @@ async function syncSelectedDriveBooks() {
     const status = modal.querySelector("#driveSelectionStatus");
     if (!selected.length) return;
     button.disabled = true;
-    modal.querySelectorAll(".drive-selection-check").forEach(input => { input.disabled = true; });
+    modal.querySelectorAll(".drive-selection-check").forEach(input => input.disabled = true);
     let completed = 0;
     const errors = [];
     try {
@@ -899,7 +1036,7 @@ async function syncSelectedDriveBooks() {
         status.textContent = "Không tải được lên Drive: " + (error?.message || String(error));
         setGoogleDriveStatus("Tải file lên Google Drive thất bại.", true);
     } finally {
-        modal.querySelectorAll(".drive-selection-check").forEach(input => { input.disabled = false; });
+        modal.querySelectorAll(".drive-selection-check").forEach(input => input.disabled = false);
         renderDriveSelectionList(books.filter(book => book && book.file));
         button.disabled = false;
     }
