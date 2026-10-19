@@ -1087,7 +1087,7 @@ async function autoConnectGoogleDrive() {
         if (window.google?.accounts?.oauth2) {
             try {
                 await requestGoogleDriveAccess("");
-                setGoogleDriveStatus("Đã kết nối Google Drive. Bấm Đồng bộ để chọn truyện.", true);
+                setGoogleDriveStatus("Đã kết nối Google Drive. Mở cài đặt để chọn tải lên hoặc cập nhật file.", true);
             } catch (error) {
                 console.warn("Auto Drive token:", error);
             }
