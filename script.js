@@ -549,7 +549,8 @@ function getCloudReadingPositions() {
             key.startsWith("mylibra-position-") ||
             key.startsWith("mylibra-epub-cfi-") ||
             key.startsWith("mylibra-pdf-page-") ||
-            key.startsWith("mylibra-pdf-scale-")
+            key.startsWith("mylibra-pdf-scale-") ||
+            key.startsWith("mylibra-progress-")
         ) {
             positions[key] = localStorage.getItem(key);
         }
@@ -716,7 +717,14 @@ async function saveDriveManifest() {
         readingLists: getReadingLists(),
         deletedReadingLists: getDeletedReadingLists(),
         deletedBooks,
-        books: books.map(getBookCloudMetadata)
+        books: books.map(book => {
+            const metadata = getBookCloudMetadata(book);
+            const savedProgress = localStorage.getItem("mylibra-progress-" + book.id);
+            if (savedProgress !== null && Number.isFinite(Number(savedProgress))) {
+                metadata.progress = Math.max(0, Math.min(100, Number(savedProgress)));
+            }
+            return metadata;
+        })
     };
 
     const existingId = localStorage.getItem(DRIVE_MANIFEST_KEY);
@@ -1033,8 +1041,19 @@ async function syncSelectedDriveBooks() {
                 errors.push((book.title || book.fileName || "Truyện") + ": " + (error?.message || String(error)));
             }
         }
-        setGoogleDriveStatus(errors.length ? "Đã tải lên một phần file. Kiểm tra thông báo trong danh sách." : "Đã tải lên " + completed + " file vào thư mục MyLibra trên Google Drive.", true);
-        status.textContent = "Tải lên thành công " + completed + "/" + selected.length + " file." + (errors.length ? " Lỗi: " + errors.join(" · ") : "");
+        let manifestMessage = "";
+        if (completed > 0) {
+            try {
+                // Tải file xong mới cập nhật manifest, kèm tiến độ đọc và vị trí các định dạng.
+                markCloudPositionsChanged();
+                await saveDriveManifest();
+                manifestMessage = " Tiến độ đọc và dữ liệu thư viện cũng đã lưu lên Drive.";
+            } catch (manifestError) {
+                manifestMessage = " Lưu file xong nhưng chưa cập nhật được tiến độ/thư viện: " + (manifestError?.message || String(manifestError));
+            }
+        }
+        setGoogleDriveStatus(errors.length ? "Đã tải lên một phần file. Kiểm tra thông báo trong danh sách." : "Đã tải lên " + completed + " file vào thư mục MyLibra trên Google Drive." + manifestMessage, true);
+        status.textContent = "Tải lên thành công " + completed + "/" + selected.length + " file." + manifestMessage + (errors.length ? " Lỗi: " + errors.join(" · ") : "");
     } catch (error) {
         status.textContent = "Không tải được lên Drive: " + (error?.message || String(error));
         setGoogleDriveStatus("Tải file lên Google Drive thất bại.", true);
