@@ -3548,3 +3548,16 @@ body.pink-mode .progress-bar { background: linear-gradient(90deg, #f29abb, #df6d
 @keyframes frogMagic{0%{opacity:.25;transform:scale(.8)}100%{opacity:1;transform:scale(1.2)}}
 .pet-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:600px){.pet-choice-grid{grid-template-columns:1fr}}
+
+
+/* Reader performance: avoid repainting decorative transitions while scrolling long texts. */
+.reader-content {
+    text-rendering: optimizeSpeed;
+    -webkit-text-size-adjust: 100%;
+}
+.reader-progress-bar {
+    will-change: width;
+}
+.epub-reader iframe {
+    display: block;
+}
