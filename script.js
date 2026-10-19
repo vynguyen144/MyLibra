@@ -1188,10 +1188,12 @@ function setMainTab(tab) {
     libraryTab?.classList.toggle("active", !isHome);
 }
 function showHome() {
+    if (!readerPage.hidden && currentBookId) commitCurrentReaderProgress();
     bookDetailPage.hidden = true; readerPage.hidden = true; currentBookId = null;
     setMainTab("home"); renderHome();
 }
 function showLibrary() {
+    if (!readerPage.hidden && currentBookId) commitCurrentReaderProgress();
     bookDetailPage.hidden = true; readerPage.hidden = true; currentBookId = null;
     setMainTab("library");
 }
@@ -2293,17 +2295,13 @@ function handleEpubRelocated(location) {
     const book = books.find((item) => item.id === currentBookId);
     if (!book) return;
     if (location?.start?.cfi) {
+        // Vị trí EPUB được ghi nhẹ vào localStorage để vẫn khôi phục được nếu tab/trình duyệt bị văng.
         localStorage.setItem("mylibra-epub-cfi-" + book.id, location.start.cfi);
-        markCloudPositionsChanged();
     }
     if (location?.start?.href) updateEpubChapterSelect(location.start.href);
     if (location?.start?.percentage !== undefined) {
         book.progress = Math.max(0, Math.min(100, Math.round(location.start.percentage * 100)));
-        // Chỉ lưu tiến độ; không render lại toàn bộ thư viện trong lúc đang cuộn đọc.
-        if (readerProgressSaveTimer) clearTimeout(readerProgressSaveTimer);
-        readerProgressSaveTimer = setTimeout(() => {
-            saveBookToDatabase(book).then(() => scheduleDriveManifestSync()).catch(console.error);
-        }, 900);
+        localStorage.setItem("mylibra-progress-" + book.id, String(book.progress));
     }
 }
 
@@ -2352,6 +2350,10 @@ async function openReader(bookId) {
     }
 
     currentBookId = bookId;
+    const cachedProgress = Number(localStorage.getItem("mylibra-progress-" + book.id));
+    if (Number.isFinite(cachedProgress) && localStorage.getItem("mylibra-progress-" + book.id) !== null) {
+        book.progress = Math.max(0, Math.min(100, cachedProgress));
+    }
     readerTitle.textContent = book.title;
     showReader();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2597,14 +2599,11 @@ async function renderPdfPage(pageNumber) {
     const book = books.find((item) => item.id === currentPdfBookId);
     if (book) {
         book.progress = progress;
-        await saveBookToDatabase(book);
-        scheduleDriveManifestSync();
-        renderBooks();
+        localStorage.setItem("mylibra-progress-" + book.id, String(progress));
     }
 
     localStorage.setItem("mylibra-pdf-page-" + currentPdfBookId, String(pageNumber));
     localStorage.setItem("mylibra-pdf-scale-" + currentPdfBookId, String(currentPdfScale));
-    markCloudPositionsChanged();
 }
 
 async function changePdfPage(delta) {
@@ -3300,7 +3299,43 @@ increaseFont?.addEventListener("click", () => {
     applyReaderFontSize();
 });
 
+async async function commitCurrentReaderProgress() {
+    const bookId = currentBookId;
+    const book = books.find((item) => item.id === bookId);
+    if (!book) return;
+    if (readerProgressSaveTimer) {
+        clearTimeout(readerProgressSaveTimer);
+        readerProgressSaveTimer = null;
+    }
+
+    // Ghi lại vị trí hiện tại trước khi rời màn hình đọc.
+    if (book.fileType === "TXT" && !readerPage.hidden) {
+        localStorage.setItem("mylibra-position-" + book.id, String(window.scrollY));
+    }
+    if (typeof book.progress === "number") {
+        localStorage.setItem("mylibra-progress-" + book.id, String(book.progress));
+    }
+
+    try {
+        await saveBookToDatabase(book);
+        markCloudPositionsChanged();
+        scheduleDriveManifestSync();
+    } catch (error) {
+        console.error("Không lưu được tiến độ đọc:", error);
+    }
+}
+
+// Đóng tab/trình duyệt: thử chốt tiến độ vào IndexedDB. Nếu bị mất điện/văng đột ngột,
+// vị trí vẫn được lưu liên tục ở localStorage để lần sau khôi phục.
+window.addEventListener("pagehide", () => {
+    if (currentBookId) void commitCurrentReaderProgress();
+});
+window.addEventListener("beforeunload", () => {
+    if (currentBookId) void commitCurrentReaderProgress();
+});
+
 function closeReaderAndReturn() {
+    await commitCurrentReaderProgress();
     if (epubKeyHandler) {
         document.removeEventListener("keyup", epubKeyHandler);
         epubKeyHandler = null;
@@ -3337,7 +3372,7 @@ function closeReaderAndReturn() {
     }
 }
 
-backFromReader?.addEventListener("click", closeReaderAndReturn);
+backFromReader?.addEventListener("click", () => { closeReaderAndReturn().catch(console.error); });
 
 // TXT dùng cuộn dọc tự nhiên; EPUB có chế độ cuộn/trang riêng.
 // Khi cuộn TXT gần cuối, tự chuyển sang chương kế không áp dụng vì TXT không có cấu trúc chương đáng tin cậy.
@@ -3350,16 +3385,10 @@ function updateReaderProgress() {
     if (!book || book.fileType !== "TXT") return;
 
     book.progress = Math.round(progress);
+    // localStorage được cập nhật tức thì để khôi phục được nếu mất điện/tab văng;
+    // IndexedDB và Drive chỉ được cập nhật khi người đọc rời màn hình đọc hoặc đóng trang.
     localStorage.setItem("mylibra-position-" + book.id, String(window.scrollY));
-
-    // Không ghi IndexedDB/Drive ở mọi sự kiện cuộn. Chờ người đọc ngừng cuộn 900 ms.
-    if (readerProgressSaveTimer) clearTimeout(readerProgressSaveTimer);
-    readerProgressSaveTimer = setTimeout(() => {
-        saveBookToDatabase(book).then(() => {
-            markCloudPositionsChanged();
-            scheduleDriveManifestSync();
-        }).catch(console.error);
-    }, 900);
+    localStorage.setItem("mylibra-progress-" + book.id, String(book.progress));
 }
 
 window.addEventListener("scroll", () => {
